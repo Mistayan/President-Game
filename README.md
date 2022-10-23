@@ -81,6 +81,8 @@ A partir du fichier `main.py`, implémentez une petite interface pour représent
  > Puis implémentez une nouvelle série de tests pour implémenter 
  une des fonctionnalités listées ci-dessous.
 
+ > Passer par l'étape d'une modélisation UML permets souvent de clarifier l'approche face aux implémentations à réaliser.
+
 > Ceci vous oblige à devoir d'abord réfléchir sur la conception des objets. 
  Et leurs interactions.
  
