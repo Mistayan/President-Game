@@ -12,6 +12,7 @@ classDiagram
     Deck : +[Card] cards
 ```
 
+Attention, la carte la plus forte est le `2`, puis l'as, puis le `R`, `D`, `V`, `10`, `9`...
 .Afin de vous assurer que le code généré fonctionne. Executez
  les tests suivants. 
  
@@ -69,6 +70,21 @@ A partir du fichier `main.py`, implémentez une petite interface pour représent
  Une vérification doit être mise en place pour voir si le choix de l
  'utilisateur est correct.
   
+
+
+ ## Barème : 
+ - /1   Présence d'un fichier `requirements.txt` 
+ - /1   Pertinence du fichier `Readme.md`
+ - /2   Gestion de GIT
+ - /2   Doctrings
+ - /2	Nommage méthodes/classes/variables
+ - /2	Un joueur face à 3 IA
+ - /2	Generation des cartes
+ - /2	Validation des tests unitaires
+ - /2	Présentation graphique
+ - /1	Présentation graphique aboutie
+ - /3	Fonctionnalités avancées de jeu du président
+
  ## Suite des exercices à réaliser.
  
  > Réaliser l'ensemble de ces fonctionnalités en TDD. 
@@ -100,3 +116,5 @@ A partir du fichier `main.py`, implémentez une petite interface pour représent
  - [ ] Interface graphique
  - [ ] Intelligence artificielle 
     - Ajoutez un raisonnement simple en plus du raisonnement déjà existant.
+
+
