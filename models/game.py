@@ -1,17 +1,19 @@
 import logging
-
-import coloredlogs as coloredlogs
+from typing import Final
 import names
 
-from models import Player, AI, Deck, Card
-
-coloredlogs.install()
-logger = logging.getLogger(__name__)
+from models import Player, AI, Deck, Card, root_logger
 
 
 class PresidentGame:
+    logger: Final = logging.getLogger(__name__)
     players: list
+    last_playing_player_index = 0
+    pile: list[Card]
+    last_rounds_piles: list[list[Card]]     # For AI training sets
+    rounds_winners: list[Player]            # For AI training sets
     turn: int = 0
+    required_cards = 0
 
     def __init__(self, number_of_players=3, number_of_ai=0, *players_names):
         """
@@ -39,44 +41,64 @@ class PresidentGame:
         self.pile = []
 
     def distribute(self):
-        logger.info(f"distributing cards")
+        self.logger.info(f"distributing cards")
         for i, card in enumerate(self.deck.cards):
             player_index = i % len(self.players)
             self.players[player_index].add_to_hand(card)  # Give card to player
-            logger.debug(f"Gave {card} to player {self.players[player_index]}")
-
-    @staticmethod
-    def player_give_card_to(player: Player, give: Card, to: Player):
-        try:
-            receive = player.remove_from_hand(give)
-            to.add_to_hand(receive)
-        except Exception as e:
-            logger.critical(e)
-            raise
+            self.logger.debug(f"Gave {card} to player {self.players[player_index]}")
 
     @property
     def remaining_players(self):
         active_players = [not player.is_folded for player in self.players].count(True)
-        logger.info(f"players count : {active_players}")
+        self.logger.info(f"players count : {active_players}")
         return active_players
-
-    @staticmethod
-    def validate_user_input(player: Player, _in: str) -> Card | None:
-        if not isinstance(_in, str):
-            return PresidentGame.validate_user_input(player, str(_in))
-
-        _card = None
-        if _in == "FOLD":
-            player.folds()
-            _card = None
-        for card in player.hand:
-            if card.number == _in:
-                _card = card
-                break
-        return _card
 
     def add_to_pile(self, card: Card) -> None:
         self.pile.append(card)
 
     def get_pile(self) -> list:
         return self.pile
+
+    def free_pile(self):
+        self.pile = []
+
+    def start(self):
+        # On start of the game, players sort their hands for clearer display, and easier strategy planning
+        [player.sort_hand() for player in self.players]
+        self.game_loop()
+
+    def game_loop(self):
+        # Game_Loop
+        while self.remaining_players > 1:
+            self.logger.info('game loop')
+            self.round_loop()
+        print("".join(["#"*15, "GAME DONE", "#"*15]))
+        print("Players Ranks :\n"
+              "")
+        # END GAME_LOOP
+
+    def round_loop(self):
+        # Round_loop
+        for player in self.players:
+            print('round loop')
+            if player.is_folded:
+                continue  # Skip current player
+            self.player_loop(player)
+
+        # END ROUND_LOOP
+
+    def player_loop(self, player):
+        player_game = []
+        # Player_Loop
+        while not player.is_folded or not player._played_turn:
+            print('player loop')
+            print(f"Last played card : (most recent on the left)\n{self.pile[::-1]}" if self.pile
+                  else "You are the first to play.")
+            player_game = player.play(self.required_cards)
+            print(player_game, self.required_cards)
+            if not self.required_cards:
+                # First-player -> his card count become required card for other plays.
+                self.required_cards = len(player_game)
+            if len(player_game) != self.required_cards:
+                print(f"Not Enough {player_game[0].value} Cards !")
+        # END PLAYER_LOOP
