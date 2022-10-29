@@ -3,8 +3,7 @@ import logging
 import random
 from typing import Final
 
-from .conf import VALUES, COLORS
-from .card import Card
+from models import VALUES, COLORS, Card
 
 logger = logging.getLogger(__name__)
 
