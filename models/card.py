@@ -35,6 +35,13 @@ class Card:
         other_i = models.VALUES.index(other.number)
         return self_i > other_i
 
+    def __ge__(self, other):
+        if not other or not self:
+            raise ValueError("Cannot compare to Empty Element")
+        self_i = models.VALUES.index(self.number)
+        other_i = models.VALUES.index(other.number)
+        return self_i >= other_i
+
     def __lt__(self, other):
         if not other or not self:
             raise ValueError("Cannot compare to Empty Element")

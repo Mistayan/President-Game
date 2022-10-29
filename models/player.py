@@ -1,15 +1,19 @@
+from __future__ import annotations
 from typing import Final
 
 import names
 
 from models import Card
+from models.utils import human_choose_n_cards_to_play, human_choose_cards_to_play
 
 
 class Player:
     name: str
     hand: list
-    folded: bool
+    _folded: bool = False
     _is_human: bool
+    _played_turn: bool = False
+    _won: bool = False
 
     def __init__(self, name=None):
         """
@@ -21,6 +25,12 @@ class Player:
         self._is_human = True
         self.hand = []
         self._folded = False
+        self._played_turn = False
+        self._won = False
+
+    @property
+    def won(self):
+        return self._won
 
     def add_to_hand(self, card: Card) -> None:
         """ add the given Card to player's hand"""
@@ -41,34 +51,45 @@ class Player:
         return card
 
     @property
+    def is_active(self):
+        return not self.is_folded and not self.played_this_turn and not self.won
+
+    @property
     def is_folded(self):
         return self._folded
 
-    def folds(self, status=True):
+    def set_fold(self, status=True):
         self._folded = status
+
+    @property
+    def played_this_turn(self):
+        return self._played_turn
+
+    def set_played(self, value=True):
+        self._played_turn = value
 
     @property
     def is_human(self):
         return self._is_human
 
-    def play(self, card, n_cards_to_play=1) -> int:
+    def play_cli(self, n_cards_to_play=0) -> list[Card]:
         """"""
+        print(f"Your hand from weakest to strongest :\n{self.hand}")
+        if not n_cards_to_play:
+            n_cards_to_play = human_choose_n_cards_to_play()
+        player_game = human_choose_cards_to_play(self, n_cards_to_play)
 
-        return n_cards_to_play
+        return [_ for _ in player_game if _]  # Simple filtering
 
-    def _play_matching(self, string) -> Card:
-        if string in self.hand:
-            matching_card = None
-            for card in self.hand:
-                if card.number == string:
-                    matching_card = card
-                    self.remove_from_hand(matching_card)
-                    return matching_card
-        raise IndexError(f"{string} not found in {self.hand}")
+    def play_tk(self, n_cards_to_play=0) -> list[Card]:
+
+        ...  # Pass, C style :D
 
     def __str__(self):
         return f"{self.name}"
 
+    def __repr__(self):
+        return self.__str__()
+
     def sort_hand(self) -> None:
         self.hand.sort()
-
