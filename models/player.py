@@ -51,6 +51,10 @@ class Player:
         return card
 
     @property
+    def is_active(self):
+        return not self.is_folded and not self.played_this_turn and not self.won
+
+    @property
     def is_folded(self):
         return self._folded
 
@@ -58,7 +62,7 @@ class Player:
         self._folded = status
 
     @property
-    def played_his_turn(self):
+    def played_this_turn(self):
         return self._played_turn
 
     def set_played(self, value=True):

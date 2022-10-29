@@ -57,11 +57,14 @@ class PresidentGame:
         return still_alive
 
     @property
-    def active_players(self):
-        active_players = [not player.is_folded and not player.played_his_turn and not player.won
-                          for player in self.players].count(True)
+    def count_active_players(self):
+        active_players = self.active_players.count(True)
         self.logger.info(f"players count : {active_players}")
         return active_players
+
+    @property
+    def active_players(self):
+        return [player.is_active for player in self.players]
 
     @property
     def strongest_card(self):
@@ -83,24 +86,26 @@ class PresidentGame:
         self.game_loop()
 
     def game_loop(self):
-        while self.active_players > 1:
-            self.logger.info('game loop')
+        self.logger.info('game loop')
+        while self.count_active_players > 1:
             self.round_loop()
             # Whenever a new round starts, must reset pile and required_cards number
             self.free_pile()
             self.required_cards = 0
+            # As well as players fold status
+            [player.set_fold(False) for player in self.players]
 
         print("".join(["#" * 15, "GAME DONE", "#" * 15]))
+        rank_gen = (" : ".join([str(i), player.name, "\n"]) for i, player in enumerate(self.rounds_winners))
         print("Players Ranks :\n"
-              "")
+              f"{''.join(rank_gen)}")
         # END GAME_LOOP
 
     def round_loop(self):
         print(' '.join(["#" * 15, "New Round", "#" * 15]))
         # If not first round, skip until current player is last round's winner.
         skip = True if self.last_rounds_piles else False
-        cards = []
-        while self.active_players:
+        while self.count_active_players:
             for index, player in enumerate(self.players):
                 if skip and index != self.last_playing_player_index:
                     continue
@@ -130,15 +135,12 @@ class PresidentGame:
                 print(' '.join(["#" * 15, "TERMINATING Round, Best Card Value Played !", "#" * 15]))
                 break
         # END ROUND_LOOP
-        # Reset fold status
-        for player in self.players:
-            player.set_fold(False)
-            self.free_pile()
+
 
     def player_loop(self, player):
         print(' '.join(["#" * 15, f"{player}'s TURN", "#" * 15]))
         player_cards = []
-        while not player.is_folded and not player.played_his_turn:
+        while player.is_active:
             print(f"Last played card : (most recent on the left)\n{self.pile[::-1]}" if self.pile
                   else "You are the first to play.")
             player_cards = player.play_cli(self.required_cards)
@@ -168,12 +170,9 @@ class PresidentGame:
 
     def _can_play(self, player):
         """ define if current player can play"""
-        tg = False
+        status = player.is_active
 
-        return not player.is_folded \
-               or not player.played_his_turn \
-               or not player.won \
-               or tg
+        return status
 
     def set_revolution(self):
         self._revolution = not self._revolution
