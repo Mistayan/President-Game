@@ -68,3 +68,7 @@ class Player:
 
     def __str__(self):
         return f"{self.name}"
+
+    def sort_hand(self) -> None:
+        self.hand.sort()
+
