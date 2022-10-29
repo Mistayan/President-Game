@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Final
-
+from collections import Counter
 import names
 
 from models import Card
@@ -27,6 +27,7 @@ class Player:
         self._folded = False
         self._played_turn = False
         self._won = False
+        self._lost = False
 
     @property
     def won(self):
@@ -37,6 +38,7 @@ class Player:
         if not isinstance(card, Card):
             raise ValueError("card must be an instance of Card.")
         self.hand.append(card)
+        self.hand.sort()
 
     def remove_from_hand(self, card: Card) -> Card:
         """
@@ -52,7 +54,8 @@ class Player:
 
     @property
     def is_active(self):
-        return not self.is_folded and not self.played_this_turn and not self.won
+        return not self.is_folded and not self.played_this_turn \
+               and not self.won and not self._lost
 
     @property
     def is_folded(self):
@@ -68,15 +71,28 @@ class Player:
     def set_played(self, value=True):
         self._played_turn = value
 
+    def set_win(self):
+        self._won = True
+
+    def set_lost(self):
+        self._lost = True
+
     @property
     def is_human(self):
         return self._is_human
 
-    def play_cli(self, n_cards_to_play=0) -> list[Card]:
+    @property
+    def max_playable_card(self):
+        """ Returns the most common card's count"""
+        count = Counter(card.number for card in self.hand).most_common(1)[0]
+        k, v = count
+        return v
+
+    def play_cli(self, n_cards_to_play=0, rev=False) -> list[Card]:
         """"""
-        print(f"Your hand from weakest to strongest :\n{self.hand}")
+        print(f"Your hand :\n{self.hand if not rev else self.hand[::-1]}")
         if not n_cards_to_play:
-            n_cards_to_play = human_choose_n_cards_to_play()
+            n_cards_to_play = human_choose_n_cards_to_play(self.max_playable_card)
         player_game = human_choose_cards_to_play(self, n_cards_to_play)
 
         return [_ for _ in player_game if _]  # Simple filtering
