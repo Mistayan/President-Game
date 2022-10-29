@@ -68,14 +68,18 @@ class Player:
     def is_human(self):
         return self._is_human
 
-    def play(self, n_cards_to_play=0) -> list[Card]:
+    def play_cli(self, n_cards_to_play=0) -> list[Card]:
         """"""
-        print(f"Your hand :\n{self.hand}")
+        print(f"Your hand from weakest to strongest :\n{self.hand}")
         if not n_cards_to_play:
             n_cards_to_play = human_choose_n_cards_to_play()
         player_game = human_choose_cards_to_play(self, n_cards_to_play)
 
         return [_ for _ in player_game if _]  # Simple filtering
+
+    def play_tk(self, n_cards_to_play=0) -> list[Card]:
+
+        ...  # Pass, C style :D
 
     def __str__(self):
         return f"{self.name}"
