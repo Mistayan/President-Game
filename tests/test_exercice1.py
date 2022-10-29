@@ -1,5 +1,7 @@
 import unittest
+
 import models
+
 
 class TestCardsExercice1(unittest.TestCase):
     def test_card_constructor(self):
@@ -22,17 +24,19 @@ class TestCardsExercice1(unittest.TestCase):
         self.assertTrue(five_of_hearts < two_of_hearts,
                         'The two card is the highest card')
 
+
 class TestDeckExercice1(unittest.TestCase):
-     def test_deck_has_52_cards(self):
-         deck = models.Deck()
-         self.assertEqual(len(deck.cards), 52, 'The president is a card game '
-                                               'requiring 52 cards')
-     def test_deck_shuffling(self):
-         deck_1 = models.Deck()
-         deck_2 = models.Deck()
-         self.assertEqual(deck_1.cards, deck_2.cards, 'A new deck should not be automatically shuffled')
-         deck_2.shuffle()
-         self.assertNotEqual(deck_1.cards, deck_2.cards,'Shuffling a deck '
+    def test_deck_has_52_cards(self):
+        deck = models.Deck()
+        self.assertEqual(len(deck.cards), 52, 'The president is a card game '
+                                              'requiring 52 cards')
+
+    def test_deck_shuffling(self):
+        deck_1 = models.Deck()
+        deck_2 = models.Deck()
+        self.assertEqual(deck_1.cards, deck_2.cards, 'A new deck should not be automatically shuffled')
+        deck_2.shuffle()
+        self.assertNotEqual(deck_1.cards, deck_2.cards, 'Shuffling a deck '
                                                         'randomizes the '
                                                         'cards order')
 
