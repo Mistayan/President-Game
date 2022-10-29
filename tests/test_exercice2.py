@@ -2,6 +2,7 @@ import unittest
 
 from models.game import PresidentGame
 from models.player import Player
+from models.utils import player_give_card_to
 
 
 class TestCardsExercice2(unittest.TestCase):
@@ -41,15 +42,11 @@ class TestCardsExercice2(unittest.TestCase):
         ori_len_1 = len(player_1.hand)
         ori_len_2 = len(player_2.hand)
         card = player_1.hand[0]
-        print(card)
-        print(player_1.hand)
-        game.player_give_card_to(player_1, card, player_2)
-        print(player_1.hand)
-        # self.assertNotEqual(ori_len_1, len(player_1.hand))
-        # self.assertNotEqual(ori_len_2, len(player_2.hand))
+        player_give_card_to(player_1, card, player_2)
+        self.assertNotEqual(ori_len_1, len(player_1.hand))
+        self.assertNotEqual(ori_len_2, len(player_2.hand))
         self.assertNotEqual(player_1.hand[0], card)
         self.assertTrue(card in player_2.hand)
-        self.assertFalse(card in player_1.hand)
 
 
 if __name__ == '__main__':
