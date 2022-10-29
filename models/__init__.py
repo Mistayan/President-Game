@@ -1,4 +1,4 @@
-from .conf import VALUES, COLORS
+from .conf import VALUES, COLORS, root_logger
 from .card import Card
 from .deck import Deck
 from .player import Player
