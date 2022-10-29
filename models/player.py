@@ -1,20 +1,26 @@
 from typing import Final
 
-from models import Card
 import names
+
+from models import Card
 
 
 class Player:
     name: str
-    hand: list[Card]
+    hand: list
     folded: bool
-    __is_human: bool
+    _is_human: bool
 
     def __init__(self, name=None):
-        self.name = name or names.get_first_name()
-        self.__is_human = Truechanged
+        """
+        Instantiate a Player.
+         Player has a name, a hand holding cards,
+         can fold (stop playing for current round) receive a card or remove a card from his hand
+        """
+        self.name: Final = name or names.get_first_name()
+        self._is_human = True
         self.hand = []
-        self.folded = False
+        self._folded = False
 
     def add_to_hand(self, card: Card) -> None:
         """ add the given Card to player's hand"""
@@ -34,27 +40,21 @@ class Player:
         self.hand.remove(card)
         return card
 
+    @property
     def is_folded(self):
-        return self.folded
+        return self._folded
 
-    def has_folded(self):
-        self.folded = True
+    def folds(self, status=True):
+        self._folded = status
 
     @property
     def is_human(self):
-        return self.__is_human
+        return self._is_human
 
-    def play(self, user_in, n_cards_to_play=1) -> int:
+    def play(self, card, n_cards_to_play=1) -> int:
         """"""
-        while True:  # While input has not been validated
 
-            user_in = input("enter cards to play (separate with ',' for multiple values)")
-            if n_cards_to_play == 1 and not user_in.count(','):
-                print(f"{self._play_matching(user_in)} removed")
-            elif n_cards_to_play > 1 and n_cards_to_play == user_in.count(','):
-                for card in user_in.split(','):
-                    print(f"{self._play_matching(card)} removed")
-            return n_cards_to_play
+        return n_cards_to_play
 
     def _play_matching(self, string) -> Card:
         if string in self.hand:
