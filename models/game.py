@@ -2,6 +2,7 @@ import logging
 from typing import Final
 import names
 
+import models.conf
 from models import Player, AI, Deck, Card, VALUES
 
 
@@ -11,7 +12,6 @@ class PresidentGame:
     pile: list[Card]
     last_rounds_piles: list[list[Card]]  # For AI training sets
     rounds_winners: list[Player]  # For AI training sets
-    turn: int = 0
     required_cards = 0
 
     def __init__(self, number_of_players=3, number_of_ai=0, *players_names):
@@ -41,7 +41,7 @@ class PresidentGame:
         self.pile = []
         self.last_rounds_piles = []
         self._revolution = False
-        self._VALUES = VALUES
+        self.rounds_winners = []
 
     def _distribute(self):
         self.logger.info(f"distributing cards")
@@ -49,6 +49,10 @@ class PresidentGame:
             player_index = i % len(self.players)
             self.players[player_index].add_to_hand(card)  # Give card to player
             self.logger.debug(f"Gave {card} to player {self.players[player_index]}")
+
+    @property
+    def revolution(self):
+        return self._revolution
 
     @property
     def still_playing(self):
@@ -59,7 +63,6 @@ class PresidentGame:
     @property
     def count_active_players(self):
         active_players = self.active_players.count(True)
-        self.logger.info(f"players count : {active_players}")
         return active_players
 
     @property
@@ -68,7 +71,7 @@ class PresidentGame:
 
     @property
     def strongest_card(self):
-        return self._VALUES[-1]
+        return VALUES[-1] if not self.revolution else VALUES[0]
 
     def add_to_pile(self, card: Card) -> None:
         self.pile.append(card)
@@ -103,26 +106,27 @@ class PresidentGame:
 
     def round_loop(self):
         print(' '.join(["#" * 15, "New Round", "#" * 15]))
-        # If not first round, skip until current player is last round's winner.
+        # If not first round (nothing on pile), skip until current player is last round's winner.
         skip = True if self.last_rounds_piles else False
-        while self.count_active_players:
+        while self.count_active_players > 1:
             for index, player in enumerate(self.players):
                 if skip and index != self.last_playing_player_index:
                     continue
                 if skip and index == self.last_playing_player_index:
                     skip = False
-                if self._can_play(player):
+                    break
+                if player.is_active:
                     cards = self.player_loop(player)
-                    print(f"{player} played {cards}")
+                    print(f"{player} played {cards}" if cards else f"{player} folded")
                     if cards:  # If player played
                         [self.add_to_pile(card) for card in cards]
                         self.last_playing_player_index = index
                         # REVOLUTION ?
                         self.set_revolution() if len(cards) == 4 else None
                         if cards and cards[0].number == self.strongest_card:  # BEST_CARDS_PLAYED ?
-                            print(f" {VALUES[-1]} played. Forcefully stopping current round.")
+                            print(f" {VALUES[-1]} played. Forcefully stopping current turn.")
                             break
-                #
+                # player played or folded
             # Everyone played / folded / won
 
             print(' '.join(["#" * 15, "PREPARING FOR NEW TURN", "#" * 15]))
@@ -136,25 +140,32 @@ class PresidentGame:
                 break
         # END ROUND_LOOP
 
+    def strongest_on_pile(self):
+        return max(self.pile) if self.revolution else min(self.pile)
 
     def player_loop(self, player):
         print(' '.join(["#" * 15, f"{player}'s TURN", "#" * 15]))
         player_cards = []
         while player.is_active:
-            print(f"Last played card : (most recent on the left)\n{self.pile[::-1]}" if self.pile
+            print(f"Last played card : (most recent on the right)\n{self.pile}" if self.pile
                   else "You are the first to play.")
-            player_cards = player.play_cli(self.required_cards)
+            player_cards = player.play_cli(self.required_cards, self.revolution)
             if not self.required_cards:
                 # First-player -> his card count become required card for other plays.
                 self.required_cards = len(player_cards)
             if len(player_cards) > 0 and len(player_cards) == self.required_cards:
-                if not self.pile or player_cards[0] >= self.get_pile()[-1]:
+                # If first_play
+                if not self.pile:
                     player.set_played()  # set to 'True'
                     break
                 elif self.pile:
-                    print(f"Card{'s' if len(player_cards) > 1 else ''} not powerful enough. Pick again")
-                    for card in player_cards:  # Give cards back...
-                        player.add_to_hand(card)
+                    if self.revolution and player_cards[0] > self.pile[-1] or \
+                     not self.revolution and player_cards[0] < self.pile[-1]:
+                        print(f"Card{'s' if len(player_cards) > 1 else ''} not powerful enough. Pick again")
+                        for card in player_cards:  # Give cards back...
+                            player.add_to_hand(card)
+                    else:
+                        player.set_played()
             elif not player.is_folded:
                 print(f"Not enough {player_cards[0].value} in hand" if player_cards else "No card played. Fold ?")
                 if not player_cards:
@@ -164,6 +175,12 @@ class PresidentGame:
                         player.set_fold()  # set to 'True'
             else:
                 print(f"{player} folded")
+        if len(player.hand) == 0:
+            if player_cards and player_cards[0].number == self.strongest_card:
+                player.set_loose()
+            player.set_win()
+            print("".join(["#"*15, f"{player} WINS SPOT {len(self.rounds_winners) + 1}"]))
+            self.rounds_winners.append(player)
 
         return player_cards
         # END PLAYER_LOOP
@@ -176,10 +193,9 @@ class PresidentGame:
 
     def set_revolution(self):
         self._revolution = not self._revolution
-        self._VALUES = self._VALUES[::-1]
         # Re-arranging players hands so cards are from weakest to strongest
         for player in self.players:
             player.hand = player.hand[::-1]
-        print("#" * 30)
+        print("#" * 50)
         print(" ".join(["#" * 15, f"!!! REVOLUTION !!!", "#" * 15]))
-        print("#" * 30)
+        print("#" * 50)
