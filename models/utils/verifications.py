@@ -1,7 +1,6 @@
-from models import Card, VALUES
 
 
-def validate_human_input(player, _in: str) -> Card | None:
+def validate_human_input(player, _in: str):
     if _in and not isinstance(_in, str):
         return validate_human_input(player, str(_in))
 
@@ -16,12 +15,12 @@ def validate_human_input(player, _in: str) -> Card | None:
     return _card
 
 
-def human_choose_n_cards_to_play() -> int:
+def human_choose_n_cards_to_play(_max: int) -> int:
     n = 0
     while not n > 0:
         try:
-            n = int(input("[FIRST-PLAYER] - How many cards do you want to play (1-4)?\n>>> "))
-            if 0 > n > 4:
+            n = int(input(f"[FIRST-PLAYER] - How many cards do you want to play (1-{_max})?\n>>> "))
+            if n > _max or n < 1:
                 n = 0
         except:
             n = 0
@@ -33,7 +32,7 @@ def human_choose_cards_to_play(player, n_cards_to_play):
                 f"(2-9 JQKA), or 'FOLD' to skip current round\n>>> ").upper()
 
     # Check fold status
-    if _in == "FOLD":
+    if _in == "FOLD" or _in and _in[0] == "F":
         player.set_fold()  # True by default
 
     cards_to_play = []
