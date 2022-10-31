@@ -5,15 +5,17 @@ import names
 from models import Player, AI, Deck, Card, VALUES
 
 
-class PresidentGame:
-    players: list
+class CardGame(ABC):
+    random.SystemRandom().seed(random.random())
+    __super_private: Final = random.choices(string.hexdigits, k=100)
+    players: list = []
     last_playing_player_index = 0
-    pile: list[Card]
-    last_rounds_piles: list[list[Card]]  # For AI training sets
-    rounds_winners: list[Player]  # For AI training sets
-    turn: int = 0
-    required_cards = 0
+    pile: list[Card] = []
+    last_rounds_piles: list[list[Card]] = []  # For AI training sets
+    _rounds_winners: list[[Player, int]] = []  # For AI training sets
+    _round: int = 0
 
+    @abstractmethod
     def __init__(self, number_of_players=3, number_of_ai=0, *players_names):
         """
         Game Instance.
@@ -27,40 +29,31 @@ class PresidentGame:
         if 3 < number_of_players + number_of_ai > 6:
             raise ValueError(f"Invalid Total Number of Players. 3-6")
 
-        self.logger: Final = logging.getLogger(__name__)
-        self.players = []
+        self.__logger: Final = logging.getLogger(__class__.__name__)
         for name in players_names:  # Named players
             self.players += [Player(str(name))]
             number_of_players -= 1
-        for _ in range(number_of_players):  # Anonymous Players
+        for _ in range(number_of_players):  # Anonymous Players, random generation
             self.players += [Player()]
         self.players += [AI("AI - " + names.get_full_name(gender="female"))
                          for _ in range(number_of_ai)]  # AI Players
-        self.deck = Deck().shuffle()
-        self._distribute()
-        self.pile = []
-        self.last_rounds_piles = []
-        self._revolution = False
         self._VALUES = VALUES
+        self.deck = Deck().shuffle()
 
+    @abstractmethod
     def _distribute(self):
-        self.logger.info(f"distributing cards")
-        for i, card in enumerate(self.deck.cards):
-            player_index = i % len(self.players)
-            self.players[player_index].add_to_hand(card)  # Give card to player
-            self.logger.debug(f"Gave {card} to player {self.players[player_index]}")
+        """ Implement your distribution policy here """
+        pass
 
     @property
     def still_playing(self):
         still_alive = [not player.won for player in self.players].count(True)
-        self.logger.info(f"Still playing players : {still_alive}")
+        self.__logger.info(f"Active players : {still_alive}")
         return still_alive
 
     @property
     def count_active_players(self):
-        active_players = self.active_players.count(True)
-        self.logger.info(f"players count : {active_players}")
-        return active_players
+        return self.active_players.count(True)
 
     @property
     def active_players(self):
@@ -80,28 +73,113 @@ class PresidentGame:
         self.last_rounds_piles.append(self.pile)
         self.pile = []
 
+    def _print_winner(self):
+        rank_gen = (" : ".join([str(i), player_infos[0].name, player_infos[1]]) + "\n"
+                    for i, player_infos in enumerate(self._rounds_winners))
+        print("Players Ranks :\n"
+              f"{''.join(rank_gen)}")
+
+    def _reset_players_status(self):
+        """
+        Method to be called when round ends
+        :return:
+        """
+        self.__logger.debug(' '.join(["#" * 15, "RESETTING PLAYERS STATUS", "#" * 15]))
+        # reset played status
+        for player in self.players:
+            player.set_played(False)
+            player.last_played = []
+
+    def set_win(self, player):
+        player.set_win()
+        self._rounds_winners.append([player, self._round])
+
     def start(self):
-        # On start of the game, players sort their hands for clearer display, and easier strategy planning
+        # On start of the game,
+        # players sort their hands for clearer display, and easier strategy planning
         [player.sort_hand() for player in self.players]
         self.game_loop()
 
+    @abstractmethod
     def game_loop(self):
-        self.logger.info('game loop')
-        while self.count_active_players > 1:
+        self.__logger.info('game loop')
+        while self.still_playing > 1:
             self.round_loop()
-            # Whenever a new round starts, must reset pile and required_cards number
+            # Whenever a new round starts, must reset pile
             self.free_pile()
-            self.required_cards = 0
             # As well as players fold status
             [player.set_fold(False) for player in self.players]
 
         print("".join(["#" * 15, "GAME DONE", "#" * 15]))
-        rank_gen = (" : ".join([str(i), player.name, "\n"]) for i, player in enumerate(self.rounds_winners))
-        print("Players Ranks :\n"
-              f"{''.join(rank_gen)}")
+        self._print_winner()
+        # END GAME_LOOP
+
+    @abstractmethod
+    def round_loop(self):
+        """Implement your game logic here"""
+        while self.count_active_players >= 1:
+            for player in self.players:
+                ...
+
+    @abstractmethod
+    def player_loop(self, player: Player) -> list[Card]:
+        """ Implement how a player should play your game"""
+        ...
+        while player.is_active:
+            ...
+        return []
+
+
+class PresidentGame(CardGame):
+    required_cards = 0
+
+    def __init__(self, number_of_players=3, number_of_ai=0, *players_names):
+        """ Instantiate a CardGame with President rules"""
+        super().__init__(number_of_players, number_of_ai, *players_names)
+        self._logger: Final = logging.getLogger(__class__.__name__)
+        self._revolution = False
+        self._distribute()
+
+    def _distribute(self):
+        """ PresidentGame logic for distributing cards:
+        Give cards equally amongst players.
+         Remaining cards are distributed as fairly as possible
+        """
+        self._logger.info(f"distributing cards")
+        for i, card in enumerate(self.deck.cards):
+            player_index = i % len(self.players)
+            self.players[player_index].add_to_hand(card)  # Give card to player
+            self._logger.debug(f"Gave {card} to player {self.players[player_index]}")
+
+    def game_loop(self):
+        """ Keep CardGame logic,
+        but we require required_cards to be set since it is vital to this game"""
+        self._logger.info('game loop')
+        while self.still_playing > 1:
+            self.round_loop()
+            # Whenever a new round starts, must reset pile
+            self.free_pile()
+            self.required_cards = 0  # The only change we require compared to CardGame.
+            # As well as players fold status
+            [player.set_fold(False) for player in self.players]
+
+        print("".join(["#" * 15, "GAME DONE", "#" * 15]))
+        self._print_winner()
         # END GAME_LOOP
 
     def round_loop(self):
+        """
+        A round is defined as follows :
+        - Each player play cards or fold, until no one can play.
+        - When every player is folded, end round.
+        - Reset 'played' status but not 'folded' status on each turn (for player in self. players)
+
+        If first round, first player registered starts the game.
+        If not first round, first playing player is last round's winner
+        If last round's winner have won the game, next player will take the lead.
+        If a player is left alone on the table, the game ends.
+        """
+
         print(' '.join(["#" * 15, "New Round", "#" * 15]))
         # If not first round, skip until current player is last round's winner.
         skip = True if self.last_rounds_piles else False
@@ -125,11 +203,8 @@ class PresidentGame:
                 #
             # Everyone played / folded / won
 
-            print(' '.join(["#" * 15, "PREPARING FOR NEW TURN", "#" * 15]))
-            # reset played status
-            for player in self.players:
-                player.set_played(False)
-
+            self._reset_players_status()
+            self._round += 1
             # Check if last played cards match the strongest value
             if self.pile and self.pile[-1].number == self.strongest_card:
                 print(' '.join(["#" * 15, "TERMINATING Round, Best Card Value Played !", "#" * 15]))
