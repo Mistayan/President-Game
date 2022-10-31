@@ -8,7 +8,10 @@ def player_give_card_to(player, give, to):
         try:  # first, try as if player give to player
             to.add_to_hand(receive)
         except:  # If not a Player (method does not exist), try as if player put on game's pile
-            to.add_to_pile(receive)
+            try:
+                to.add_to_pile(receive)
+            except:
+                to.append(receive)
     except Exception as e:
         root_logger.critical(e)
         raise
