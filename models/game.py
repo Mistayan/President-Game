@@ -186,22 +186,33 @@ class PresidentGame(CardGame):
         print(' '.join(["#" * 15, "New Round", "#" * 15]))
         # If not first round, skip until current player is last round's winner.
         skip = True if self.last_rounds_piles else False
-        while self.count_active_players:
+        while self.count_active_players >= 1:
             for index, player in enumerate(self.players):
-                if skip and index != self.last_playing_player_index:
+                # Skip players until last round's winner is current_player (or the one after him)
+                if skip and index == self.last_playing_player_index:  # Player found
+                    skip = False  # Stop skipping
+                    if not player.is_active:  # If player already won, Next player starts
+                        self._logger.debug("Last playing player cannot play this round. Skipping")
+                        continue
+                elif skip:
                     continue
-                if skip and index == self.last_playing_player_index:
-                    skip = False
-                if self._can_play(player):
+
+                if self.still_playing == 1:  # If Last active player
+                    self.set_win(player)  # add current user to the end of the ladder
+
+                if player.is_active:
                     cards = self.player_loop(player)
-                    print(f"{player} played {cards}")
+                    print(f"{player} played {cards}" if cards
+                          else f"{player} Folded.")
+
                     if cards:  # If player played
                         [self.add_to_pile(card) for card in cards]
+                        if len(player.hand) == 0:  # Player got no Cards left
+                            self.set_win(player)
                         self.last_playing_player_index = index
-                        # REVOLUTION ?
-                        self.set_revolution() if len(cards) == 4 else None
+
+                        self.set_revolution() if len(cards) == 4 else None  # REVOLUTION ?
                         if cards and cards[0].number == self.strongest_card:  # BEST_CARDS_PLAYED ?
-                            print(f" {VALUES[-1]} played. Forcefully stopping current round.")
                             break
                 #
             # Everyone played / folded / won
@@ -210,54 +221,46 @@ class PresidentGame(CardGame):
             self._round += 1
             # Check if last played cards match the strongest value
             if self.pile and self.pile[-1].number == self.strongest_card:
-                print(' '.join(["#" * 15, "TERMINATING Round, Best Card Value Played !", "#" * 15]))
-                break
+                print(' '.join([
+                    "#" * 15,
+                    "TERMINATING Round, Best Card Value Played !",
+                    "#" * 15]))
+                break  # Break round_loop
+
         # END ROUND_LOOP
 
-
-    def player_loop(self, player):
+    def player_loop(self, player: Player) -> list[Card]:
         print(' '.join(["#" * 15, f"{player}'s TURN", "#" * 15]))
-        player_cards = []
+        cards = []
         while player.is_active:
-            print(f"Last played card : (most recent on the left)\n{self.pile[::-1]}" if self.pile
+            print(f"Last played card : (most recent on the right)\n{self.pile}" if self.pile
                   else "You are the first to play.")
-            player_cards = player.play_cli(self.required_cards)
+            cards = player.play_cli(self.required_cards)
             if not self.required_cards:
                 # First-player -> his card count become required card for other plays.
-                self.required_cards = len(player_cards)
-            if len(player_cards) > 0 and len(player_cards) == self.required_cards:
-                if not self.pile or player_cards[0] >= self.get_pile()[-1]:
-                    player.set_played()  # set to 'True'
+                self.required_cards = len(cards)
+
+            if cards and len(cards) == self.required_cards:
+                if not self.pile or cards[0] >= self.get_pile()[-1] and not self._revolution \
+                                 or cards[0] <= self.get_pile()[-1] and self._revolution:
+                    player.set_played()  # Cards are valid for current game state.
                     break
                 elif self.pile:
-                    print(f"Card{'s' if len(player_cards) > 1 else ''} not powerful enough. Pick again")
-                    for card in player_cards:  # Give cards back...
+                    print(f"Card{'s' if len(cards) > 1 else ''} not powerful enough. Pick again")
+                    for card in cards:  # Give cards back...
                         player.add_to_hand(card)
-            elif not player.is_folded:
-                print(f"Not enough {player_cards[0].value} in hand" if player_cards else "No card played. Fold ?")
-                if not player_cards:
-                    _in = input("Fold ? (y/n)")
-                    if _in.lower() == "y":
-                        print(f"{player} folded")
-                        player.set_fold()  # set to 'True'
-            else:
-                print(f"{player} folded")
+            elif not player.is_folded:  # Fail-safe for unexpected behaviour...
+                print(f"Not enough {cards[0].number} in hand" if cards
+                      else f"No card{'s' if len(cards) > 1 else ''} played. Fold?")
+                if not cards and player.ask():
+                    player.set_fold()
 
-        return player_cards
+        return cards
         # END PLAYER_LOOP
-
-    def _can_play(self, player):
-        """ define if current player can play"""
-        status = player.is_active
-
-        return status
 
     def set_revolution(self):
         self._revolution = not self._revolution
         self._VALUES = self._VALUES[::-1]
-        # Re-arranging players hands so cards are from weakest to strongest
-        for player in self.players:
-            player.hand = player.hand[::-1]
-        print("#" * 30)
+        print("#" * 50)
         print(" ".join(["#" * 15, f"!!! REVOLUTION !!!", "#" * 15]))
-        print("#" * 30)
+        print("#" * 50)
