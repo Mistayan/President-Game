@@ -34,7 +34,8 @@ class TestDeckExercice1(unittest.TestCase):
     def test_deck_shuffling(self):
         deck_1 = models.Deck()
         deck_2 = models.Deck()
-        self.assertEqual(deck_1.cards, deck_2.cards, 'A new deck should not be automatically shuffled')
+        self.assertEqual(deck_1.cards, deck_2.cards,
+                         'A new deck should not be automatically shuffled')
         deck_2.shuffle()
         self.assertNotEqual(deck_1.cards, deck_2.cards, 'Shuffling a deck '
                                                         'randomizes the '

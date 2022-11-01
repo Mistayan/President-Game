@@ -3,19 +3,22 @@ import random
 import string
 from abc import ABC, abstractmethod
 from typing import Final
+
 import names
 
-from models import Player, AI, Deck, Card, VALUES
+from models import AI
+from models.deck import Deck, Card, VALUES
+from models.player import Player
 
 
 class CardGame(ABC):
     random.SystemRandom().seed(random.random())
-    __super_private: Final = random.choices(string.hexdigits, k=100)
-    players: list = []
-    last_playing_player_index = 0
-    pile: list[Card] = []
-    last_rounds_piles: list[list[Card]] = []  # For AI training sets
-    _rounds_winners: list[[Player, int]] = []  # For AI training sets
+    __super_private: Final = ''.join(random.choices(string.hexdigits, k=100))
+    players: list
+    last_playing_player_index: int
+    pile: list[Card]
+    last_rounds_piles: list[list[Card]]  # For AI training sets
+    _rounds_winners: list[[Player, int]]  # For AI training sets
     _round: int = 0
 
     @abstractmethod
@@ -33,6 +36,9 @@ class CardGame(ABC):
             raise ValueError(f"Invalid Total Number of Players. 3-6")
 
         self.__logger: Final = logging.getLogger(__class__.__name__)
+        self.__logger.debug(self.__super_private)
+        self.players = []
+
         for name in players_names:  # Named players
             self.players += [Player(str(name))]
             number_of_players -= 1
@@ -40,6 +46,11 @@ class CardGame(ABC):
             self.players += [Player()]
         self.players += [AI("AI - " + names.get_full_name(gender="female"))
                          for _ in range(number_of_ai)]  # AI Players
+
+        self.pile = []
+        self.last_rounds_piles = []
+        self._rounds_winners = []
+        self.last_playing_player_index = 0
         self._VALUES = VALUES
         self.deck = Deck().shuffle()
 
@@ -81,6 +92,17 @@ class CardGame(ABC):
                     for i, player_infos in enumerate(self._rounds_winners))
         print("Players Ranks :\n"
               f"{''.join(rank_gen)}")
+
+    def player_give_card_to(self, player: Player, give: Card, to):
+        try:
+            card = player.remove_from_hand(give)
+
+            to.add_to_hand(card) if isinstance(to, Player) \
+                else to.add_to_pile(card) if isinstance(to, CardGame) \
+                else to.append(card) if isinstance(to, list) else None
+        except Exception as e:
+            self.__logger.critical(e)
+            raise
 
     def _reset_players_status(self):
         """
