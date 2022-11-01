@@ -30,8 +30,9 @@ class AI(Player):
     def play_cli(self, n_cards_to_play=0, override=None) -> list[Card]:
         if n_cards_to_play == 0:
             # I start
-            if self.max_combo == 4:
-                calc_revolution_interest()
+            ...
+        if self.max_combo == 4:
+            calc_revolution_interest()
         return
 
     def play_tk(self, n_cards_to_play=0) -> list[Card]:
