@@ -7,28 +7,37 @@ class TestGameExercice3(unittest.TestCase):
 
     def test_winner_ladder_no_neutrals(self):
         game = PresidentGame(2, 2)
-        p1 = game.players[0]
-        p2 = game.players[1]
-        p3 = game.players[2]
-        p4 = game.players[3]
-        game.set_win(p1)
-        game.set_win(p2)
-        game.set_win(p3)
-        game.set_win(p4)
+        for player in game.players:
+            game.increment_round()
+            game.set_win(player)
+
         ladder = [winner for winner in game.winners()]
-        self.assertNotRegex(str(ladder), "Neutre")
+        # scanning for "round -> rank"
+        self.assertRegex(str(ladder), "1 -> Pres")
+        self.assertRegex(str(ladder), "2 -> Vice-P")
+        self.assertRegex(str(ladder), "3 -> Trouf")
+        self.assertRegex(str(ladder), "4 -> Vice-T")
+        self.assertNotRegex(str(ladder), "-> Neut")
 
     def test_winner_ladder_two_neutrals(self):
-        game = PresidentGame(2, 3)
-        p1 = game.players[0]
-        p2 = game.players[1]
-        p3 = game.players[2]
-        p4 = game.players[3]
-        p5 = game.players[4]
-        game.set_win(p1)
-        game.set_win(p2)
-        game.set_win(p3)
-        game.set_win(p4)
-        game.set_win(p5)
+        game = PresidentGame(4, 2)
+        for player in game.players:
+            game.increment_round()
+            game.set_win(player)
         ladder = [winner for winner in game.winners()]
-        print(ladder)
+        # scanning for "round -> rank"
+        self.assertRegex(str(ladder), "1 -> Pres")
+        self.assertRegex(str(ladder), "2 -> Vice-P")
+        self.assertRegex(str(ladder), "3 -> Neut")
+        self.assertRegex(str(ladder), "4 -> Neut")
+        self.assertRegex(str(ladder), "5 -> Vice-T")
+        self.assertRegex(str(ladder), "6 -> Trouf")
+
+
+    def test_revolution(self):
+        game = PresidentGame(3, 0, "Mistayan")
+        strongest_before = game.strongest_card
+        game.set_revolution()
+        # After revolution, values should be reversed
+        strongest_after = game.strongest_card
+        self.assertNotEqual(strongest_before, strongest_after)
