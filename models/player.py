@@ -8,6 +8,11 @@ from models.card import Card
 
 
 class Player:
+    """
+    WARNING !!!
+    Any value you put below this line,  outside __init__
+    might be shared amongst different instances !!!
+    """
     name: str
     hand: list[Card]
     _folded: bool
@@ -21,6 +26,7 @@ class Player:
          Player has a name, a hand holding cards,
          can fold (stop playing for current round) receive a card or remove a card from his hand
         """
+        self.__buffer = []
         self._logger: Final = logging.getLogger(__class__.__name__)
         self.name: Final = name or names.get_first_name()
         self._is_human = True
@@ -41,10 +47,11 @@ class Player:
         """ add the given Card to player's hand"""
         if not isinstance(card, Card):
             raise ValueError("card must be an instance of Card.")
+        self._logger.debug(f"{self} received {card}\n{self.hand}")
         self.hand.append(card)
         self.sort_hand()  # Replicating real life's behaviour
 
-    def remove_from_hand(self, card: Card) -> Card:
+    def remove_from_hand(self, card: Card) -> Card | None:
         """
         remove a specified card form player's hand.
 
@@ -53,7 +60,12 @@ class Player:
         """
         if not isinstance(card, Card):
             raise ValueError("card must be an instance of Card.")
-        self.hand.remove(card)
+        if card in self.hand:
+            self.hand.remove(card)
+            self._logger.debug(f"{self} removed {card} from hand")
+        else:
+            card = None
+
         return card
 
     @property
@@ -135,18 +147,17 @@ class Player:
         :return: [card, ...] if there is enough of designated card in hand
                  [] Otherwise
         """
-        result = []
         if self.is_active:
             # Validate that player has n times this card in hand
             for i in range(n_cards_to_play):
                 card = self.validate_input(wanted_card)  # transforms wanted_card to Card
-                player_give_card_to(self, card, result) if card else None
-            if len(result) != n_cards_to_play:  # Not enough of designated card in hand...
-                [self.add_to_hand(card) for card in result]  # Give player his cards back
-                result = []
+                self.__buffer.append(self.remove_from_hand(card)) if card else None
+            if len(self.__buffer) != n_cards_to_play:  # Not enough of designated card in hand...
+                [self.add_to_hand(card) for card in self.__buffer]  # Give player his cards back
+                self.__buffer = []
 
-        self.last_played = result
-        return result
+        self.last_played = self.__buffer
+        return self.__buffer
 
     def __str__(self):
         return f"{self.name}"
@@ -158,7 +169,7 @@ class Player:
         self.hand.sort()
 
     def ask_n_cards_to_play(self) -> int:
-        """
+        """ HUMAN ONLY
         :return: self's pick between 1 and his maximum combo
         """
 
@@ -174,20 +185,27 @@ class Player:
                 n = 0
         return 1 if n < 1 else n
 
-    def choose_cards_to_play(self, n_cards_to_play):  # Human only
+    def choose_cards_to_play(self, n_cards_to_play, override: str = None):
+        """ use override to force input from external sources, instead of builtins inputs
+        If max_combo <= n_cards_to_play , cannot play ! (ask to fold by pressing enter)
+        Otherwise, player choose a card number from his hand and give N times this card.
+
+        """
         cards_to_play = []
         if n_cards_to_play <= self.max_combo:
-            _in = input(f"{n_cards_to_play} cards to play : (you can play {self.max_combo})\n"
-                        f"[2-9 JQKA] or 'F' to fold (cannot play anymore for current round)\n").upper()
+            _in = input(f"{n_cards_to_play} combo required: (your max : {self.max_combo})\n"
+                        f"[2-9 JQKA] or 'F' to fold (you will not be able to play current round)\n")\
+                .upper() if not override else override.upper()
             # Check fold status
             if not (_in and _in[0] == 'F'):
                 cards_to_play = self.play_cards(n_cards_to_play, _in)
             else:
                 self.set_fold()  # True by default
-        else:
+        elif not override:
             input("Cannot play. Press enter to fold")
             self.set_fold()  # True by default
-
+        if override and not cards_to_play:
+            self._logger.info("".join(["!"*20, f" {self} Could Not Play ", "!"*20]))
         return cards_to_play
 
     def validate_input(self, _in: str) -> Card | None:
