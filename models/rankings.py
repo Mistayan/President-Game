@@ -15,9 +15,11 @@ class PresidentRank:
     rank: int
     rank_name: str
 
-    def __init__(self, n, _max):
+    def __init__(self, n, players):
         """ Ranks classifications for President Game """
         self.rank = n
+        _max = len(players)
+        current_player = players[n - 1]
         if _max < 3 or _max > 6:
             raise CheaterDetected()
 
@@ -41,7 +43,9 @@ class PresidentRank:
         try:
             self.rank_name
         except:
+            self.rank_name = "CHEATER"
             raise CheaterDetected("No such Rank")
+        current_player.rank = self
 
     def __str__(self):
         return self.rank_name
