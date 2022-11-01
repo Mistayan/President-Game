@@ -204,6 +204,7 @@ class Player(ABC):
             self.set_fold()  # True by default
         if override and not cards_to_play:
             self._logger.info("".join(["!"*20, f" {self} Could Not Play ", "!"*20]))
+            self.set_fold()  # True by default
         return cards_to_play
 
     def validate_input(self, _in: str) -> Card | None:
