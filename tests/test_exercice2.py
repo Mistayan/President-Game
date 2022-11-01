@@ -1,6 +1,6 @@
 import unittest
 
-from models import AI, Human
+from models import Human
 from models.game import PresidentGame
 
 

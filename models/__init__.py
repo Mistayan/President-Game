@@ -1,4 +1,4 @@
 from .ai import AI
-from .player import Human
-from .conf import VALUES, COLORS, root_logger
+from .conf import VALUES, COLORS
 from .game import PresidentGame, CardGame, Card
+from .player import Human

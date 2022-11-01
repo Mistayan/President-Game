@@ -7,8 +7,6 @@ Creation-date: 11/01/22
 """
 import logging
 
-from models import root_logger
-
 
 class CheaterDetected(Exception):
     critical = ["🚨\t" * 25]
