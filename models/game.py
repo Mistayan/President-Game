@@ -1,5 +1,6 @@
 import logging
 import random
+import re
 import string
 from abc import ABC, abstractmethod
 from typing import Final
@@ -9,6 +10,7 @@ import names
 from models import AI
 from models.deck import Deck, Card, VALUES
 from models.player import Player, Human
+from models.rankings import PresidentRank
 
 
 class CardGame(ABC):
@@ -18,7 +20,8 @@ class CardGame(ABC):
     last_playing_player_index: int
     pile: list[Card]
     last_rounds_piles: list[list[Card]]  # For AI training sets
-    _rounds_winners: list[[Player, int]]  # For AI training sets
+    _rounds_winners: list[[Player, int, Card]]  # For AI training sets
+    _looser_queue: list[[Player, int, Card]]  # For AI training sets
     _round: int = 0
 
     @abstractmethod
@@ -50,6 +53,7 @@ class CardGame(ABC):
         self.pile = []
         self.last_rounds_piles = []
         self._rounds_winners = []
+        self._looser_queue = []
         self.last_playing_player_index = 0
         self._VALUES = VALUES
         self.deck = Deck().shuffle()
@@ -87,11 +91,16 @@ class CardGame(ABC):
         self.last_rounds_piles.append(self.pile)
         self.pile = []
 
-    def _print_winner(self):
-        rank_gen = (" : ".join([str(i), player_infos[0].name, player_infos[1]]) + "\n"
-                    for i, player_infos in enumerate(self._rounds_winners))
-        print("Players Ranks :\n"
-              f"{''.join(rank_gen)}")
+    def show_players(self):
+        for player in self.players:
+            print(f"{player} : {len(player.hand)} Cards")
+
+    def winners(self):
+        rank_gen = [""]
+        if self._rounds_winners:
+            rank_gen = (" : ".join([str(i), player_infos[0].name, "on round", str(player_infos[1])]) + "\n"
+                        for i, player_infos in enumerate(self._rounds_winners))
+        return rank_gen
 
     def player_give_card_to(self, player: Player, give: Card, to):
         try:
@@ -116,11 +125,21 @@ class CardGame(ABC):
             player.last_played = []
 
     def set_win(self, player) -> None:
-        """ Set player status to winner and append [Player, Rank] to _rounds_winners"""
+        """
+        Set player status to winner or looser and append :
+        [Player, Round, Last_Card] to _rounds_winners
+        """
         if len(self.players) - 1 != len(self._rounds_winners):
             print(f"{player} won the place N°{len(self._rounds_winners) + 1}")
+        else:
+            self.set_lost(player)
         player.set_win()
-        self._rounds_winners.append([player, self._round])
+        self._rounds_winners.append([player, self._round, self.pile[-1] if self.pile else None])
+
+    def set_lost(self, player) -> None:
+        """ Set player status to winner and append [Player, Rank] to _rounds_winners"""
+        print(f"{player} Lost the game.")
+        self._looser_queue.append([player, self._round, player.hand[-1] if player.hand else None])
 
     def increment_round(self) -> None:
         self._round += 1
@@ -128,8 +147,20 @@ class CardGame(ABC):
     def start(self) -> None:
         # On start of the game,
         # players sort their hands for clearer display, and easier strategy planning
+        # Display current players and their number of cards in hand
         [player.sort_hand() for player in self.players]
-        self.game_loop()
+        self.show_players()
+        input("press Enter to start the game")
+        wanna_play = True
+
+        while wanna_play:
+            # Reset players hands
+            for player in self.players:
+                player.hand = []
+            self.game_loop()
+            ## Game ended
+            self.save_results()
+            wanna_play = self.ask_yesno("Another Game ?")
 
     @abstractmethod
     def game_loop(self):
@@ -143,7 +174,7 @@ class CardGame(ABC):
             [player.set_fold(False) for player in self.players]
 
         print("".join(["#" * 15, "GAME DONE", "#" * 15]))
-        self._print_winner()
+        [print(winner) for winner in self.winners()]
         # END GAME_LOOP
 
     @abstractmethod
@@ -160,6 +191,20 @@ class CardGame(ABC):
         while player.is_active:
             ...
         return []
+
+    @staticmethod
+    def ask_yesno(question):
+        answer = -1
+        while answer == -1:
+            _in = input(f"{question} ? (y/n)")
+            if _in and _in[0] == 'y':
+                answer = True
+            if _in and _in[0] == 'n':
+                answer = False
+        return answer
+
+    def save_results(self):
+        pass
 
 
 class PresidentGame(CardGame):
@@ -196,7 +241,6 @@ class PresidentGame(CardGame):
             [player.set_fold(False) for player in self.players]
 
         print("".join(["#" * 15, "GAME DONE", "#" * 15]))
-        self._print_winner()
         # END GAME_LOOP
 
     def round_loop(self):
@@ -227,7 +271,7 @@ class PresidentGame(CardGame):
                     continue
 
                 if self.still_playing == 1:  # If Last active player
-                    self.set_win(player)  # add current user to the end of the ladder
+                    self.set_lost(player)  # add current user to the end of the ladder
 
                 if player.is_active:
                     cards = self.player_loop(player)
@@ -315,3 +359,12 @@ class PresidentGame(CardGame):
         print("#" * 50)
         print(" ".join(["#" * 15, f"!!! REVOLUTION !!!", "#" * 15]))
         print("#" * 50)
+
+    def winners(self):
+        """ get super ranking then append PresidentGame rankings
+        :returns: an iterable generator"""
+        return (re.sub("\n", f" -> {PresidentRank(i + 1, len(self.players))}", winner)
+                for i, winner in enumerate(super().winners()))  # Keep generators alive
+
+
+
