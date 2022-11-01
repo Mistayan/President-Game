@@ -8,13 +8,14 @@ from typing import Final
 import names
 
 from models import AI
+from models.Errors import CheaterDetected
 from models.deck import Deck, Card, VALUES
 from models.player import Player, Human
 from models.rankings import PresidentRank
 
 
 class CardGame(ABC):
-    random.SystemRandom().seed(random.random())
+    random.SystemRandom().seed("no_AI_allowed")
     __super_private: Final = ''.join(random.choices(string.hexdigits, k=100))
     players: list
     last_playing_player_index: int
@@ -49,14 +50,21 @@ class CardGame(ABC):
             self.players += [Human()]
         self.players += [AI(self, "AI - " + names.get_full_name(gender="female"))
                          for _ in range(number_of_ai)]  # AI Players
+        self.deck = Deck()
+        self.__initialize_game()
 
+    def __initialize_game(self):
+        self.__logger.info(' '.join(["#" * 15, "PREPARING NEW GAME", "#" * 15]))
         self.pile = []
         self.last_rounds_piles = []
         self._rounds_winners = []
         self._looser_queue = []
         self.last_playing_player_index = 0
         self._VALUES = VALUES
-        self.deck = Deck().shuffle()
+        self.deck.shuffle()
+        for player in self.players:
+            player.set_win(False)
+            player.hand = []
 
     @abstractmethod
     def _distribute(self):
@@ -110,8 +118,7 @@ class CardGame(ABC):
                 else to.add_to_pile(card) if isinstance(to, CardGame) \
                 else to.append(card) if isinstance(to, list) else None == 4
         except Exception as e:
-            self.__logger.info(f"{self} failed to give {give} to {to}")
-            raise
+            raise CheaterDetected(f"{self} failed to give {give} to {to}")
 
     def _reset_players_status(self):
         """
@@ -123,6 +130,7 @@ class CardGame(ABC):
         for player in self.players:
             player.set_played(False)
             player.last_played = []
+            player.__buffer = []
 
     def set_win(self, player) -> None:
         """
@@ -155,12 +163,16 @@ class CardGame(ABC):
 
         while wanna_play:
             # Reset players hands
-            for player in self.players:
-                player.hand = []
             self.game_loop()
-            ## Game ended
+            print("".join(["#" * 15, "GAME DONE", "#" * 15]))
+            print("".join(["#" * 15, "WINNERS", "#" * 15]))
+            for winner in self.winners():
+                print(winner)
             self.save_results()
             wanna_play = self.ask_yesno("Another Game ?")
+            if wanna_play:  # reset most values
+                self.__initialize_game()
+                self.start()
 
     @abstractmethod
     def game_loop(self):
@@ -172,9 +184,6 @@ class CardGame(ABC):
             self.free_pile()
             # As well as players fold status
             [player.set_fold(False) for player in self.players]
-
-        print("".join(["#" * 15, "GAME DONE", "#" * 15]))
-        [print(winner) for winner in self.winners()]
         # END GAME_LOOP
 
     @abstractmethod
@@ -363,7 +372,7 @@ class PresidentGame(CardGame):
     def winners(self):
         """ get super ranking then append PresidentGame rankings
         :returns: an iterable generator"""
-        return (re.sub("\n", f" -> {PresidentRank(i + 1, len(self.players))}", winner)
+        return (re.sub("\n", f" -> {PresidentRank(i + 1, self.players)}", winner)
                 for i, winner in enumerate(super().winners()))  # Keep generators alive
 
 
