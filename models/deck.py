@@ -1,9 +1,11 @@
 from __future__ import annotations
+
 import logging
 import random
 from typing import Final
 
-from models import VALUES, COLORS, Card
+from .card import Card
+from .conf import VALUES, COLORS
 
 logger = logging.getLogger(__name__)
 

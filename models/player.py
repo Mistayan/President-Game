@@ -1,22 +1,19 @@
-from __future__ import annotations
-
 import logging
 from collections import Counter
 from typing import Final
 
 import names
 
-from models import Card
-from models.utils import player_give_card_to
+from models.card import Card
 
 
 class Player:
     name: str
-    hand: list[Card] = []
-    _folded: bool = False
+    hand: list[Card]
+    _folded: bool
     _is_human: bool
-    _played_turn: bool = False
-    _won: bool = False
+    _played_turn: bool
+    _won: bool
 
     def __init__(self, name=None):
         """
@@ -27,6 +24,10 @@ class Player:
         self._logger: Final = logging.getLogger(__class__.__name__)
         self.name: Final = name or names.get_first_name()
         self._is_human = True
+        self._won = False
+        self._played_turn = False
+        self._folded = False
+        self.hand = []
         self.last_played: list[Card] = []
 
     @property
