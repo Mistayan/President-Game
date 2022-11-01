@@ -37,6 +37,7 @@ class Player(ABC):
         self.hand = []
         self.last_played: list[Card] = []
         self._logger.info(f"{self} joined the game")
+        self.rank = None
 
     @property
     def won(self):
