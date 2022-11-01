@@ -41,8 +41,8 @@ class CardGame(ABC):
 
         self.__logger: Final = logging.getLogger(__class__.__name__)
         self.__logger.debug(self.__super_private)
+        self._VALUES = VALUES
         self.players = []
-
         for name in players_names:  # Named players
             self.players += [Human(str(name))]
             number_of_players -= 1
@@ -51,13 +51,15 @@ class CardGame(ABC):
         self.players += [AI(self, "AI - " + names.get_full_name(gender="female"))
                          for _ in range(number_of_ai)]  # AI Players
         self.deck = Deck()
-        self.__initialize_game()
+        self._initialize_game()
+        self._rounds_winners = []
+        self._run = True
+        # Since this is the first game, we consider the player wants to play
 
-    def __initialize_game(self):
+    def _initialize_game(self):
         self.__logger.info(' '.join(["#" * 15, "PREPARING NEW GAME", "#" * 15]))
         self.pile = []
         self.last_rounds_piles = []
-        self._rounds_winners = []
         self._looser_queue = []
         self.last_playing_player_index = 0
         self._VALUES = VALUES
@@ -106,19 +108,25 @@ class CardGame(ABC):
     def winners(self):
         rank_gen = [""]
         if self._rounds_winners:
-            rank_gen = (" : ".join([str(i), player_infos[0].name, "on round", str(player_infos[1])]) + "\n"
-                        for i, player_infos in enumerate(self._rounds_winners))
+            rank_gen = (
+                " : ".join([str(i), player_infos[0].name, "on round", str(player_infos[1])]) + "\n"
+                for i, player_infos in enumerate(self._rounds_winners))
         return rank_gen
 
     def player_give_card_to(self, player: Player, give: Card, to):
         try:
             card = player.remove_from_hand(give)
-
-            to.add_to_hand(card) if isinstance(to, Player) \
-                else to.add_to_pile(card) if isinstance(to, CardGame) \
-                else to.append(card) if isinstance(to, list) else None == 4
+            if isinstance(to, Player):
+                to.add_to_hand(card)
+            elif isinstance(to, CardGame):
+                to.add_to_pile(card)
+            elif isinstance(to, list):
+                to.append(card)
+            else:
+                print(type(player), type(give), type(to))
+                raise
         except Exception as e:
-            raise CheaterDetected(f"{self} failed to give {give} to {to}")
+            raise CheaterDetected(f"{player} failed to give {give} to {to}")
 
     def _reset_players_status(self):
         """
@@ -152,27 +160,20 @@ class CardGame(ABC):
     def increment_round(self) -> None:
         self._round += 1
 
+    @abstractmethod
     def start(self) -> None:
+        """
         # On start of the game,
         # players sort their hands for clearer display, and easier strategy planning
         # Display current players and their number of cards in hand
+        call super().start then implement your logic
+
+            while _run:
+                game_loop()
+        """
         [player.sort_hand() for player in self.players]
         self.show_players()
         input("press Enter to start the game")
-        wanna_play = True
-
-        while wanna_play:
-            # Reset players hands
-            self.game_loop()
-            print("".join(["#" * 15, "GAME DONE", "#" * 15]))
-            print("".join(["#" * 15, "WINNERS", "#" * 15]))
-            for winner in self.winners():
-                print(winner)
-            self.save_results()
-            wanna_play = self.ask_yesno("Another Game ?")
-            if wanna_play:  # reset most values
-                self.__initialize_game()
-                self.start()
 
     @abstractmethod
     def game_loop(self):
@@ -203,6 +204,7 @@ class CardGame(ABC):
 
     @staticmethod
     def ask_yesno(question):
+        """ Ask a question that requires  yes/no answer """
         answer = -1
         while answer == -1:
             _in = input(f"{question} ? (y/n)")
@@ -236,6 +238,55 @@ class PresidentGame(CardGame):
             player_index = i % len(self.players)
             self.players[player_index].add_to_hand(card)  # Give card to player
             self._logger.debug(f"Gave {card} to player {self.players[player_index]}")
+
+    def start(self, override=None, override_test=False) -> None:
+        super().start()
+        while self._run:
+            if not override_test:
+                # Reset players hands
+                self.game_loop()
+                print("".join(["#" * 15, "GAME DONE", "#" * 15]))
+                print("".join(["#" * 15, "WINNERS", "#" * 15]))
+                for winner in self.winners():
+                    print(winner)
+                self.save_results()
+                self._run = self.ask_yesno("Another Game ?") if not override else True
+
+            if self._run:  # reset most values
+                self._initialize_game()
+                self._distribute()
+                self.do_exchanges()  # Do exchanges
+                self._rounds_winners = []  # Then, reset winners
+                override_test = False
+
+    def do_exchanges(self) -> None:
+        """ On start of a new game, after the previous one,
+        Players exchange their cards with others according to their ranks"""
+
+        # starting with lowest_rank_player
+        for i, player_infos in enumerate(self._rounds_winners[::-1]):
+            # player_info = [Player, round, last_card_played]
+            player: Player = player_infos[0]
+            print(player)
+            # if not isinstance(player.rank, PresidentRank):
+            #     raise CheaterDetected("Not a rank...")
+
+            player.sort_hand()  # Ensure hand is sorted before starting...
+
+            # If neutral, do not trigger
+            print(f"{player} gives {abs(player.rank.advantage)} cards")
+            for _ in range(abs(player.rank.advantage)):  # give as many cards as the advantage
+                if player.rank.advantage < 0:  # Give best card if negative advantage
+                    card = player.hand[-1]
+                if player.rank.advantage > 0:  # Otherwise choose card to give
+                    result = player.play_cli(1)
+                    if result:
+                        card = result[0]
+                        player.add_to_hand(card)
+                self.player_give_card_to(player,
+                                         card,
+                                         self._rounds_winners[i][0]
+                                         )
 
     def game_loop(self):
         """ Keep CardGame logic,
@@ -324,7 +375,7 @@ class PresidentGame(CardGame):
         :param player: current_player to play
         :return: cards the player played ; [] otherwise
         """
-        print("\n"*10)
+        print("\n" * 10)
         print(' '.join(["#" * 15, f" {player}'s TURN ", "#" * 15]))
         cards = []
         while player.is_active:
@@ -332,7 +383,7 @@ class PresidentGame(CardGame):
                   else "You are the first to play.")
             cards = player.play_cli(self.required_cards)
             if not self.required_cards:
-                # First-player -> his card count become required card for other plays.
+                # First-player -> his card count become required card for other to play.
                 self.required_cards = len(cards)
 
             if cards and len(cards) == self.required_cards:
@@ -374,6 +425,3 @@ class PresidentGame(CardGame):
         :returns: an iterable generator"""
         return (re.sub("\n", f" -> {PresidentRank(i + 1, self.players)}", winner)
                 for i, winner in enumerate(super().winners()))  # Keep generators alive
-
-
-
