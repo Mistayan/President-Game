@@ -1,20 +1,20 @@
 import unittest
 
+from models import AI, Human
 from models.game import PresidentGame
-from models.player import Player
 
 
-class TestCardsExercice2(unittest.TestCase):
+class TestPlayers(unittest.TestCase):
     def test_player_constructor(self):
-        player_trump = Player('Trump')
+        player_trump = Human('Trump')
         self.assertTrue(player_trump.name == 'Trump')
 
     def test_incognito_player_should_have_random_name(self):
-        player_incognito = Player()
+        player_incognito = Human()
         self.assertFalse(player_incognito.name == '')
 
     def test_player_is_active(self):
-        player = Player()
+        player = Human()
         self.assertTrue(player.is_active)
         player.set_fold()
         self.assertFalse(player.is_active)
@@ -24,10 +24,6 @@ class TestCardsExercice2(unittest.TestCase):
         player.set_played(False)
         player.set_win()
         self.assertFalse(player.is_active)
-
-    def test_incognito_player_should_have_random_name(self):
-        player_incognito = Player()
-        self.assertFalse(player_incognito.name == '')
 
     def test_default_game_has_three_players(self):
         game = PresidentGame()
@@ -45,6 +41,13 @@ class TestCardsExercice2(unittest.TestCase):
 
     def test_game_human_or_ai(self):
         """ verifies that AI are not humans """
+        game = PresidentGame(1, 2)
+        human = game.players[0]
+        ai_1 = game.players[1]
+        ai_2 = game.players[2]
+        self.assertTrue(human.is_human)
+        self.assertFalse(ai_1.is_human)
+        self.assertFalse(ai_2.is_human)
 
     def test_game_player_give_card(self):
         """
@@ -52,7 +55,7 @@ class TestCardsExercice2(unittest.TestCase):
          self receiving should have 1 more card, which is the given card
         """
         game = PresidentGame(3, 0)
-        player_1: Player = game.players[0]
+        player_1: Human = game.players[0]
         player_2 = game.players[1]
         p1_copy = player_1.hand[::]
         p2_copy = player_2.hand[::]
