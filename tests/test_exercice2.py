@@ -25,6 +25,8 @@ class TestPlayers(unittest.TestCase):
         player.set_win()
         self.assertFalse(player.is_active)
 
+
+class TestGame(unittest.TestCase):
     def test_default_game_has_three_players(self):
         game = PresidentGame()
         self.assertTrue(len(game.players) == 3)
