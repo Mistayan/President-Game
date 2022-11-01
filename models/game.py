@@ -99,9 +99,9 @@ class CardGame(ABC):
 
             to.add_to_hand(card) if isinstance(to, Player) \
                 else to.add_to_pile(card) if isinstance(to, CardGame) \
-                else to.append(card) if isinstance(to, list) else None
+                else to.append(card) if isinstance(to, list) else None == 4
         except Exception as e:
-            self.__logger.critical(e)
+            self.__logger.info(f"{self} failed to give {give} to {to}")
             raise
 
     def _reset_players_status(self):
@@ -252,7 +252,19 @@ class PresidentGame(CardGame):
         # END ROUND_LOOP
 
     def player_loop(self, player: Player) -> list[Card]:
-        print(' '.join(["#" * 15, f"{player}'s TURN", "#" * 15]))
+        """
+        If the player is active (not folded, not won, hasn't played):
+            - If required_cards == 0, the amount of cards a player plays
+             become the number of required_cards for other players to play
+            - Select N required_cards to play from his hand, and checks that he can play those.
+            - The game double-checks with its own rules if the given card(s) are stronger or weaker
+                - If cards ok, set player's status to 'played'
+                - If cards not ok, give player his cards back
+            - (miss-click failsafe) If player did not play, ask to fold or play again
+        :param player: current_player to play
+        :return: cards the player played ; [] otherwise
+        """
+        print(' '.join(["#" * 15, f" {player}'s TURN ", "#" * 15]))
         cards = []
         while player.is_active:
             print(f"Last played card : (most recent on the right)\n{self.pile}" if self.pile
@@ -264,7 +276,7 @@ class PresidentGame(CardGame):
 
             if cards and len(cards) == self.required_cards:
                 if not self.pile or cards[0] >= self.get_pile()[-1] and not self._revolution \
-                                 or cards[0] <= self.get_pile()[-1] and self._revolution:
+                        or cards[0] <= self.get_pile()[-1] and self._revolution:
                     player.set_played()  # Cards are valid for current game state.
                     break
                 elif self.pile:
@@ -281,6 +293,15 @@ class PresidentGame(CardGame):
         # END PLAYER_LOOP
 
     def set_revolution(self):
+        """ VARIANCE OF THE GAME RULES
+        REVOLUTION is a rule that allows players to play 4 times the same card
+        in order to reverse cards power.
+
+        It can be cancelled if a player plays another 4 cards on top of the previous revolution,
+        or either on his turn, later on.
+
+        Inspired by the French revolution, yet to become True.
+        """
         self._revolution = not self._revolution
         self._VALUES = self._VALUES[::-1]
         print("#" * 50)
