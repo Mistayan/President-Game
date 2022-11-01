@@ -1,2 +1,1 @@
 from .exchanges import player_give_card_to
-from .verifications import validate_human_input, human_choose_cards_to_play, human_choose_n_cards_to_play
