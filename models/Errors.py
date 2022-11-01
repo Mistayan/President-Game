@@ -16,3 +16,4 @@ class CheaterDetected(Exception):
     def __init__(self, e=None):
         root_logger.setLevel(logging.CRITICAL)
         root_logger.critical("🚨".join(self.critical + str(e).split() + self.critical))
+        raise self
