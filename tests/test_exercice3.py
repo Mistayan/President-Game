@@ -15,8 +15,8 @@ class TestGameExercice3(unittest.TestCase):
         # scanning for "round -> rank"
         self.assertRegex(str(ladder), "1 -> Pres")
         self.assertRegex(str(ladder), "2 -> Vice-P")
-        self.assertRegex(str(ladder), "3 -> Trouf")
-        self.assertRegex(str(ladder), "4 -> Vice-T")
+        self.assertRegex(str(ladder), "3 -> Vice-T")
+        self.assertRegex(str(ladder), "4 -> Trouf")
         self.assertNotRegex(str(ladder), "-> Neut")
 
     def test_winner_ladder_two_neutrals(self):
@@ -32,7 +32,6 @@ class TestGameExercice3(unittest.TestCase):
         self.assertRegex(str(ladder), "4 -> Neut")
         self.assertRegex(str(ladder), "5 -> Vice-T")
         self.assertRegex(str(ladder), "6 -> Trouf")
-
 
     def test_revolution(self):
         game = PresidentGame(3, 0, "Mistayan")
