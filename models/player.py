@@ -7,13 +7,12 @@ from typing import Final
 import names
 
 from models import Card
-from models.utils import human_choose_n_cards_to_play, human_choose_cards_to_play, \
-    validate_human_input, player_give_card_to
+from models.utils import player_give_card_to
 
 
 class Player:
     name: str
-    hand: list
+    hand: list[Card] = []
     _folded: bool = False
     _is_human: bool
     _played_turn: bool = False
@@ -28,11 +27,7 @@ class Player:
         self._logger: Final = logging.getLogger(__class__.__name__)
         self.name: Final = name or names.get_first_name()
         self._is_human = True
-        self.hand = []
-        self._folded = False
-        self._played_turn = False
-        self._won = False
-        self.last_played : list[Card] = []
+        self.last_played: list[Card] = []
 
     @property
     def won(self):
@@ -92,12 +87,13 @@ class Player:
     def is_human(self):
         return self._is_human
 
-    def play_cli(self, n_cards_to_play=0) -> list[Card]:
+    def play_cli(self, n_cards_to_play=0) -> list[Card]:  # Human only
         """Interface for a player to play with Command-line prompts (or inputs)"""
+        input("press Enter to start your turn\n(this is to avoid last player to see your hand)")
         print(f"Your hand :\n{self.hand}")
         if not n_cards_to_play:
-            n_cards_to_play = human_choose_n_cards_to_play(self.max_combo)
-        player_game = human_choose_cards_to_play(self, n_cards_to_play)
+            n_cards_to_play = self.ask_n_cards_to_play()
+        player_game = self.choose_cards_to_play(n_cards_to_play)
 
         return [_ for _ in player_game if _]  # Simple filtering as fail-safe
 
@@ -142,7 +138,7 @@ class Player:
         if self.is_active:
             # Validate that player has n times this card in hand
             for i in range(n_cards_to_play):
-                card = validate_human_input(self, wanted_card)  # transforms wanted_card to Card
+                card = self.validate_input(wanted_card)  # transforms wanted_card to Card
                 player_give_card_to(self, card, result) if card else None
             if len(result) != n_cards_to_play:  # Not enough of designated card in hand...
                 [self.add_to_hand(card) for card in result]  # Give player his cards back
@@ -159,3 +155,50 @@ class Player:
 
     def sort_hand(self) -> None:
         self.hand.sort()
+
+    def ask_n_cards_to_play(self) -> int:
+        """
+        :return: self's pick between 1 and his maximum combo
+        """
+
+        _max = self.max_combo
+        n = _max if _max <= 1 else 0
+        while not n > 0 or n > _max:
+            try:
+                n = int(input("[FIRST-PLAYER]"
+                              f" - How many cards do you want to play (1-{_max})?\n?> "))
+                if 0 > n > _max:
+                    n = 0
+            except:
+                n = 0
+        return 1 if n < 1 else n
+
+    def choose_cards_to_play(self, n_cards_to_play):  # Human only
+        cards_to_play = []
+        if n_cards_to_play <= self.max_combo:
+            _in = input(f"{n_cards_to_play} cards to play : (you can play {self.max_combo})\n"
+                        f"[2-9 JQKA] or 'F' to fold (cannot play anymore for current round)\n").upper()
+            # Check fold status
+            if not (_in and _in[0] == 'F'):
+                cards_to_play = self.play_cards(n_cards_to_play, _in)
+            else:
+                self.set_fold()  # True by default
+        else:
+            input("Cannot play. Press enter to fold")
+            self.set_fold()  # True by default
+
+        return cards_to_play
+
+    def validate_input(self, _in: str) -> Card | None:
+        if _in and not isinstance(_in, str):
+            return self.validate_input(str(_in))
+
+        _card = None
+        if _in == "FOLD" or (_in and _in[0] == 'F'):
+            self.set_fold()
+            _card = None
+        for card in self.hand:
+            if card.number == _in:
+                _card = card
+                break
+        return _card
