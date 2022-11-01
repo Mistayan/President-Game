@@ -8,7 +8,7 @@ import names
 
 from models import AI
 from models.deck import Deck, Card, VALUES
-from models.player import Player
+from models.player import Player, Human
 
 
 class CardGame(ABC):
@@ -40,11 +40,11 @@ class CardGame(ABC):
         self.players = []
 
         for name in players_names:  # Named players
-            self.players += [Player(str(name))]
+            self.players += [Human(str(name))]
             number_of_players -= 1
         for _ in range(number_of_players):  # Anonymous Players, random generation
-            self.players += [Player()]
-        self.players += [AI("AI - " + names.get_full_name(gender="female"))
+            self.players += [Human()]
+        self.players += [AI(self, "AI - " + names.get_full_name(gender="female"))
                          for _ in range(number_of_ai)]  # AI Players
 
         self.pile = []
@@ -115,11 +115,17 @@ class CardGame(ABC):
             player.set_played(False)
             player.last_played = []
 
-    def set_win(self, player):
+    def set_win(self, player) -> None:
+        """ Set player status to winner and append [Player, Rank] to _rounds_winners"""
+        if len(self.players) - 1 != len(self._rounds_winners):
+            print(f"{player} won the place N°{len(self._rounds_winners) + 1}")
         player.set_win()
         self._rounds_winners.append([player, self._round])
 
-    def start(self):
+    def increment_round(self) -> None:
+        self._round += 1
+
+    def start(self) -> None:
         # On start of the game,
         # players sort their hands for clearer display, and easier strategy planning
         [player.sort_hand() for player in self.players]
@@ -127,6 +133,7 @@ class CardGame(ABC):
 
     @abstractmethod
     def game_loop(self):
+        """ A classic game loop """
         self.__logger.info('game loop')
         while self.still_playing > 1:
             self.round_loop()
@@ -240,7 +247,7 @@ class PresidentGame(CardGame):
             # Everyone played / folded / won
 
             self._reset_players_status()
-            self._round += 1
+            self.increment_round()
             # Check if last played cards match the strongest value
             if self.pile and self.pile[-1].number == self.strongest_card:
                 print(' '.join([
@@ -260,10 +267,11 @@ class PresidentGame(CardGame):
             - The game double-checks with its own rules if the given card(s) are stronger or weaker
                 - If cards ok, set player's status to 'played'
                 - If cards not ok, give player his cards back
-            - (miss-click failsafe) If player did not play, ask to fold or play again
+            - (miss-click failsafe) If player did not play, ask_fold to fold or play again
         :param player: current_player to play
         :return: cards the player played ; [] otherwise
         """
+        print("\n"*10)
         print(' '.join(["#" * 15, f" {player}'s TURN ", "#" * 15]))
         cards = []
         while player.is_active:
@@ -285,8 +293,8 @@ class PresidentGame(CardGame):
                         player.add_to_hand(card)
             elif not player.is_folded:  # Fail-safe for unexpected behaviour...
                 print(f"Not enough {cards[0].number} in hand" if cards
-                      else f"No card{'s' if len(cards) > 1 else ''} played. Fold?")
-                if not cards and player.ask():
+                      else f"No card{'s' if len(cards) > 1 else ''} played")
+                if not cards and player.ask_fold():
                     player.set_fold()
 
         return cards

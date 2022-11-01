@@ -1,4 +1,5 @@
 import logging
+from abc import abstractmethod, ABC
 from collections import Counter
 from typing import Final
 
@@ -7,7 +8,7 @@ import names
 from models.card import Card
 
 
-class Player:
+class Player(ABC):
     """
     WARNING !!!
     Any value you put below this line,  outside __init__
@@ -20,6 +21,7 @@ class Player:
     _played_turn: bool
     _won: bool
 
+    @abstractmethod
     def __init__(self, name=None):
         """
         Instantiate a Player.
@@ -29,12 +31,12 @@ class Player:
         self.__buffer = []
         self._logger: Final = logging.getLogger(__class__.__name__)
         self.name: Final = name or names.get_first_name()
-        self._is_human = True
         self._won = False
         self._played_turn = False
         self._folded = False
         self.hand = []
         self.last_played: list[Card] = []
+        self._logger.info(f"{self} joined the game")
 
     @property
     def won(self):
@@ -62,7 +64,7 @@ class Player:
             raise ValueError("card must be an instance of Card.")
         if card in self.hand:
             self.hand.remove(card)
-            self._logger.debug(f"{self} removed {card} from hand")
+            self._logger.info(f"{self} removed {card} from hand")
         else:
             card = None
 
@@ -100,16 +102,28 @@ class Player:
     def is_human(self):
         return self._is_human
 
-    def play_cli(self, n_cards_to_play=0) -> list[Card]:  # Human only
-        """Interface for a player to play with Command-line prompts (or inputs)"""
-        input("press Enter to start your turn\n(this is to avoid last player to see your hand)")
-        print(f"Your hand :\n{self.hand}")
+    @abstractmethod
+    def play_cli(self, n_cards_to_play=0, override: str = None) -> list[Card]:
+        """Interface for a player to play with Command-line prompts (or inputs)
+        use override to use external inputs (AI / Tk / ...)
+
+        This is done to display results in CLI, even for external uses.
+
+        How to use:
+        play_cli(number_of_cards_to_play = 0) Will ask n_cards and card to play to player
+        play_cli(number_of_cards_to_play > 1) Will input to ask a card to play N times
+        play_cli(number_of_cards_to_play > 1, card_number = Any_of(VALUES)) plays without inputs
+        """
         if not n_cards_to_play:
             n_cards_to_play = self.ask_n_cards_to_play()
-        player_game = self.choose_cards_to_play(n_cards_to_play)
-
+        player_game = self.choose_cards_to_play(n_cards_to_play)[::]
+        if player_game:
+            self.__buffer = []
+        else:
+            [self.add_to_hand(card) for card in self.__buffer]
         return [_ for _ in player_game if _]  # Simple filtering as fail-safe
 
+    @abstractmethod
     def play_tk(self, n_cards_to_play=0) -> list[Card]:
 
         ...  # Pass, C style :D
@@ -125,16 +139,10 @@ class Player:
             v = 0
         return v
 
-    def ask(self):
-        """ Return True for Yes, False for No.
-         False by default"""
-        answer = False
-        if self.is_human:
-            _in = input(f"{self} : [Y]es / [N]o ?>").lower()
-            if _in and _in[0] == "y":
-                answer = True
-
-        return answer
+    @abstractmethod
+    def ask_fold(self):
+        """ Implement if player should fold or not"""
+        ...
 
     def play_cards(self, n_cards_to_play: int, wanted_card: str):
         """
@@ -151,8 +159,10 @@ class Player:
             # Validate that player has n times this card in hand
             for i in range(n_cards_to_play):
                 card = self.validate_input(wanted_card)  # transforms wanted_card to Card
-                self.__buffer.append(self.remove_from_hand(card)) if card else None
+                if card:
+                    self.__buffer.append(self.remove_from_hand(card))
             if len(self.__buffer) != n_cards_to_play:  # Not enough of designated card in hand...
+                self._logger.info("Not enough cards")
                 [self.add_to_hand(card) for card in self.__buffer]  # Give player his cards back
                 self.__buffer = []
 
@@ -168,26 +178,14 @@ class Player:
     def sort_hand(self) -> None:
         self.hand.sort()
 
+    @abstractmethod
     def ask_n_cards_to_play(self) -> int:
-        """ HUMAN ONLY
-        :return: self's pick between 1 and his maximum combo
-        """
-
-        _max = self.max_combo
-        n = _max if _max <= 1 else 0
-        while not n > 0 or n > _max:
-            try:
-                n = int(input("[FIRST-PLAYER]"
-                              f" - How many cards do you want to play (1-{_max})?\n?> "))
-                if 0 > n > _max:
-                    n = 0
-            except:
-                n = 0
-        return 1 if n < 1 else n
+        """ Implement logic to ask_fold the number of cards to play to player"""
+        ...
 
     def choose_cards_to_play(self, n_cards_to_play, override: str = None):
         """ use override to force input from external sources, instead of builtins inputs
-        If max_combo <= n_cards_to_play , cannot play ! (ask to fold by pressing enter)
+        If max_combo <= n_cards_to_play , cannot play ! (ask_fold to fold by pressing enter)
         Otherwise, player choose a card number from his hand and give N times this card.
 
         """
@@ -221,3 +219,46 @@ class Player:
                 _card = card
                 break
         return _card
+
+
+class Human(Player):
+
+    def __init__(self, name=None):
+        super().__init__(name)
+        self._is_human = True
+
+    def ask_n_cards_to_play(self) -> int:
+        """ HUMAN ONLY
+                :return: self's pick between 1 and his maximum combo
+                """
+        _max = self.max_combo
+        n = _max if _max <= 1 else 0
+        while not n > 0 or n > _max:
+            try:
+                n = int(input("[FIRST-PLAYER]"
+                              f" - How many cards do you want to play (1-{_max})?\n?> "))
+                if 0 > n > _max:
+                    n = 0
+            except:
+                n = 0
+        return 1 if n < 1 else n
+
+    def ask_fold(self):
+        """ Return True for Yes, False for No.
+                 False by default"""
+        answer = False
+        _in = input(f"{self} : [Y]es / [N]o ?>").lower()
+        if _in and _in[0] == "y":
+            answer = True
+
+        return answer
+
+    def play_cli(self, n_cards_to_play=0, override=None) -> list[Card]:
+        if not override:
+            input(f"{self} : press Enter to start your turn\n"
+                  f"(this is to avoid last player to see your hand)")
+            print(f"Your hand :\n{self.hand}")
+        return super().play_cli(n_cards_to_play, override)
+
+    def play_tk(self, n_cards_to_play=0) -> list[Card]:
+        pass
