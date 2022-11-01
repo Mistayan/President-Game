@@ -46,6 +46,9 @@ class Player(ABC):
     def set_win(self, value=True):
         self._won = value
 
+    def set_rank(self, rank_pointer):
+        self.rank = rank_pointer
+
     def add_to_hand(self, card: Card) -> None:
         """ add the given Card to player's hand"""
         if not isinstance(card, Card):
@@ -145,7 +148,7 @@ class Player(ABC):
         """ Implement if player should fold or not"""
         ...
 
-    def play_cards(self, n_cards_to_play: int, wanted_card: str):
+    def _play_cards(self, n_cards_to_play: int, wanted_card: str):
         """
         Ensure there are enough of designated card in player's hand.
         Remove 1 card at a time from hand and place it in result (temporary)
@@ -193,18 +196,18 @@ class Player(ABC):
         cards_to_play = []
         if n_cards_to_play <= self.max_combo:
             _in = input(f"{n_cards_to_play} combo required: (your max : {self.max_combo})\n"
-                        f"[2-9 JQKA] or 'F' to fold (you will not be able to play current round)\n")\
+                        f"[2-9 JQKA] or 'F' to fold (you will not be able to play current round)\n") \
                 .upper() if not override else override.upper()
             # Check fold status
             if not (_in and _in[0] == 'F'):
-                cards_to_play = self.play_cards(n_cards_to_play, _in)
+                cards_to_play = self._play_cards(n_cards_to_play, _in)
             else:
                 self.set_fold()  # True by default
         elif not override:
             input("Cannot play. Press enter to fold")
             self.set_fold()  # True by default
         if override and not cards_to_play:
-            self._logger.info("".join(["!"*20, f" {self} Could Not Play ", "!"*20]))
+            self._logger.info("".join(["!" * 20, f" {self} Could Not Play ", "!" * 20]))
             self.set_fold()  # True by default
         return cards_to_play
 
@@ -222,8 +225,23 @@ class Player(ABC):
                 break
         return _card
 
+    def choose_card_to_give(self) -> Card:
+        """ PresidentGame ONLY
+        According to President logic,
+         """
+        card = None
+        if self.rank:
+            if self.rank.advantage < 0:  # Give best card
+                card = self.hand[-1]
+            if self.rank.advantage > 0:  # Choose card to give
+                card = self.play_cli(1)
+        return card
+
 
 class Human(Player):
+
+    def choose_card_to_give(self) -> Card:
+        pass
 
     def __init__(self, name=None):
         super().__init__(name)
