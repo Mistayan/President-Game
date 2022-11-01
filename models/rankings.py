@@ -58,10 +58,12 @@ class PresidentRank:
     @property
     def advantage(self) -> int:
         """
+        - 1-3 players 1 card to give for President / Trouffion
+- 4+ players : 2 cards for President / Trouffion and 1 card for Vice-...
         :return: the current rank's advantage as number_of_cards: int
         """
         index = self.__possible_rank.index(self.rank_name)
-        return self.__advantages[index]
+        return self.__advantages[index] / 2 if len(self.players) < 3 else self.__advantages[index]
 
     def __str__(self):
         return self.rank_name
