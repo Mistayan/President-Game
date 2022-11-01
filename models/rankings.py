@@ -8,6 +8,7 @@ Creation-date: 11/01/22
 from typing import Final
 
 from models.Errors import CheaterDetected
+from models.player import Player
 
 
 class PresidentRank:
