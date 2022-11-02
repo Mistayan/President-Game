@@ -52,14 +52,13 @@ class PresidentRank:
         except AttributeError:  # Attribute not set means no possible rank found
             self.rank_name = "CHEATER"
             raise CheaterDetected("No such Rank")
-        print(f"{self.current_player}'s rank -> {self}")
         self.current_player.set_rank(self)  # Give pointer
 
     @property
     def advantage(self) -> int:
         """
         - 1-3 players 1 card to give for President / Trouffion
-- 4+ players : 2 cards for President / Trouffion and 1 card for Vice-...
+        - 4+ players : 2 cards for President / Trouffion and 1 card for Vice-...
         :return: the current rank's advantage as number_of_cards: int
         """
         index = self.__possible_rank.index(self.rank_name)
