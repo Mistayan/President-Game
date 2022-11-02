@@ -22,14 +22,15 @@ class Player(ABC):
     _won: bool
 
     @abstractmethod
-    def __init__(self, name=None):
+    def __init__(self, name=None, game=None):
         """
         Instantiate a Player.
          Player has a name, a hand holding cards,
          can fold (stop playing for current round) receive a card or remove a card from his hand
         """
-        self.__buffer = []
         self._logger: Final = logging.getLogger(__class__.__name__)
+        self.game = game
+        self.__buffer = []
         self.name: Final = name or names.get_first_name()
         self._won = False
         self._played_turn = False
@@ -68,7 +69,7 @@ class Player(ABC):
             raise ValueError("card must be an instance of Card.")
         if card in self.hand:
             self.hand.remove(card)
-            self._logger.info(f"{self} removed {card} from hand")
+            self._logger.debug(f"{self} removed {card} from hand")
         else:
             card = None
 
@@ -241,8 +242,8 @@ class Player(ABC):
 
 class Human(Player):
 
-    def __init__(self, name=None):
-        super().__init__(name)
+    def __init__(self, name=None, game=None):
+        super().__init__(name, game)
         self._is_human = True
 
     def ask_n_cards_to_play(self) -> int:
@@ -273,8 +274,11 @@ class Human(Player):
 
     def play_cli(self, n_cards_to_play=0, override=None) -> list[Card]:
         if not override:
-            input(f"{self} : press Enter to start your turn\n"
-                  f"(this is to avoid last player to see your hand)")
+            if [player.is_human for player in self.game.players].count(True) != 1:
+                print(f"{self} : press Enter to start your turn\n"
+                      f"(this is to avoid last player to see your hand)")
+                input()
+
             print(f"Your hand :\n{self.hand}")
         return super().play_cli(n_cards_to_play, override)
 
