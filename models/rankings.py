@@ -5,6 +5,7 @@ Project: President-Game
 IDE: PyCharm
 Creation-date: 11/01/22
 """
+import logging
 from typing import Final
 
 from models.Errors import CheaterDetected
@@ -24,15 +25,18 @@ class PresidentRank:
     def __init__(self, n, players: list[Player]):
         """ Ranks classifications for President Game """
         self.rank = n
+        self.logger = logging.getLogger(__class__.__name__)
         self.players = players if not self.players else self.players
         _max = len(self.players)
+        self.logger.info(f"nb_players : {_max}, currently requested rank: {n}")
+
         self.current_player = players[n - 1]
         if _max < 3 or _max > 6:
             raise CheaterDetected()
 
         # 'Neutre' can only be a valid state whenever there is an odd number of players
         # Or when there is 6 players
-        neutral = (_max % 2 or _max == 6) and n in (2, 3, 4)
+        neutral = (_max % 2 or _max == 6) and n in {2, 3, 4}
         # President is always the first player
         president = n == 1
         # Vice-president  and Vice-trouduc only exists if _max > 3
@@ -66,3 +70,6 @@ class PresidentRank:
 
     def __str__(self):
         return self.rank_name
+
+    def __repr__(self):
+        return self.__str__()
