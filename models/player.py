@@ -110,18 +110,19 @@ class Player(ABC):
     def play_cli(self, n_cards_to_play=0, override: str = None) -> list[Card]:
         """Interface for a player to play with Command-line prompts (or inputs)
         use override to use external inputs (AI / Tk / ...)
-
         This is done to display results in CLI, even for external uses.
 
         How to use:
         play_cli(number_of_cards_to_play = 0) Will ask n_cards and card to play to player
         play_cli(number_of_cards_to_play > 1) Will input to ask a card to play N times
         play_cli(number_of_cards_to_play > 1, card_number = Any_of(VALUES)) plays without inputs
+        :param n_cards_to_play: the number of the same card to play
+        :param override: . Leave empty to be prompted via CLI
         """
         if not n_cards_to_play:
             n_cards_to_play = self.ask_n_cards_to_play()
-        player_game = self.choose_cards_to_play(n_cards_to_play)[::]
-        if player_game:
+        player_game = self.choose_cards_to_play(n_cards_to_play, override)[::]
+        if player_game and len(player_game) == n_cards_to_play:
             self.__buffer = []
         else:
             [self.add_to_hand(card) for card in self.__buffer]
@@ -239,9 +240,6 @@ class Player(ABC):
 
 
 class Human(Player):
-
-    def choose_card_to_give(self) -> Card:
-        pass
 
     def __init__(self, name=None):
         super().__init__(name)
