@@ -424,7 +424,7 @@ class PresidentGame(CardGame):
         Inspired by the French revolution, yet to become True.
         """
         self._revolution = not self._revolution
-        self._VALUES = self.VALUES[::-1]
+        self.VALUES = self.VALUES[::-1]
         print("#" * 50)
         print(" ".join(["#" * 15, f"!!! REVOLUTION !!!", "#" * 15]))
         print("#" * 50)
