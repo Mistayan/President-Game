@@ -66,6 +66,8 @@ class CardGame(ABC):
         self.last_playing_player_index = 0
         self.VALUES = VALUES
         self.deck.shuffle()
+        self._round = 0
+        self._run = True
 
         for player in self.players:
             player.set_win(False)
@@ -79,7 +81,7 @@ class CardGame(ABC):
     @property
     def still_playing(self):
         still_alive = [not player.won for player in self.players].count(True)
-        self.__logger.info(f"Active players : {still_alive}")
+        self.__logger.debug(f"Active players : {still_alive}")
         return still_alive
 
     @property
@@ -143,15 +145,16 @@ class CardGame(ABC):
             player.last_played = []
             player.__buffer = []
 
-    def set_win(self, player) -> None:
+    def set_win(self, player, win=True) -> None:
         """
         Set player status to winner or looser and append :
         [Player, Round, Last_Card] to _rounds_winners
         """
-        if len(self.players) - 1 != len(self._rounds_winners):
-            print(f"{player} won the place N°{len(self._rounds_winners) + 1}")
+        # len(self.players) - 1 != len(self._rounds_winners) and
+        if win:
+            self.__logger.info(f"{player} won the place N°{len(self._rounds_winners) + 1}")
         else:
-            self.set_lost(player)
+            self.__logger.info(f"{player} lost the game.")
         player.set_win()
         self._rounds_winners.append([player, self._round, self.pile[-1] if self.pile else None])
 
@@ -243,6 +246,12 @@ class PresidentGame(CardGame):
             self.players[player_index].add_to_hand(card)  # Give card to player
             self._logger.debug(f"Gave {card} to player {self.players[player_index]}")
 
+    def _initialize_game(self):
+        super()._initialize_game()
+        self.required_cards = 0
+        for player in self.players:
+            player.reset()  # do not reset ranks
+
     def start(self, override=None, override_test=False) -> None:
         super().start()
         while self._run:
@@ -304,7 +313,6 @@ class PresidentGame(CardGame):
             # As well as players fold status
             [player.set_fold(False) for player in self.players]
 
-        print("".join(["#" * 15, "GAME DONE", "#" * 15]))
         # END GAME_LOOP
 
     def round_loop(self):
@@ -343,6 +351,7 @@ class PresidentGame(CardGame):
                           else f"{player} Folded.")
 
                     if cards:  # If player played
+                        self._logger.debug(f"{player} tries to play {cards}")
                         [self.add_to_pile(card) for card in cards]
                         if len(player.hand) == 0:  # Player got no Cards left
                             self.set_win(player)
@@ -379,10 +388,11 @@ class PresidentGame(CardGame):
         :param player: current_player to play
         :return: cards the player played ; [] otherwise
         """
-        print("\n" * 10)
-        print(' '.join(["#" * 15, f" {player}'s TURN ", "#" * 15]))
+        if player.is_human:
+            print("\n" * 10)
         cards = []
         while player.is_active:
+            print(' '.join(["#" * 15, f" {player}'s TURN ", "#" * 15]))
             print(f"Last played card : (most recent on the right)\n{self.pile}" if self.pile
                   else "You are the first to play.")
             cards = [card for card in player.play_cli(self.required_cards)]
