@@ -68,6 +68,16 @@ class Card:
             other_i = VALUES.index(other)
         return self_i < other_i
 
+    def __le__(self, other):
+        if not other or not self:
+            raise ValueError("Cannot compare to Empty Element")
+        self_i = VALUES.index(self.number)
+        if isinstance(other, Card):
+            other_i = VALUES.index(other.number)
+        else:
+            other_i = VALUES.index(other)
+        return self_i <= other_i
+
     def __str__(self):
         return f"{self.number}{self.color}"
 
