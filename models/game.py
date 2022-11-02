@@ -46,11 +46,11 @@ class CardGame(ABC):
         self.players = []
         self.pile = []
         for name in players_names:  # Named players
-            self.players += [Human(str(name))]
+            self.players += [Human(name=str(name), game=self)]
             number_of_players -= 1
         for _ in range(number_of_players):  # Anonymous Players, random generation
-            self.players += [Human()]
-        self.players += [AI(self, "AI - " + names.get_full_name(gender="female"))
+            self.players += [Human(game=self)]
+        self.players += [AI(name="AI - " + names.get_full_name(gender="female"), game=self)
                          for _ in range(number_of_ai)]  # AI Players
         self.deck = Deck()
         self._initialize_game()
