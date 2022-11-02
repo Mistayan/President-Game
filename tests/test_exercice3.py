@@ -10,6 +10,7 @@ class TestGameExercice3(unittest.TestCase):
         for player in game.players:
             game.increment_round()
             game.set_win(player)
+            game._run = False
 
         ladder = [winner for winner in game.winners()]
         # scanning for "round -> rank"
@@ -24,6 +25,7 @@ class TestGameExercice3(unittest.TestCase):
         for player in game.players:
             game.increment_round()
             game.set_win(player)
+            game._run = False
         ladder = [winner for winner in game.winners()]
         # scanning for "round -> rank"
         self.assertRegex(str(ladder), "1 -> Pres")
