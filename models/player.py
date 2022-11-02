@@ -14,12 +14,8 @@ class Player(ABC):
     Any value you put below this line,  outside __init__
     might be shared amongst different instances !!!
     """
-    name: str
-    hand: list[Card]
-    _folded: bool
+
     _is_human: bool
-    _played_turn: bool
-    _won: bool
 
     @abstractmethod
     def __init__(self, name=None, game=None):
@@ -38,7 +34,15 @@ class Player(ABC):
         self.hand = []
         self.last_played: list[Card] = []
         self._logger.info(f"{self} joined the game")
-        self.rank = None
+
+    def reset(self):
+        """ Reset most values for next game"""
+        self._won = False
+        self._played_turn = False
+        self._folded = False
+        self.hand = []
+        self.__buffer = []
+        self.last_played = []
 
     @property
     def won(self):
