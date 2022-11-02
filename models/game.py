@@ -20,10 +20,12 @@ class CardGame(ABC):
     players: list
     last_playing_player_index: int
     pile: list[Card]
+    deck: Deck
     last_rounds_piles: list[list[Card]]  # For AI training sets
     _rounds_winners: list[[Player, int, Card]]  # For AI training sets
     _looser_queue: list[[Player, int, Card]]  # For AI training sets
     _round: int = 0
+    VALUES = VALUES
 
     @abstractmethod
     def __init__(self, number_of_players=3, number_of_ai=0, *players_names):
@@ -41,8 +43,8 @@ class CardGame(ABC):
 
         self.__logger: Final = logging.getLogger(__class__.__name__)
         self.__logger.debug(self.__super_private)
-        self._VALUES = VALUES
         self.players = []
+        self.pile = []
         for name in players_names:  # Named players
             self.players += [Human(str(name))]
             number_of_players -= 1
@@ -62,8 +64,9 @@ class CardGame(ABC):
         self.last_rounds_piles = []
         self._looser_queue = []
         self.last_playing_player_index = 0
-        self._VALUES = VALUES
+        self.VALUES = VALUES
         self.deck.shuffle()
+
         for player in self.players:
             player.set_win(False)
             player.hand = []
@@ -89,7 +92,7 @@ class CardGame(ABC):
 
     @property
     def strongest_card(self):
-        return self._VALUES[-1]
+        return self.VALUES[-1]
 
     def add_to_pile(self, card: Card) -> None:
         self.pile.append(card)
@@ -223,8 +226,9 @@ class PresidentGame(CardGame):
 
     def __init__(self, number_of_players=3, number_of_ai=0, *players_names):
         """ Instantiate a CardGame with President rules"""
-        super().__init__(number_of_players, number_of_ai, *players_names)
         self._logger: Final = logging.getLogger(__class__.__name__)
+        self.pile = []  # Pre-instantiating pile to avoid null/abstract pointer
+        super().__init__(number_of_players, number_of_ai, *players_names)
         self._revolution = False
         self._distribute()
 
@@ -381,7 +385,8 @@ class PresidentGame(CardGame):
         while player.is_active:
             print(f"Last played card : (most recent on the right)\n{self.pile}" if self.pile
                   else "You are the first to play.")
-            cards = player.play_cli(self.required_cards)
+            cards = [card for card in player.play_cli(self.required_cards)]
+            # ^^ Reworked to accept yields ^^
             if not self.required_cards:
                 # First-player -> his card count become required card for other to play.
                 self.required_cards = len(cards)
@@ -404,6 +409,10 @@ class PresidentGame(CardGame):
         return cards
         # END PLAYER_LOOP
 
+    @property
+    def revolution(self):
+        return self._revolution
+
     def set_revolution(self):
         """ VARIANCE OF THE GAME RULES
         REVOLUTION is a rule that allows players to play 4 times the same card
@@ -415,7 +424,7 @@ class PresidentGame(CardGame):
         Inspired by the French revolution, yet to become True.
         """
         self._revolution = not self._revolution
-        self._VALUES = self._VALUES[::-1]
+        self._VALUES = self.VALUES[::-1]
         print("#" * 50)
         print(" ".join(["#" * 15, f"!!! REVOLUTION !!!", "#" * 15]))
         print("#" * 50)
