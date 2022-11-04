@@ -330,14 +330,15 @@ class PresidentGame(CardGame):
         """ Keep CardGame logic,
         but we require required_cards to be set since it is vital to this game"""
         self._logger.info('game loop')
-        while self.still_playing > 1:
-            self.round_loop()
-            # Whenever a new round starts, must reset pile
-            self.free_pile()
+        while self.still_alive > 1:
+            self.increment_round()  # set new round...
             self.required_cards = 0  # The only change we require compared to CardGame.
-            # As well as players fold status
-            [player.set_fold(False) for player in self.players]
-
+            self.round_loop()
+            # Check if players still playing game:
+            if self.still_alive == 1:  # If not,
+                for player in self.players:
+                    self.set_win(player, False) if not player.won else None
+            # Whenever a new round starts, must reset pile
         # END GAME_LOOP
 
     def round_loop(self):
@@ -356,7 +357,7 @@ class PresidentGame(CardGame):
         print(' '.join(["#" * 15, "New Round", "#" * 15]))
         # If not first round, skip until current player is last round's winner.
         skip = True if self.last_rounds_piles else False
-        while self.count_active_players >= 1:
+        while self.count_active_players > 1:
             for index, player in enumerate(self.players):
                 # Skip players until last round's winner is current_player (or the one after him)
                 if skip and index == self.last_playing_player_index:  # Player found
@@ -367,26 +368,26 @@ class PresidentGame(CardGame):
                 elif skip:
                     continue
 
-                if self.still_playing == 1:  # If Last active player
-                    self.set_lost(player)  # add current user to the end of the ladder
-
                 if player.is_active:
                     cards = self.player_loop(player)
                     print(f"{player} played {cards}" if cards
                           else f"{player} Folded.")
 
                     if cards:  # If player played
+                        player.set_played()
                         self._logger.debug(f"{player} tries to play {cards}")
                         [self.add_to_pile(card) for card in cards]
-                        if len(player.hand) == 0:  # Player got no Cards left
-                            self.set_win(player)
                         self.last_playing_player_index = index
-
                         self.set_revolution() if len(cards) == 4 else None  # REVOLUTION ?
-                        if cards and cards[0].number == self.strongest_card:  # BEST_CARDS_PLAYED ?
+                        if cards[0].number == self.strongest_card:  # and len(player.hand)
+                            # BEST_CARDS_PLAYED ? Break the loop.
+                            # UNLESS the current player has won ?
+                            self.set_lost(player)  # PLAYED AS LAST CARD ?
                             break
-                #
+                if not len(player.hand) and not player.won:  # If player has no more cards
+                        self.set_win(player)  # WIN
             # Everyone played / folded / won
+            [player.set_played(False) for player in self.players]
 
             # Check if last played cards match the strongest value
             if self.pile and self.pile[-1].number == self.strongest_card:
