@@ -119,10 +119,12 @@ class CardGame(ABC):
                     # Losers are to be added from the end.
                     # First looser is last 'winner'
                     self._rounds_winners.append(player_infos)
+                self._looser_queue = []  # Once over, erase looser queue for next calls
 
-            rank_gen = [{player_infos[0].name: {"rank": i + 1,
-                                                "round": player_infos[1],
-                                                "last_played_card": player_infos[2]}
+            rank_gen = [{"player": player_infos[0].name,
+                         "rank": i + 1,
+                         "round": player_infos[1],
+                         "last_played_card": player_infos[2]
                          } for i, player_infos in enumerate(self._rounds_winners)]
         return rank_gen
 
@@ -307,24 +309,27 @@ class PresidentGame(CardGame):
         Players exchange their cards with others according to their ranks"""
 
         # starting with lowest_rank_player
-        print(self._rounds_winners)
-        for i, player in enumerate(self.players):
+        self._logger.debug(self._rounds_winners)
+        for i, player_info in enumerate(self._rounds_winners[::-1]):
+            player = player_info[0]
             adv = player.rank.advantage
-            print(f"{player} gives {abs(adv)} cards "
-                  f"to {self._rounds_winners[i][0]}")
+            give_to = self._rounds_winners[i][0]
+            sentence = f"{player} gives {'his best ' if adv < 0 else ''}"
+            sentence += f"{'no' if not adv else abs(adv)}"
+            sentence += f" cards {'to ' + str(give_to) if adv else ''}"
+            print(sentence)
             for _ in range(abs(adv)):  # give cards according to adv.
                 # If neutral, do not trigger
-                if adv < 0:  # Give best card if negative advantage
-                    card = player.hand[-1]
-                if adv > 0:  # Otherwise choose card to give
-                    result = player.play_cli(1)
-                    if result:
-                        card = result[0]
-                        player.add_to_hand(card)
-                self.player_give_card_to(player,
-                                         card,
-                                         self._rounds_winners[i][0]
-                                         )
+                card = None
+                while not card:
+                    if adv < 0:  # Give best card if negative advantage
+                        card = player.hand[-1]
+                    if adv > 0:  # Otherwise choose card to give
+                        result = player.play_cli(1)
+                        if result:
+                            card = result[0]
+                            player.add_to_hand(card)
+                self.player_give_card_to(player, card, give_to)
 
     def game_loop(self):
         """ Keep CardGame logic,
@@ -470,7 +475,9 @@ class PresidentGame(CardGame):
         winners = super().winners()  # Generator
         for i, winner in enumerate(winners):
             self._logger.info(f"winner {i+1}: {winner}")
-            winner.setdefault("grade", PresidentRank(i + 1, self.players))
+            for player in self.players:
+                if player.name == winner['player']:
+                    winner.setdefault("grade", PresidentRank(i + 1, player, self.players))
         return winners
 
     def card_can_be_played(self, card):
