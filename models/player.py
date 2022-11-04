@@ -31,6 +31,7 @@ class Player(ABC):
         self._won = False
         self._played_turn = False
         self._folded = False
+        self.rank = None
         self.hand = []
         self.last_played: list[Card] = []
         self._logger.info(f"{self} joined the game")
@@ -49,9 +50,13 @@ class Player(ABC):
         return self._won
 
     def set_win(self, value=True):
+        self._logger.info("I have won" if not len(self.hand) else "I have Lost")
         self._won = value
 
+    @abstractmethod
     def set_rank(self, rank_pointer):
+        """ set ranks to given pointer
+        Method is abstract for you to implement loggers for current player"""
         self.rank = rank_pointer
 
     def add_to_hand(self, card: Card) -> None:
@@ -88,7 +93,12 @@ class Player(ABC):
         won the game
         """
         active = not (self.is_folded or self.played_this_turn or self.won)
-        self._logger.debug(f"{self} says i'm active") if active else None
+        self._logger.debug(f"{self} says i'm {'' if active else 'not '}active")
+        if not active:
+            self._logger.debug("Reasons:")
+            self._logger.debug("folded") if self._folded else None
+            self._logger.debug("played") if self._played_turn else None
+            self._logger.debug("won") if self._won else None
         return active
 
     @property
@@ -112,20 +122,23 @@ class Player(ABC):
         return self._is_human
 
     @abstractmethod
-    def play_cli(self, n_cards_to_play=0, override: str = None) -> list[Card]:
+    def play_cli(self, n_cards_to_play=0, override: str = None, action='play') -> list[Card]:
         """Interface for a player to play with Command-line prompts (or inputs)
         use override to use external inputs (AI / Tk / ...)
         This is done to display results in CLI, even for external uses.
 
         How to use:
-        play_cli(number_of_cards_to_play = 0) Will ask n_cards and card to play to player
+        play_cli(number_of_cards_to_play = 0) Will ask n_cards and card(s) to play
         play_cli(number_of_cards_to_play > 1) Will input to ask a card to play N times
-        play_cli(number_of_cards_to_play > 1, card_number = Any_of(VALUES)) plays without inputs
+        play_cli(number_of_cards_to_play > 1, override = Any_of(VALUES)) plays without inputs
         :param n_cards_to_play: the number of the same card to play
         :param override: . Leave empty to be prompted via CLI
+        :param action: the action to be played (play, give, ...)
         """
         if not n_cards_to_play:
             n_cards_to_play = self.ask_n_cards_to_play()
+        print(f"you must {action} {'a' if n_cards_to_play == 1 else ''} "
+              f"{'card' if n_cards_to_play == 1 else 'cards'}")
         player_game = self.choose_cards_to_play(n_cards_to_play, override)[::]
         if player_game and len(player_game) == n_cards_to_play:
             self.__buffer = []
@@ -247,8 +260,9 @@ class Player(ABC):
 class Human(Player):
 
     def __init__(self, name=None, game=None):
-        super().__init__(name, game)
+        super(Human, self).__init__(name, game)
         self._is_human = True
+        self.__logger = logging.getLogger(self.name)
 
     def ask_n_cards_to_play(self) -> int:
         """ HUMAN ONLY
@@ -276,15 +290,20 @@ class Human(Player):
 
         return answer
 
-    def play_cli(self, n_cards_to_play=0, override=None) -> list[Card]:
+    def play_cli(self, n_cards_to_play=0, override=None, action='play') -> list[Card]:
         if not override:
             if [player.is_human for player in self.game.players].count(True) != 1:
                 print(f"{self} : press Enter to start your turn\n"
                       f"(this is to avoid last player to see your hand)")
                 input()
 
-            print(f"Your hand :\n{self.hand}")
-        return super().play_cli(n_cards_to_play, override)
+            print(f"Your hand :\n{self.hand}", flush=True)
+        return super(Human, self).play_cli(n_cards_to_play, override, action=action)
 
     def play_tk(self, n_cards_to_play=0) -> list[Card]:
         pass
+
+    def set_rank(self, rank_pointer):
+        self.__logger.debug(f"I have been assigned {rank_pointer}")
+        super(Human, self).set_rank(rank_pointer)
+
