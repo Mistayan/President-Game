@@ -18,19 +18,14 @@ class PresidentRank:
                               "Vice-Trouffion", "Trouffion"]  # negative advantages
 
     __advantages: Final = [2, 1, 0, -1, -2]
-    rank: int
-    rank_name: str
     players = []  # Classes Instances shared attribute
 
-    def __init__(self, n, players: list[Player]):
+    def __init__(self, n, player, players: list[Player]):
         """ Ranks classifications for President Game """
-        self.rank = n
         self.logger = logging.getLogger(__class__.__name__)
         self.players = players if not self.players else self.players
         _max = len(self.players)
         self.logger.info(f"nb_players : {_max}, currently requested rank: {n}")
-
-        self.current_player = players[n - 1]
         if _max < 3 or _max > 6:
             raise CheaterDetected()
 
@@ -56,17 +51,19 @@ class PresidentRank:
         except AttributeError:  # Attribute not set means no possible rank found
             self.rank_name = "CHEATER"
             raise CheaterDetected("No such Rank")
-        self.current_player.set_rank(self)  # Give pointer
+        player.set_rank(self)
 
     @property
     def advantage(self) -> int:
         """
-        - 1-3 players 1 card to give for President / Trouffion
+        - 3 players -> 1 card to give for President / Trouffion
         - 4+ players : 2 cards for President / Trouffion and 1 card for Vice-...
         :return: the current rank's advantage as number_of_cards: int
         """
         index = self.__possible_rank.index(self.rank_name)
-        return self.__advantages[index] / 2 if len(self.players) < 3 else self.__advantages[index]
+        self.logger.debug(f"index: {index} -> advantage of {self.__advantages[index]}")
+        return self.__advantages[index] // 2 if len(self.players) <= 3\
+            else self.__advantages[index]
 
     def __str__(self):
         return self.rank_name
