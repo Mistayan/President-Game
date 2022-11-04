@@ -1,6 +1,5 @@
 import logging
 import random
-import re
 import string
 from abc import ABC, abstractmethod
 from typing import Final
@@ -22,8 +21,8 @@ class CardGame(ABC):
     pile: list[Card]
     deck: Deck
     last_rounds_piles: list[list[Card]]  # For AI training sets
-    _rounds_winners: list[[Player, int, Card]]  # For AI training sets
-    _looser_queue: list[[Player, int, Card]]  # For AI training sets
+    _rounds_winners: list  # For AI training sets
+    _looser_queue: list  # For AI training sets
     _round: int = 0
     VALUES = VALUES
 
@@ -79,17 +78,17 @@ class CardGame(ABC):
         pass
 
     @property
-    def still_playing(self):
-        still_alive = [not player.won for player in self.players].count(True)
+    def still_alive(self):
+        still_alive = [player.won for player in self.players].count(False)
         self.__logger.debug(f"Active players : {still_alive}")
         return still_alive
 
     @property
     def count_active_players(self):
-        return self.active_players.count(True)
+        return self._active_players.count(True)
 
     @property
-    def active_players(self):
+    def _active_players(self):
         return [player.is_active for player in self.players]
 
     @property
@@ -102,7 +101,8 @@ class CardGame(ABC):
     def get_pile(self) -> list:
         return self.pile
 
-    def free_pile(self):
+    def _free_pile(self):
+        self.__logger.info("########## reseting pile ##########")
         self.last_rounds_piles.append(self.pile)
         self.pile = []
 
@@ -111,12 +111,28 @@ class CardGame(ABC):
             print(f"{player} : {len(player.hand)} Cards")
 
     def winners(self):
-        rank_gen = [""]
-        if self._rounds_winners:
-            rank_gen = (
-                " : ".join([str(i), player_infos[0].name, "on round", str(player_infos[1])]) + "\n"
-                for i, player_infos in enumerate(self._rounds_winners))
+        rank_gen = ()
+        self.__logger.debug(f"\nwinners : {self._rounds_winners}\nLoosers : {self._looser_queue}")
+        if self._rounds_winners and not self._run:
+            if self._looser_queue:
+                for player_infos in self._looser_queue[::-1]:
+                    # Losers are to be added from the end.
+                    # First looser is last 'winner'
+                    self._rounds_winners.append(player_infos)
+
+            rank_gen = [{player_infos[0].name: {"rank": i + 1,
+                                                "round": player_infos[1],
+                                                "last_played_card": player_infos[2]}
+                         } for i, player_infos in enumerate(self._rounds_winners)]
         return rank_gen
+
+    def _reset_winner(self):
+        self._rounds_winners = []
+
+    def print_winners(self):
+        print("".join(["#" * 15, "WINNERS", "#" * 15]))
+        for winner in self.winners():
+            print(winner)
 
     def player_give_card_to(self, player: Player, give: Card, to):
         try:
@@ -128,7 +144,7 @@ class CardGame(ABC):
             elif isinstance(to, list):
                 to.append(card)
             else:
-                print(type(player), type(give), type(to))
+                self.__logger.critical(type(player), type(give), type(to))
                 raise
         except Exception as e:
             raise CheaterDetected(f"{player} failed to give {give} to {to}")
@@ -142,7 +158,7 @@ class CardGame(ABC):
         # reset played status
         for player in self.players:
             player.set_played(False)
-            player.last_played = []
+            player.set_fold(False)
             player.__buffer = []
 
     def set_win(self, player, win=True) -> None:
@@ -150,21 +166,37 @@ class CardGame(ABC):
         Set player status to winner or looser and append :
         [Player, Round, Last_Card] to _rounds_winners
         """
-        # len(self.players) - 1 != len(self._rounds_winners) and
+        for test in self._rounds_winners:
+            if test[0] == player:
+                raise CheaterDetected(
+                    f"{player} already in the ladder. Correct issue before continue")
         if win:
             self.__logger.info(f"{player} won the place N°{len(self._rounds_winners) + 1}")
         else:
             self.__logger.info(f"{player} lost the game.")
         player.set_win()
-        self._rounds_winners.append([player, self._round, self.pile[-1] if self.pile else None])
+        winner_data = [player, self._round,
+                       self.pile[-1] if self.pile and win
+                       else player.last_played if player.last_played else None]
+        self.__logger.debug(winner_data)
+        self._rounds_winners.append(winner_data)
 
     def set_lost(self, player) -> None:
         """ Set player status to winner and append [Player, Rank] to _rounds_winners"""
-        print(f"{player} Lost the game.")
+        if len(player.hand):
+            return
+        self.__logger.info(f"{player} Lost the game.")
         self._looser_queue.append([player, self._round, player.hand[-1] if player.hand else None])
+        player.set_win()
+        # if not [player.won for player in self.players].count(False):
+        #     for player_infos in self._looser_queue:
+        #         player_infos[0].set_win()
 
     def increment_round(self) -> None:
+        self.__logger.info(f"#### INCREMENTING ROUND : {self._round} ####")
         self._round += 1
+        self._reset_players_status()
+        self._free_pile()
 
     @abstractmethod
     def start(self) -> None:
@@ -179,32 +211,31 @@ class CardGame(ABC):
         """
         [player.sort_hand() for player in self.players]
         self.show_players()
+        print(flush=True)
         input("press Enter to start the game")
 
     @abstractmethod
     def game_loop(self):
         """ A classic game loop """
         self.__logger.info('game loop')
-        while self.still_playing > 1:
+        while self.still_alive > 1:
             self.round_loop()
             # Whenever a new round starts, must reset pile
-            self.free_pile()
-            # As well as players fold status
-            [player.set_fold(False) for player in self.players]
+            self.increment_round()  # And do more stuff to set new round...
+            ...
         # END GAME_LOOP
 
     @abstractmethod
     def round_loop(self):
         """Implement your game logic here"""
-        while self.count_active_players >= 1:
+        while ...:
             for player in self.players:
                 ...
 
     @abstractmethod
     def player_loop(self, player: Player) -> list[Card]:
         """ Implement how a player should play your game"""
-        ...
-        while player.is_active:
+        while ...:
             ...
         return []
 
@@ -247,29 +278,28 @@ class PresidentGame(CardGame):
             self._logger.debug(f"Gave {card} to player {self.players[player_index]}")
 
     def _initialize_game(self):
-        super()._initialize_game()
+        super(PresidentGame, self)._initialize_game()
         self.required_cards = 0
         for player in self.players:
             player.reset()  # do not reset ranks
 
     def start(self, override=None, override_test=False) -> None:
-        super().start()
+        super(PresidentGame, self).start()
         while self._run:
             if not override_test:
                 # Reset players hands
                 self.game_loop()
                 print("".join(["#" * 15, "GAME DONE", "#" * 15]))
-                print("".join(["#" * 15, "WINNERS", "#" * 15]))
-                for winner in self.winners():
-                    print(winner)
+                self._run = False
+                self.print_winners()
                 self.save_results()
-                self._run = self.ask_yesno("Another Game ?") if not override else True
+                self._run = self.ask_yesno("Another Game") if not override_test else True
 
             if self._run:  # reset most values
                 self._initialize_game()
                 self._distribute()
                 self.do_exchanges()  # Do exchanges
-                self._rounds_winners = []  # Then, reset winners
+                super(PresidentGame, self)._reset_winner()
                 override_test = False
 
     def do_exchanges(self) -> None:
@@ -277,21 +307,16 @@ class PresidentGame(CardGame):
         Players exchange their cards with others according to their ranks"""
 
         # starting with lowest_rank_player
-        for i, player_infos in enumerate(self._rounds_winners[::-1]):
-            # player_info = [Player, round, last_card_played]
-            player: Player = player_infos[0]
-            print(player)
-            # if not isinstance(player.rank, PresidentRank):
-            #     raise CheaterDetected("Not a rank...")
-
-            player.sort_hand()  # Ensure hand is sorted before starting...
-
-            # If neutral, do not trigger
-            print(f"{player} gives {abs(player.rank.advantage)} cards")
-            for _ in range(abs(player.rank.advantage)):  # give as many cards as the advantage
-                if player.rank.advantage < 0:  # Give best card if negative advantage
+        print(self._rounds_winners)
+        for i, player in enumerate(self.players):
+            adv = player.rank.advantage
+            print(f"{player} gives {abs(adv)} cards "
+                  f"to {self._rounds_winners[i][0]}")
+            for _ in range(abs(adv)):  # give cards according to adv.
+                # If neutral, do not trigger
+                if adv < 0:  # Give best card if negative advantage
                     card = player.hand[-1]
-                if player.rank.advantage > 0:  # Otherwise choose card to give
+                if adv > 0:  # Otherwise choose card to give
                     result = player.play_cli(1)
                     if result:
                         card = result[0]
@@ -363,8 +388,6 @@ class PresidentGame(CardGame):
                 #
             # Everyone played / folded / won
 
-            self._reset_players_status()
-            self.increment_round()
             # Check if last played cards match the strongest value
             if self.pile and self.pile[-1].number == self.strongest_card:
                 print(' '.join([
@@ -372,7 +395,7 @@ class PresidentGame(CardGame):
                     "TERMINATING Round, Best Card Value Played !",
                     "#" * 15]))
                 break  # Break round_loop
-
+        self._logger.warning("EXITING ROUND_LOOP")
         # END ROUND_LOOP
 
     def player_loop(self, player: Player) -> list[Card]:
@@ -392,7 +415,7 @@ class PresidentGame(CardGame):
             print("\n" * 10)
         cards = []
         while player.is_active:
-            print(' '.join(["#" * 15, f" {player}'s TURN ", "#" * 15]))
+            print(' '.join(["#" * 15, f" {player}'s TURN ", "#" * 15]), flush=True)
             print(f"Last played card : (most recent on the right)\n{self.pile}" if self.pile
                   else "You are the first to play.")
             cards = [card for card in player.play_cli(self.required_cards)]
@@ -402,8 +425,7 @@ class PresidentGame(CardGame):
                 self.required_cards = len(cards)
 
             if cards and len(cards) == self.required_cards:
-                if not self.pile or cards[0] >= self.get_pile()[-1] and not self._revolution \
-                        or cards[0] <= self.get_pile()[-1] and self._revolution:
+                if self.card_can_be_played(cards[0]):
                     player.set_played()  # Cards are valid for current game state.
                     break
                 elif self.pile:
@@ -441,6 +463,16 @@ class PresidentGame(CardGame):
 
     def winners(self):
         """ get super ranking then append PresidentGame rankings
-        :returns: an iterable generator"""
-        return (re.sub("\n", f" -> {PresidentRank(i + 1, self.players)}", winner)
-                for i, winner in enumerate(super().winners()))  # Keep generators alive
+        :returns: a list of dict containing multiple information on the winners"""
+        # Keep generator alive to avoid cheaters
+
+        winners = super().winners()  # Generator
+        for i, winner in enumerate(winners):
+            self._logger.info(f"winner {i+1}: {winner}")
+            winner.setdefault("grade", PresidentRank(i + 1, self.players))
+        return winners
+
+    def card_can_be_played(self, card):
+        return not self.pile or \
+               self.get_pile()[-1] <= card and not self._revolution \
+               or self.get_pile()[-1] >= card and self._revolution
