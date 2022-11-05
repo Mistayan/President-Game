@@ -40,7 +40,7 @@ class CardGame(ABC):
             raise IndexError(f"Too many names for Human Player count (AI are randomly named)")
         if 3 < number_of_players + number_of_ai > 6:
             raise ValueError(f"Invalid Total Number of Players. 3-6")
-        self.skip_inputs = skip_inputs if skip_inputs > 1 else False
+        self.skip_inputs = skip_inputs if skip_inputs >= 1 else False
         self.__logger: Final = logging.getLogger(__class__.__name__)
         self.__logger.debug(self.__super_private)
         self.players = []
@@ -67,7 +67,7 @@ class CardGame(ABC):
         self.last_playing_player_index = 0
         self.VALUES = VALUES
         self.deck.shuffle()
-        self._round = 0
+        self._round = 1
         self._run = True
 
         for player in self.players:
@@ -112,7 +112,7 @@ class CardGame(ABC):
         for player in self.players:
             print(f"{player} : {len(player.hand)} Cards")
 
-    def winners(self):
+    def winners(self) -> list[dict]:
         rank_gen = ()
         self.__logger.debug(f"\nwinners : {self._rounds_winners}\nLoosers : {self._looser_queue}")
         if self._rounds_winners and not self._run:
@@ -181,7 +181,7 @@ class CardGame(ABC):
         player.set_win()
         winner_data = [player, self._round,
                        self.pile[-1] if self.pile and win
-                       else player.last_played if player.last_played else None]
+                       else player.last_played[0] if player.last_played else None]
         self.__logger.debug(winner_data)
         self._rounds_winners.append(winner_data)
 
@@ -203,7 +203,7 @@ class CardGame(ABC):
         self._free_pile()
 
     @abstractmethod
-    def start(self) -> None:
+    def start(self, override_test=False) -> None:
         """
         # On start of the game,
         # players sort their hands for clearer display, and easier strategy planning
@@ -216,7 +216,7 @@ class CardGame(ABC):
         [player.sort_hand() for player in self.players]
         self.show_players()
         print(flush=True)
-        input("press Enter to start the game") if not self.skip_inputs else None
+        input("press Enter to start the game") if not override_test else None
 
     @abstractmethod
     def game_loop(self):
@@ -258,18 +258,36 @@ class CardGame(ABC):
                 self.skip_inputs -= 1
         return answer
 
+    def __pile_to_unicode_safe(self):
+        json_piles = []
+        for pile in self.last_rounds_piles:
+            json_pile = []
+            for card in pile:
+                json_pile.append(card.unicode_safe())
+            json_piles.append(json_pile)
+        return json_piles
+
+    def __winners_unicode_safe(self, winners):
+        json_winners = []
+        for winner in winners:
+            ww = winner.copy()
+            if winner['last_played_card']:
+                ww["last_played_card"] = winner["last_played_card"].unicode_safe() or None
+            json_winners.append(ww)
+        return json_winners
+
     def save_results(self, name, winners):
         to_save = {
             "game": name,
             "players": [player.name for player in self.players],
-            "winners": winners,
-            "cards_played": self.last_rounds_piles,
+            "winners": self.__winners_unicode_safe(winners),
+            "cards_played": self.__pile_to_unicode_safe(),
         }
-        self.__db.update(str(to_save))
+        self.__db.update(to_save)
 
     @abstractmethod
     def _init_db(self, name=None):
-        self.__db = Database("__class__.__name__")
+        self.__db = Database(name or __class__.__name__)
 
 
 class PresidentGame(CardGame):
@@ -301,24 +319,24 @@ class PresidentGame(CardGame):
             player.reset()  # do not reset ranks
 
     def start(self, override=None, override_test=False) -> None:
-        super(PresidentGame, self).start()
+        super(PresidentGame, self).start(override_test=override_test)
         while self._run:
             self.game_loop()
-            if not override_test or self.skip_inputs:
-                # Reset players hands
-                print("".join(["#" * 15, "GAME DONE", "#" * 15]))
-                self._run = False
-                self.print_winners()
-                self.save_results("President Game", self.winners())
-                self._run = override_test and self.skip_inputs > 0\
-                            or not override_test and self.ask_yesno("Another Game")
+            # Reset players hands
+            print("".join(["#" * 15, "GAME DONE", "#" * 15]))
+            self._run = False
+            self.print_winners()
+            self.save_results("President Game", self.winners())
+            self._run = override_test and self.skip_inputs > 0\
+                or not override_test and self.ask_yesno("Another Game")
 
             if self._run:  # reset most values
                 self._initialize_game()
                 self._distribute()
                 self.do_exchanges()  # Do exchanges
                 super(PresidentGame, self)._reset_winner()  # then reset winners for new game
-                self.skip_inputs -= 1
+                if override_test:
+                    self.skip_inputs -= 1
 
     def do_exchanges(self) -> None:
         """ On start of a new game, after the previous one,
@@ -352,9 +370,9 @@ class PresidentGame(CardGame):
         but we require required_cards to be set since it is vital to this game"""
         self._logger.info('game loop')
         while self.still_alive > 1:
-            self.increment_round()  # set new round...
             self.required_cards = 0  # The only change we require compared to CardGame.
             self.round_loop()
+            self.increment_round()  # set new round...
             # Check if players still playing game:
             if self.still_alive == 1:  # If not,
                 for player in self.players:
@@ -483,12 +501,11 @@ class PresidentGame(CardGame):
         print(" ".join(["#" * 15, f"!!! REVOLUTION !!!", "#" * 15]))
         print("#" * 50)
 
-    def winners(self):
+    def winners(self) -> list[dict]:
         """ get super ranking then append PresidentGame rankings
         :returns: a list of dict containing multiple information on the winners"""
-        # Keep generator alive to avoid cheaters
 
-        winners = super().winners()  # Generator
+        winners = super().winners()
         for i, winner in enumerate(winners):
             self._logger.info(f"winner {i + 1}: {winner}")
             for player in self.players:
