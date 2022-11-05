@@ -271,10 +271,11 @@ class CardGame(ABC):
     def _init_db(self, name=None):
         self.__db = Database("__class__.__name__")
 
+
 class PresidentGame(CardGame):
     required_cards = 0
 
-    def __init__(self, number_of_players=3, number_of_ai=0, *players_names, skip_inputs: int=0):
+    def __init__(self, number_of_players=3, number_of_ai=0, *players_names, skip_inputs: int = 0):
         """ Instantiate a CardGame with President rules"""
         self._logger: Final = logging.getLogger(__class__.__name__)
         self.pile = []  # Pre-instantiating pile to avoid null/abstract pointer
@@ -302,21 +303,22 @@ class PresidentGame(CardGame):
     def start(self, override=None, override_test=False) -> None:
         super(PresidentGame, self).start()
         while self._run:
-            if not override_test:
+            self.game_loop()
+            if not override_test or self.skip_inputs:
                 # Reset players hands
-                self.game_loop()
                 print("".join(["#" * 15, "GAME DONE", "#" * 15]))
                 self._run = False
                 self.print_winners()
                 self.save_results("President Game", self.winners())
-                self._run = self.ask_yesno("Another Game") if not override_test else True
+                self._run = override_test and self.skip_inputs > 0\
+                            or not override_test and self.ask_yesno("Another Game")
 
             if self._run:  # reset most values
                 self._initialize_game()
                 self._distribute()
                 self.do_exchanges()  # Do exchanges
-                super(PresidentGame, self)._reset_winner()
-                override_test = False
+                super(PresidentGame, self)._reset_winner()  # then reset winners for new game
+                self.skip_inputs -= 1
 
     def do_exchanges(self) -> None:
         """ On start of a new game, after the previous one,
@@ -404,7 +406,7 @@ class PresidentGame(CardGame):
                             self.set_lost(player)  # PLAYED AS LAST CARD ?
                             break
                 if not len(player.hand) and not player.won:  # If player has no more cards
-                        self.set_win(player)  # WIN
+                    self.set_win(player)  # WIN
             # Everyone played / folded / won
             [player.set_played(False) for player in self.players]
 
@@ -488,10 +490,11 @@ class PresidentGame(CardGame):
 
         winners = super().winners()  # Generator
         for i, winner in enumerate(winners):
-            self._logger.info(f"winner {i+1}: {winner}")
+            self._logger.info(f"winner {i + 1}: {winner}")
             for player in self.players:
                 if player.name == winner['player']:
-                    winner.setdefault("grade", PresidentRank(i + 1, player, self.players).rank_name)
+                    winner.setdefault("grade",
+                                      PresidentRank(i + 1, player, self.players).rank_name)
         return winners
 
     def card_can_be_played(self, card):
