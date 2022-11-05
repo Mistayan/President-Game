@@ -49,14 +49,23 @@ class TestGameExercice3(unittest.TestCase):
         game = PresidentGame(0, 3, skip_inputs=1)
         game.game_loop()
 
-    def test_two_games_3_AIs_one_exchange(self):
-        # the simple fact that it runs until the end is proof
-        game = PresidentGame(0, 3, skip_inputs=2)
-        game.game_loop()
-
-    def test_three_games_3_AIs(self):
+    def test_three_games_3_AIs_no_exchanges(self):
         # the simple fact that it runs until the end is proof
         game = PresidentGame(0, 3, skip_inputs=3)
         game.game_loop()
+
+    def test_two_games_3_AIs_one_exchange(self):
+        # the simple fact that it runs until the end is a proof in itself
+        game = PresidentGame(0, 3, skip_inputs=2)
+        game.start(override_test=True)
+        total = 0
+        for pile in game.last_rounds_piles:
+            total += len(pile)
+        self.assertNotEqual(total, 52)  # Not everyone played their hand...
+        for player in game.players:
+            total += len(player.hand)
+        self.assertEqual(total, 52)
+
+
 
 
