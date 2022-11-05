@@ -20,6 +20,7 @@ class Database:
     """
     def __init__(self, game_name: str):
         self.__data = []
+        self.__fp = None
         self.__logger = logging.getLogger(__class__.__name__)
         self.__file: Final = f"./saves-{game_name}.json"
         if not os.path.exists(self.__file):
@@ -46,4 +47,6 @@ class Database:
         self.__fp.close()
 
     def __renew_fp(self):
+        if self.__fp:
+            self.__fp.close()
         self.__fp = open(self.__file, 'w+')  # keep fp alive, so it acts like a "Lock"
