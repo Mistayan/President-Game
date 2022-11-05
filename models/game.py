@@ -40,12 +40,12 @@ class CardGame(ABC):
             raise IndexError(f"Too many names for Human Player count (AI are randomly named)")
         if 3 < number_of_players + number_of_ai > 6:
             raise ValueError(f"Invalid Total Number of Players. 3-6")
-        self.__db = Database(__class__.__name__)
         self.skip_inputs = skip_inputs if skip_inputs > 1 else False
         self.__logger: Final = logging.getLogger(__class__.__name__)
         self.__logger.debug(self.__super_private)
         self.players = []
         self.pile = []
+        self._init_db()
         for name in players_names:  # Named players
             self.players += [Human(name=str(name), game=self)]
             number_of_players -= 1
@@ -267,6 +267,9 @@ class CardGame(ABC):
         }
         self.__db.update(str(to_save))
 
+    @abstractmethod
+    def _init_db(self, name=None):
+        self.__db = Database("__class__.__name__")
 
 class PresidentGame(CardGame):
     required_cards = 0
@@ -495,3 +498,6 @@ class PresidentGame(CardGame):
         return not self.pile or \
                self.get_pile()[-1] <= card and not self._revolution \
                or self.get_pile()[-1] >= card and self._revolution
+
+    def _init_db(self, name=None):
+        super()._init_db(__class__.__name__)
