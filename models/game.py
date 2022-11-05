@@ -36,8 +36,6 @@ class CardGame(ABC):
         :param number_of_ai: int 1-5
         :param players_names: "p1", "p2", ..., "p6"
         """
-        if players_names and len(players_names) > number_of_players:
-            raise IndexError(f"Too many names for Human Player count (AI are randomly named)")
         if 3 < number_of_players + number_of_ai > 6:
             raise ValueError(f"Invalid Total Number of Players. 3-6")
         self.skip_inputs = skip_inputs if skip_inputs >= 1 else False
@@ -46,11 +44,12 @@ class CardGame(ABC):
         self.players = []
         self.pile = []
         self._init_db()
-        for name in players_names:  # Named players
-            self.players += [Human(name=str(name), game=self)]
-            number_of_players -= 1
-        for _ in range(number_of_players):  # Anonymous Players, random generation
-            self.players += [Human(game=self)]
+        if number_of_players:
+            for name in players_names:  # Named players
+                self.players += [Human(name=str(name), game=self)]
+                number_of_players -= 1
+            for _ in range(number_of_players):  # Anonymous Players, random generation
+                self.players += [Human(game=self)]
         self.players += [AI(name="AI - " + names.get_full_name(gender="female"), game=self)
                          for _ in range(number_of_ai)]  # AI Players
         self.deck = Deck()
@@ -348,9 +347,9 @@ class PresidentGame(CardGame):
             player = player_info[0]
             adv = player.rank.advantage
             give_to = self._rounds_winners[i][0]
-            sentence = f"{player} gives {'his best ' if adv < 0 else ''}"
-            sentence += f"{'no' if not adv else abs(adv)}"
-            sentence += f" cards {'to ' + str(give_to) if adv else ''}"
+            sentence = f"{player} gives {'his best ' if adv < 0 else ''}" \
+                       f"{'no' if not adv else abs(adv)}" \
+                       f" cards {'to ' + str(give_to) if adv else ''}"
             print(sentence)
             for _ in range(abs(adv)):  # give cards according to adv.
                 # If neutral, do not trigger
