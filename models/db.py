@@ -14,7 +14,7 @@ from typing import Final
 
 
 class Database:
-    """ Simulate MongoDB as a simple json file
+    """ Emulate MongoDB as a simple json file
     MongoDB requires at least Docker to run, or a fully installed version, or a server.
     To keep some simplicity in this program, it is going to be saved as a JSON
     """
@@ -27,15 +27,14 @@ class Database:
             self.__logger.debug("DB does not exist, creating...")
             with open(self.__file, 'w') as fp:
                 json.dump(self.__data, fp)
-        else:
+        try:
             self.__renew_fp()
-            try:
-                self.__data = json.load(self.__fp)
-            except JSONDecodeError:
-                self.__data = []
+            self.__data = json.load(self.__fp)
+        except JSONDecodeError:
+            self.__data = []
         self.__renew_fp()
 
-    def update(self, datas: str):
+    def update(self, datas: dict):
         self.__logger.info(f"adding {datas} to DB")
         self.__data.append(datas)
         self.__save()
@@ -49,4 +48,5 @@ class Database:
     def __renew_fp(self):
         if self.__fp:
             self.__fp.close()
-        self.__fp = open(self.__file, 'w+')  # keep fp alive, so it acts like a "Lock"
+        # keep fp alive, so it acts like a "Lock"
+        self.__fp = open(self.__file, 'w+', encoding='utf-8')
