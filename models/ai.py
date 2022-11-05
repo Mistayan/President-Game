@@ -79,7 +79,8 @@ class AI(Player):
         if self.max_combo < 4:
             n_cards_to_play = self.calc_n_cards(self.max_combo,
                                                 True if self.got_revolution_in_hand else False)
-        elif self.max_combo == 4 and self.calc_revolution_interest() < 0.18:
+        elif self.max_combo == 4 and\
+                (self.calc_revolution_interest() < 0.25 or len(self.hand) == 4):
             n_cards_to_play = 4
         return n_cards_to_play
 
