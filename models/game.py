@@ -8,6 +8,7 @@ import names
 
 from models import AI
 from models.Errors import CheaterDetected
+from models.db import Database
 from models.deck import Deck, Card, VALUES
 from models.player import Player, Human
 from models.rankings import PresidentRank
@@ -39,7 +40,7 @@ class CardGame(ABC):
             raise IndexError(f"Too many names for Human Player count (AI are randomly named)")
         if 3 < number_of_players + number_of_ai > 6:
             raise ValueError(f"Invalid Total Number of Players. 3-6")
-
+        self.__db = Database(__class__.__name__)
         self.skip_inputs = skip_inputs if skip_inputs > 1 else False
         self.__logger: Final = logging.getLogger(__class__.__name__)
         self.__logger.debug(self.__super_private)
@@ -257,8 +258,14 @@ class CardGame(ABC):
                 self.skip_inputs -= 1
         return answer
 
-    def save_results(self):
-        pass
+    def save_results(self, name, winners):
+        to_save = {
+            "game": name,
+            "players": [player.name for player in self.players],
+            "winners": winners,
+            "cards_played": self.last_rounds_piles,
+        }
+        self.__db.update(str(to_save))
 
 
 class PresidentGame(CardGame):
@@ -298,7 +305,7 @@ class PresidentGame(CardGame):
                 print("".join(["#" * 15, "GAME DONE", "#" * 15]))
                 self._run = False
                 self.print_winners()
-                self.save_results()
+                self.save_results("President Game", self.winners())
                 self._run = self.ask_yesno("Another Game") if not override_test else True
 
             if self._run:  # reset most values
@@ -481,7 +488,7 @@ class PresidentGame(CardGame):
             self._logger.info(f"winner {i+1}: {winner}")
             for player in self.players:
                 if player.name == winner['player']:
-                    winner.setdefault("grade", PresidentRank(i + 1, player, self.players))
+                    winner.setdefault("grade", PresidentRank(i + 1, player, self.players).rank_name)
         return winners
 
     def card_can_be_played(self, card):
