@@ -17,9 +17,9 @@ class Card:
     def validate(num, color):
         """ validate if num and color are valid inputs """
         if str(num) not in VALUES:
-            raise ValueError(f"card number is not in {VALUES}")
+            raise ValueError(f"Card number is not in {VALUES}")
         if color not in COLORS:
-            raise ValueError("card color must be ♡ or ♤")
+            raise ValueError(f"Card color must be in {COLORS}")
 
     def __eq__(self, other):
         """ test card's numbers equity (see __ne__ for value & color comparison) """
@@ -77,6 +77,9 @@ class Card:
         else:
             other_i = VALUES.index(other)
         return self_i <= other_i
+
+    def unicode_safe(self):
+        return f"{self.number} of {COLORS[self.color]}"
 
     def __str__(self):
         return f"{self.number}{self.color}"
