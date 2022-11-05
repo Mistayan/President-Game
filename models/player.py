@@ -137,7 +137,7 @@ class Player(ABC):
         """
         if not n_cards_to_play:
             n_cards_to_play = self.ask_n_cards_to_play()
-        print(f"you must {action} {'a' if n_cards_to_play == 1 else ''} "
+        print(f"you must {action} {'a' if n_cards_to_play == 1 else n_cards_to_play} "
               f"{'card' if n_cards_to_play == 1 else 'cards'}")
         player_game = self.choose_cards_to_play(n_cards_to_play, override)[::]
         if player_game and len(player_game) == n_cards_to_play:
