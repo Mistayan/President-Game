@@ -6,5 +6,6 @@ logger = logging.getLogger(__name__)
 
 if __name__ == '__main__':
     # INIT
-    game = PresidentGame(1, 3, "Ready Player 1")
+    humans_names = (input("Player Name ?"), )
+    game = PresidentGame(1, 3, *humans_names)
     game.start()
