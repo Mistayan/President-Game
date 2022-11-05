@@ -27,7 +27,7 @@ class CardGame(ABC):
     VALUES = VALUES
 
     @abstractmethod
-    def __init__(self, number_of_players=3, number_of_ai=0, *players_names):
+    def __init__(self, number_of_players=3, number_of_ai=0, *players_names, skip_inputs: int = 0):
         """
         Game Instance.
         Players (includes IA) : 3-6 players
@@ -40,6 +40,7 @@ class CardGame(ABC):
         if 3 < number_of_players + number_of_ai > 6:
             raise ValueError(f"Invalid Total Number of Players. 3-6")
 
+        self.skip_inputs = skip_inputs if skip_inputs > 1 else False
         self.__logger: Final = logging.getLogger(__class__.__name__)
         self.__logger.debug(self.__super_private)
         self.players = []
@@ -214,7 +215,7 @@ class CardGame(ABC):
         [player.sort_hand() for player in self.players]
         self.show_players()
         print(flush=True)
-        input("press Enter to start the game")
+        input("press Enter to start the game") if not self.skip_inputs else None
 
     @abstractmethod
     def game_loop(self):
@@ -241,16 +242,19 @@ class CardGame(ABC):
             ...
         return []
 
-    @staticmethod
-    def ask_yesno(question):
+    def ask_yesno(self, question):
         """ Ask a question that requires  yes/no answer """
         answer = -1
         while answer == -1:
-            _in = input(f"{question} ? (y/n)")
-            if _in and _in[0] == 'y':
-                answer = True
-            if _in and _in[0] == 'n':
-                answer = False
+            if not self.skip_inputs:
+                _in = input(f"{question} ? (y/n)")
+                if _in and _in[0] == 'y':
+                    answer = True
+                if _in and _in[0] == 'n':
+                    answer = False
+            else:
+                answer = self.skip_inputs
+                self.skip_inputs -= 1
         return answer
 
     def save_results(self):
@@ -260,11 +264,11 @@ class CardGame(ABC):
 class PresidentGame(CardGame):
     required_cards = 0
 
-    def __init__(self, number_of_players=3, number_of_ai=0, *players_names):
+    def __init__(self, number_of_players=3, number_of_ai=0, *players_names, skip_inputs: int=0):
         """ Instantiate a CardGame with President rules"""
         self._logger: Final = logging.getLogger(__class__.__name__)
         self.pile = []  # Pre-instantiating pile to avoid null/abstract pointer
-        super().__init__(number_of_players, number_of_ai, *players_names)
+        super().__init__(number_of_players, number_of_ai, *players_names, skip_inputs=skip_inputs)
         self._revolution = False
         self._distribute()
 
