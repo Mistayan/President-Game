@@ -6,6 +6,7 @@ from typing import Final
 
 import names
 
+from rules import GameRules
 from models import AI
 from models.Errors import CheaterDetected
 from models.db import Database
@@ -242,6 +243,17 @@ class CardGame(ABC):
             ...
         return []
 
+    def queen_of_heart_starts(self):
+        """Only triggers if rule in True
+        set the player with queen of heart as the first player"""
+        if GameRules.QUEEN_OF_HEART_STARTS:
+            for i, player in enumerate(self.players):
+                for card in player.hand:
+                    if card.number == "Q" and card.color == "♡":
+                        print(f"{player} got Q♡ : starting the game, ")
+                        self.last_playing_player_index = i
+                        return
+
     def ask_yesno(self, question):
         """ Ask a question that requires  yes/no answer """
         answer = -1
@@ -293,12 +305,12 @@ class PresidentGame(CardGame):
     required_cards = 0
 
     def __init__(self, number_of_players=3, number_of_ai=0, *players_names, skip_inputs: int = 0):
-        """ Instantiate a CardGame with President rules"""
+        """ Instantiate a CardGame with President rules and functionalities """
         self._logger: Final = logging.getLogger(__class__.__name__)
         self.pile = []  # Pre-instantiating pile to avoid null/abstract pointer
         super().__init__(number_of_players, number_of_ai, *players_names, skip_inputs=skip_inputs)
         self._revolution = False
-        self._distribute()
+        self.queen_of_heart_starts()  # Only triggers if rule is True. First game only !
 
     def _distribute(self):
         """ PresidentGame logic for distributing cards:
@@ -386,9 +398,10 @@ class PresidentGame(CardGame):
         - When every player is folded, end round.
         - Reset 'played' status but not 'folded' status on each turn (for player in self. players)
 
-        If first round, first player registered starts the game.
+        If first round, first player registered starts the game (or Queen of heart if rule ON)
         If not first round, first playing player is last round's winner
         If last round's winner have won the game, next player will take the lead.
+        If this is not the first game, last game's looser start
         If a player is left alone on the table, the game ends.
         """
 
@@ -417,24 +430,25 @@ class PresidentGame(CardGame):
                         [self.add_to_pile(card) for card in cards]
                         self.last_playing_player_index = index
                         self.set_revolution() if len(cards) == 4 else None  # REVOLUTION ?
-                        if cards[0].number == self.strongest_card:  # and len(player.hand)
-                            # BEST_CARDS_PLAYED ? Break the loop.
-                            # UNLESS the current player has won ?
-                            self.set_lost(player)  # PLAYED AS LAST CARD ?
-                            break
-                if not len(player.hand) and not player.won:  # If player has no more cards
-                    self.set_win(player)  # WIN
-            # Everyone played / folded / won
-            [player.set_played(False) for player in self.players]
+                        if self.best_card_played:
+                            self.player_lost(player)
+                            if GameRules.PLAYING_BEST_CARD_END_ROUND:
+                                break
+                    self.set_win(player) or player.set_played()  # If player has no more cards, WIN
 
-            # Check if last played cards match the strongest value
-            if self.pile and self.pile[-1].number == self.strongest_card:
-                print(' '.join([
-                    "#" * 15,
-                    "TERMINATING Round, Best Card Value Played !",
-                    "#" * 15]))
-                break  # Break round_loop
-        self._logger.warning("EXITING ROUND_LOOP")
+                    # Check if last played cards match the strongest value
+                    if GameRules.PLAYING_BEST_CARD_END_ROUND and self.best_card_played:
+                        print(' '.join([
+                            "#" * 15,
+                            "TERMINATING Round, Best Card Value Played !",
+                            "#" * 15]))
+                        break
+            # Everyone played
+            for player in self.players:
+                player.set_played(False)
+                # player.set_fold(False) if not GameRules.WAIT_NEXT_ROUND_IF_FOLD else None
+            self._logger.warning("EXITING ROUND_LOOP")
+
         # END ROUND_LOOP
 
     def player_loop(self, player: Player) -> list[Card]:
@@ -494,6 +508,8 @@ class PresidentGame(CardGame):
 
         Inspired by the French revolution, yet to become True.
         """
+        if not GameRules.USE_REVOLUTION:
+            return
         self._revolution = not self._revolution
         self.VALUES = self.VALUES[::-1]
         print("#" * 50)
@@ -514,9 +530,21 @@ class PresidentGame(CardGame):
         return winners
 
     def card_can_be_played(self, card):
+        """ Returns True if the card can be played according to pile and rules """
         return not self.pile or \
-               self.get_pile()[-1] <= card and not self._revolution \
-               or self.get_pile()[-1] >= card and self._revolution
+            (self.get_pile()[-1] <= card and not self._revolution
+             or self.get_pile()[-1] >= card and self._revolution)
 
     def _init_db(self, name=None):
         super()._init_db(__class__.__name__)
+
+    def player_lost(self, player):
+        """ If player has no cards in hand, and the rule is set to True,
+        Game sets current player to looser"""
+        if GameRules.FINISH_WITH_BEST_CARD__LOOSE and not len(player.hand):
+            self.set_lost(player)
+
+    @property
+    def best_card_played(self):
+        """ Returns True if the last card played is the best card"""
+        return self.pile[-1] == self.VALUES[-1]
