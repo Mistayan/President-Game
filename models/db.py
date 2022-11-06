@@ -10,7 +10,7 @@ import json
 import logging
 import os.path
 from json import JSONDecodeError
-from typing import Final
+from typing import Final, IO
 
 
 class Database:
@@ -24,14 +24,13 @@ class Database:
         self.__dir: Final = f"./Saves/{game_name}"
         self.__init_dirs()
         self.__data = []
-        self.__fp = None
         self.__logger = logging.getLogger(__class__.__name__)
         self.__name: Final = f"results"
         self.__file = self.__new_save()
         with open(self.__file, 'w') as fp:
             json.dump(self.__data, fp)
         try:
-            self.__renew_fp()
+            self.__fp = self.__renew_fp()
             self.__data = json.load(self.__fp)
         except JSONDecodeError:
             self.__data = []
@@ -47,11 +46,12 @@ class Database:
         json.dump(self.__data, self.__fp)
         self.__fp.close()
 
-    def __renew_fp(self):
+    def __renew_fp(self) -> IO:
         if self.__fp:
             self.__fp.close()
         # keep fp alive, so it acts like a "Lock"
         self.__fp = open(self.__file, 'w+', encoding='utf-8')
+        return self.__fp
 
     def __new_save(self):
         save = f"./{self.__dir}/{self.__name}.json"

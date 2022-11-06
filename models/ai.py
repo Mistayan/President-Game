@@ -36,9 +36,9 @@ class AI(Player):
         super(AI, self).set_rank(rank_pointer)
 
     def play_cli(self, n_cards_to_play=0, override=None, action='play') -> list[Card]:
-        """The actual calculation method don't take into account the fact that you can break pairs.
+        """The actual calculation method don't take into account the fact that you can break pairs
         :param n_cards_to_play: if 0, choose on its own, otherwise plays this number of cards
-        :param override: Override should not be used, since the AI make decisions on its own.
+        :param override: Override should not be used, since the AI make decisions on its own
         :param action: action to play (play, give, ...)
         :return: Cards to play
         (they should always be valid, taking into considerations the game pile)

@@ -69,8 +69,7 @@ class Player(ABC):
 
     def remove_from_hand(self, card: Card) -> Card | None:
         """
-        remove a specified card form player's hand.
-
+        remove a specified card form player's hand
         :param card: the card to remove from player's hand
         :return: the card removed from player's hand
         """
@@ -171,8 +170,7 @@ class Player(ABC):
         """
         Ensure there are enough of designated card in player's hand.
         Remove 1 card at a time from hand and place it in result (temporary)
-        If a card is not found in player's hand, restore cards to player.
-
+        If a card is not found in player's hand, restore cards to player
         :param n_cards_to_play: number of cards
         :param wanted_card: card to play
         :return: [card, ...] if there is enough of designated card in hand
@@ -215,7 +213,8 @@ class Player(ABC):
         cards_to_play = []
         if n_cards_to_play <= self.max_combo:
             _in = input(f"{n_cards_to_play} combo required: (your max : {self.max_combo})\n"
-                        f"[2-9 JQKA] or 'F' to fold (you will not be able to play current round)\n") \
+                        f"[2-9 JQKA] or 'F' to fold "
+                        f"(you will not be able to play current round)\n") \
                 .upper() if not override else override.upper()
             # Check fold status
             if not (_in and _in[0] == 'F'):
@@ -266,8 +265,8 @@ class Human(Player):
 
     def ask_n_cards_to_play(self) -> int:
         """ HUMAN ONLY
-                :return: self's pick between 1 and his maximum combo
-                """
+        :return: self's pick between 1 and his maximum combo
+        """
         _max = self.max_combo
         n = _max if _max <= 1 else 0
         while not n > 0 or n > _max:
@@ -276,7 +275,7 @@ class Human(Player):
                               f" - How many cards do you want to play (1-{_max})?\n?> "))
                 if 0 > n > _max:
                     n = 0
-            except:
+            except ValueError:
                 n = 0
         return 1 if n < 1 else n
 
@@ -306,4 +305,3 @@ class Human(Player):
     def set_rank(self, rank_pointer):
         self.__logger.debug(f"I have been assigned {rank_pointer}")
         super(Human, self).set_rank(rank_pointer)
-

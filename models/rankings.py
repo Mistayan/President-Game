@@ -15,7 +15,7 @@ from models.player import Player
 class PresidentRank:
     __possible_rank: Final = ["President", "Vice-President",  # positive advantages
                               "Neutre",  # Neutral advantages
-                              "Vice-Trouffion", "Trouffion"]  # negative advantages
+                              "Vice-Troufion", "Troufion"]  # negative advantages
 
     __advantages: Final = [2, 1, 0, -1, -2]
     players = []  # Classes Instances shared attribute
@@ -34,17 +34,17 @@ class PresidentRank:
         neutral = (_max % 2 or _max == 6) and n in {2, 3, 4}
         # President is always the first player
         president = n == 1
-        # Vice-president  and Vice-trouduc only exists if _max > 3
+        # Vice-president  and Vice-troufion only exists if _max > 3
         vice_president = _max > 3 and n == 2
-        vice_trouduc = _max > 3 and n == _max - 1
-        # Trouduc is the last player:
-        trouduc = n == _max
+        vice_troufion = _max > 3 and n == _max - 1
+        # troufion is the last player:
+        troufion = n == _max
 
         if neutral:
             self.rank_name = self.__possible_rank[2]
         if president or vice_president:
             self.rank_name = self.__possible_rank[n - 1]
-        if vice_trouduc or trouduc:
+        if vice_troufion or troufion:
             self.rank_name = self.__possible_rank[::-1][_max - n]
         try:
             self.rank_name
@@ -56,8 +56,8 @@ class PresidentRank:
     @property
     def advantage(self) -> int:
         """
-        - 3 players -> 1 card to give for President / Trouffion
-        - 4+ players : 2 cards for President / Trouffion and 1 card for Vice-...
+        - 3 players -> 1 card to give for President / Troufion
+        - 4+ players : 2 cards for President / Troufion and 1 card for Vice-...
         :return: the current rank's advantage as number_of_cards: int
         """
         index = self.__possible_rank.index(self.rank_name)

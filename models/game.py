@@ -102,7 +102,7 @@ class CardGame(ABC):
         return self.pile
 
     def _free_pile(self):
-        self.__logger.info("########## reseting pile ##########")
+        self.__logger.info("########## resetting pile ##########")
         self.last_rounds_piles.append(self.pile)
         self.pile = []
 
@@ -148,7 +148,7 @@ class CardGame(ABC):
             else:
                 self.__logger.critical(type(player), type(give), type(to))
                 raise
-        except Exception as e:
+        except Exception:
             raise CheaterDetected(f"{player} failed to give {give} to {to}")
 
     def _reset_players_status(self):
@@ -235,8 +235,8 @@ class CardGame(ABC):
     def round_loop(self):
         """Implement your game logic here"""
         while ...:
-            for player in self.players:
-                ...
+            # for player in self.players:
+            ...
 
     @abstractmethod
     def player_loop(self, player: Player) -> list[Card]:
@@ -289,11 +289,11 @@ class CardGame(ABC):
             json_winners.append(ww)
         return json_winners
 
-    def save_results(self, name, winners):
+    def save_results(self, name):
         to_save = {
             "game": name,
             "players": [player.name for player in self.players],
-            "winners": self.__winners_unicode_safe(winners),
+            "winners": self.__winners_unicode_safe(self.winners()),
             "cards_played": self.__pile_to_unicode_safe(),
         }
         self.__db.update(to_save)
@@ -341,7 +341,7 @@ class PresidentGame(CardGame):
             print("".join(["#" * 15, "GAME DONE", "#" * 15]))
             self._run = False
             self.print_winners()
-            self.save_results("President Game", self.winners())
+            self.save_results("President Game")
             self._run = self.ask_yesno("Another Game") \
                 if not (override_test and self.skip_inputs) else False  # Tests only
 
@@ -383,7 +383,7 @@ class PresidentGame(CardGame):
         card = None
         if adv < 0:  # Give best card if negative advantage
             card = player.hand[-1]
-            if player.rank.rank_name == "Trouffion":
+            if player.rank.rank_name == "Troufion":
                 self.last_playing_player_index = [p == player for p in self.players][0]
         if adv > 0:  # Otherwise choose card to give
             result = player.play_cli(1)
