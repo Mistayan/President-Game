@@ -1,12 +1,10 @@
-# Python Exercice : Le jeu du président
+# Le jeu du président
 
 Le président (aussi appelé le troufion) est un jeu de cartes rapide et amusant, au cours duquel la
-hiérarchie des
-joueurs changera à chaque manche. Le vainqueur d'une manche devient le président, alors que le
-perdant est proclamé
-troufion. Une fois que vous maitriserez les règles de base, vous pourrez essayer différentes
-variantes de ce jeu très
-populaire.
+hiérarchie des joueurs changera à chaque manche. 
+Le vainqueur d'une manche devient le président, alors que le perdant est proclamé troufion.
+Une fois que vous maitriserez les règles de base, vous pourrez essayer différentes
+variantes de ce jeu très populaire.
 
 Règles du jeu :
 
@@ -15,8 +13,8 @@ Règles du jeu :
 - L'ensemble des cartes sont distribuées aux joueurs de la manière la plus homogène.
 - Ce jeu se joue par tours. Tant que quelqu'un peut et veut jouer, le tour continue et tourne dans
   le sens horaire.
-- Le premier joueur choisit des cartes d'une même valeur et les pose sur la tables.
-- Suite à celà, chaque joueur doit fournir autant de cartes que le joueur précédent des cartes dun'
+- Le premier joueur choisit des cartes d'une même valeur et les pose sur la table.
+- Suite à cela, chaque joueur doit fournir autant de cartes que le joueur précédent des cartes d'une
   valeur supérieure ou égale.
 - Un joueur a le droit de sauter son tour et reprendre le tour d'après.
 - Un tour est fini lorsque plus personne ne joue. C'est alors le dernier à avoir joué qui ouvre la
@@ -24,12 +22,12 @@ Règles du jeu :
   tour.
 - L'objectif est d'être le premier à ne plus avoir de cartes. Ce joueur est alors déclaré président
   de la manche.
-- Les joueurs restants continuent à jouer jusqu'à ce qu'il n'y ait plus qu'une joueur qui ait des
+- Les joueurs restants continuent à jouer jusqu'à ce qu'il n'y ait plus qu'un joueur qui ait des
   cartes en main, il est alors déclaré 'troufion'
 
 On décide alors ou non de jouer une nouvelle manche. Ce sera le troufion qui ouvrira la partie.
 
-## Exercice 1
+## Rush 1
 
 Générer un deck de 52 cartes.
 Rédiger les méthodes magiques permettant de comparer deux cartes.
@@ -38,30 +36,22 @@ Rédiger les méthodes magiques permettant de comparer deux cartes.
 classDiagram
     Deck *-- Card
     Deck : +[Card] cards
+    
 ```
 
-Attention, la carte la plus forte est le `2`, puis l'as, puis le `R`, `D`, `V`, `10`, `9`...
-.Afin de vous assurer que le code généré fonctionne. Executez
-les tests suivants.
+Attention, la carte la plus forte est le `2`, puis l'as, puis le `R`, `D`, `V`, `10`, `9`... .
 
-`python test_exercice1.py`
-
-## Exercice 2
-
-Afin de pouvoir jouer au président, il va être nécessaire d'implémenter la
-classe d'un joueur. Et de distribuer les cartes aux joueurs.
-
-Afin de faciliter les tests, nous allons considérer qu'il y a trois joueurs
-présents autour de la table.
-
-Ainsi, dans cette étape, implémentez les classes `PresidentGame` et `Player`.
+## Rush 2
 
 ```mermaid
 classDiagram
     Deck *-- Card
+    CardGame *-- Deck
+    CardGame <|-- PresidentGame
+    rules *-- PresidentGame
     PresidentGame *-- Player
     Player <|-- AIPlayer
-    Player o-- Card
+    Player <|-- HumanPlayer
     class PresidentGame{
         +[Player] players
         +distribute_cards()
@@ -80,61 +70,62 @@ classDiagram
     class AIPlayer{
         +play()
     }
+    class HumanPlayer{
+        +play()
+    }
+    class Card{
+        number
+        color
+    }
+    
 ```
 
-.Afin de vous assurer que le code généré fonctionne. Executez
-les tests suivants. Adaptez les si vos classes ont des méthodes différentes.
+## Rush 3
 
-`python test_exercice2.py`
-
-## Exercice 3
-
-Nous avons maintenant une partie qui peut se lancer. N'ayant pas d'interface
-graphique pour le moment, nous allons réaliser les échanges avec le joueur
-par le biais de la console.
-
-A partir du fichier `main.py`, implémentez une petite interface pour représenter les cartes au sein
-de la console, et
-permettre au joueur de choisir les cartes à joueur.
+Implémenter une petite interface pour représenter les cartes au sein
+de la console et permettre au joueur de choisir les cartes à jouer.
 
 Il est possible de sélectionner plusieurs cartes dès lors qu'elles ont la même valeur.
 
-Une vérification doit être mise en place pour voir si le choix de l
-'utilisateur est correct.
+Une vérification doit être mise en place pour voir si le choix de l'utilisateur est correct.
 
-## Barème :
 
-- /1 Présence d'un fichier `requirements.txt`
-- /1 Pertinence du fichier `Readme.md`
-- /2 Gestion de GIT
-- /2 Doctrings
-- /2 Nommage méthodes/classes/variables
-- /2 Un joueur face à 3 IA
-- /2 Generation des cartes
-- /2 Validation des tests unitaires
-- /2 Présentation graphique
-- /1 Présentation graphique aboutie
-- /3 Fonctionnalités avancées de jeu du président
+## Rush 4
 
-## Suite des exercices à réaliser.
+Implémenter une interface graphique (TK ?)
+Faire communiquer l'interface d'un joueur au jeu
+```mermaid
+classDiagram
+    Player --> TK
+    TK <--> PresidentGame
+    class TK {
+    + Interface
+    
+    + get_cards_from_player()
+    + send_cards_to_game()
+    }
+    
+```
 
-> Réaliser l'ensemble de ces fonctionnalités en TDD.
+## Avancements :
 
-> Les fichiers de tests sont là pour celà.
+- [x] Présence d'un fichier `requirements.txt`
+- [x] Pertinence du fichier `Readme.md`
+- [x] Gestion de GIT
+- [x] Doctrings
+- [x] Nommage méthodes/classes/variables
+- [x] Un joueur face à 3 IA
+- [x] Generation des cartes
+- [x] Validation des tests unitaires
+- [ ] Présentation graphique
+- [ ] Présentation graphique aboutie
+- [x] Fonctionnalités avancées de jeu du président
 
-> Dans un premier temps, executez les tests existants pour voir s'ils fonctionnent.
-> Réparez les si nécessaire.
 
-> Puis implémentez une nouvelle série de tests pour implémenter
-> une des fonctionnalités listées ci-dessous.
+> Réalisation des fonctionnalités en TDD / CDD.
 
-> Passer par l'étape d'une modélisation UML permets souvent de clarifier l'approche face aux
-> implémentations à réaliser.
 
-> Ceci vous oblige à devoir d'abord réfléchir sur la conception des objets.
-> Et leurs interactions.
-
-- [x] Présentation des joueurs en début de partie, et affichage du nombre de cartes que chaque
+- [x] Présentation des joueurs en début de partie et affichage du nombre de cartes que chaque
   joueur a en main.
 - [x] Le déroulé d'une manche.
     - Chaque utilisateur doit fournir s'il peut (ou veut) la quantité de cartes demandées.
@@ -147,11 +138,19 @@ Une vérification doit être mise en place pour voir si le choix de l
     - En fonction du nombre de joueurs, et de la partie précédente il peut exister :
         - Un président et un troufion si 3 joueurs (1 carte)
         - Ajout d'un vice président et d'un vice troufion si 4+ (2 cartes (président <-> trouffion)
-          , 1 carte (vice <->
-          vice)
+          , 1 carte (vice <-> vice)
     - Le troufion doit donner sa meilleure carte, le président choisit quelle carte donner
-- [ ] Interface graphique
 - [x] Intelligence artificielle
-    - Ajoutez un raisonnement simple en plus du raisonnement déjà existant.
+    - Ajouter un raisonnement simple en plus du raisonnement déjà existant.
 
 
+# Comment utiliser le logiciel :
+
+> Il est fortement recommandé d'utiliser un environnement virtuel :
+> >python -m venv venv
+
+> pip install -r requirements.txt
+
+> Modifier rules.py pour adapter les regles du jeu
+ 
+> Lancer main.py
