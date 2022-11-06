@@ -44,7 +44,7 @@ class CardGame(ABC):
         self.__logger.debug(self.__super_private)
         self.players = []
         self.pile = []
-        self._init_db()
+        # self._init_db()
         if number_of_players:
             for name in players_names:  # Named players
                 self.players += [Human(name=str(name), game=self)]
@@ -69,10 +69,8 @@ class CardGame(ABC):
         self.deck.shuffle()
         self._round = 1
         self._run = True
-
         for player in self.players:
-            player.set_win(False)
-            player.hand = []
+            player.reset()
 
     @abstractmethod
     def _distribute(self):
@@ -165,15 +163,17 @@ class CardGame(ABC):
             player.set_fold(False)
             player.__buffer = []
 
-    def set_win(self, player, win=True) -> None:
+    def set_win(self, player, win=True) -> bool:
         """
         Set player status to winner or looser and append :
         [Player, Round, Last_Card] to _rounds_winners
         """
+        if (len(player.hand) and win) or player.won:
+            return False
         for test in self._rounds_winners:
             if test[0] == player:
                 raise CheaterDetected(
-                    f"{player} already in the ladder. Correct issue before continue")
+                    f"{player} already in the ladder.")
         if win:
             self.__logger.info(f"{player} won the place N°{len(self._rounds_winners) + 1}")
         else:
@@ -184,17 +184,19 @@ class CardGame(ABC):
                        else player.last_played[0] if player.last_played else None]
         self.__logger.debug(winner_data)
         self._rounds_winners.append(winner_data)
+        return True
 
-    def set_lost(self, player) -> None:
+    def set_lost(self, player, reason=None) -> None:
         """ Set player status to winner and append [Player, Rank] to _rounds_winners"""
         if len(player.hand):
             return
         self.__logger.info(f"{player} Lost the game.")
-        self._looser_queue.append([player, self._round, player.hand[-1] if player.hand else None])
+        self._looser_queue.append([player,
+                                   self._round,
+                                   player.hand[-1] if player.hand and not reason
+                                   else self.pile[-1]
+                                   ])
         player.set_win()
-        # if not [player.won for player in self.players].count(False):
-        #     for player_infos in self._looser_queue:
-        #         player_infos[0].set_win()
 
     def increment_round(self) -> None:
         self.__logger.info(f"#### INCREMENTING ROUND : {self._round} ####")
@@ -216,7 +218,7 @@ class CardGame(ABC):
         [player.sort_hand() for player in self.players]
         self.show_players()
         print(flush=True)
-        input("press Enter to start the game") if not override_test else None
+        override_test or input("press Enter to start the game")
 
     @abstractmethod
     def game_loop(self):
@@ -255,15 +257,15 @@ class CardGame(ABC):
                         return
 
     def ask_yesno(self, question):
-        """ Ask a question that requires  yes/no answer """
+        """ Ask a question that requires  yes/no answer
+        if self.skip_input is active, will return True"""
         answer = -1
         while answer == -1:
             if not self.skip_inputs:
-                _in = input(f"{question} ? (y/n)")
-                if _in and _in[0] == 'y':
-                    answer = True
-                if _in and _in[0] == 'n':
-                    answer = False
+                _in = input(f"{question} ? (y/n)").lower()
+                answer = True if _in and _in[0] == 'y' \
+                    else False if _in and _in[0] == 'n' \
+                    else -1
             else:
                 answer = self.skip_inputs
                 self.skip_inputs -= 1
@@ -309,6 +311,7 @@ class PresidentGame(CardGame):
         self._logger: Final = logging.getLogger(__class__.__name__)
         self.pile = []  # Pre-instantiating pile to avoid null/abstract pointer
         super().__init__(number_of_players, number_of_ai, *players_names, skip_inputs=skip_inputs)
+        self._init_db(__class__.__name__)
         self._revolution = False
         self.queen_of_heart_starts()  # Only triggers if rule is True. First game only !
 
@@ -328,6 +331,7 @@ class PresidentGame(CardGame):
         self.required_cards = 0
         for player in self.players:
             player.reset()  # do not reset ranks
+        self._distribute()
 
     def start(self, override=None, override_test=False) -> None:
         super(PresidentGame, self).start(override_test=override_test)
@@ -338,12 +342,11 @@ class PresidentGame(CardGame):
             self._run = False
             self.print_winners()
             self.save_results("President Game", self.winners())
-            self._run = override_test and self.skip_inputs > 0\
-                or not override_test and self.ask_yesno("Another Game")
+            self._run = self.ask_yesno("Another Game") \
+                if not (override_test and self.skip_inputs) else False  # Tests only
 
             if self._run:  # reset most values
                 self._initialize_game()
-                self._distribute()
                 self.do_exchanges()  # Do exchanges
                 super(PresidentGame, self)._reset_winner()  # then reset winners for new game
                 if override_test:
@@ -367,14 +370,27 @@ class PresidentGame(CardGame):
                 # If neutral, do not trigger
                 card = None
                 while not card:
-                    if adv < 0:  # Give best card if negative advantage
-                        card = player.hand[-1]
-                    if adv > 0:  # Otherwise choose card to give
-                        result = player.play_cli(1)
-                        if result:
-                            card = result[0]
-                            player.add_to_hand(card)
+                    card = self.player_choose_card_to_give(player)
                 self.player_give_card_to(player, card, give_to)
+
+    def player_choose_card_to_give(self, player) -> Card:
+        """
+        According to player's rank's advantage,
+        :param player: player that have to choose a card to give to another player
+        :return: the chosen Card
+        """
+        adv = player.rank.advantage
+        card = None
+        if adv < 0:  # Give best card if negative advantage
+            card = player.hand[-1]
+            if player.rank.rank_name == "Trouffion":
+                self.last_playing_player_index = [p == player for p in self.players][0]
+        if adv > 0:  # Otherwise choose card to give
+            result = player.play_cli(1)
+            if result:
+                card = result[0]
+                player.add_to_hand(card)
+        return card
 
     def game_loop(self):
         """ Keep CardGame logic,
@@ -406,26 +422,19 @@ class PresidentGame(CardGame):
         """
 
         print(' '.join(["#" * 15, "New Round", "#" * 15]))
-        # If not first round, skip until current player is last round's winner.
-        skip = True if self.last_rounds_piles else False
+        skip = True
         while self.count_active_players > 1:
             for index, player in enumerate(self.players):
                 # Skip players until last round's winner is current_player (or the one after him)
                 if skip and index == self.last_playing_player_index:  # Player found
                     skip = False  # Stop skipping
-                    if not player.is_active:  # If player already won, Next player starts
-                        self._logger.debug("Last playing player cannot play this round. Skipping")
-                        continue
-                elif skip:
-                    continue
-
-                if player.is_active:
+                # If Next player cannot play, skip
+                if not skip and player.is_active:
                     cards = self.player_loop(player)
                     print(f"{player} played {cards}" if cards
                           else f"{player} Folded.")
 
                     if cards:  # If player played
-                        player.set_played()
                         self._logger.debug(f"{player} tries to play {cards}")
                         [self.add_to_pile(card) for card in cards]
                         self.last_playing_player_index = index
@@ -471,7 +480,7 @@ class PresidentGame(CardGame):
             print(' '.join(["#" * 15, f" {player}'s TURN ", "#" * 15]), flush=True)
             print(f"Last played card : (most recent on the right)\n{self.pile}" if self.pile
                   else "You are the first to play.")
-            cards = [card for card in player.play_cli(self.required_cards)]
+            cards = [card for card in player.play_cli(self.required_cards) if card]
             # ^^ Reworked to accept yields ^^
             if not self.required_cards:
                 # First-player -> his card count become required card for other to play.
@@ -479,7 +488,6 @@ class PresidentGame(CardGame):
 
             if cards and len(cards) == self.required_cards:
                 if self.card_can_be_played(cards[0]):
-                    player.set_played()  # Cards are valid for current game state.
                     break
                 elif self.pile:
                     print(f"Card{'s' if len(cards) > 1 else ''} not powerful enough. Pick again")
@@ -542,7 +550,7 @@ class PresidentGame(CardGame):
         """ If player has no cards in hand, and the rule is set to True,
         Game sets current player to looser"""
         if GameRules.FINISH_WITH_BEST_CARD__LOOSE and not len(player.hand):
-            self.set_lost(player)
+            self.set_lost(player, 'FINISH_WITH_BEST_CARD__LOOSE')
 
     @property
     def best_card_played(self):
