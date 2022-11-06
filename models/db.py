@@ -21,10 +21,12 @@ class Database:
     """
 
     def __init__(self, game_name: str):
+        self.__dir: Final = f"./Saves/{game_name}"
+        self.__init_dirs()
         self.__data = []
         self.__fp = None
         self.__logger = logging.getLogger(__class__.__name__)
-        self.__name: Final = f"saves-{game_name}"
+        self.__name: Final = f"results"
         self.__file = self.__new_save()
         with open(self.__file, 'w') as fp:
             json.dump(self.__data, fp)
@@ -52,9 +54,15 @@ class Database:
         self.__fp = open(self.__file, 'w+', encoding='utf-8')
 
     def __new_save(self):
-        save = f"{self.__name}.json"
+        save = f"./{self.__dir}/{self.__name}.json"
         if os.path.exists(save):
-            for save in (f"{i}-{self.__name}.json" for i in range(99999)):
+            for save in (f"./{self.__dir}/{self.__name}-{i}.json" for i in range(99999)):
                 if not os.path.exists(save):
                     break
         return save
+
+    def __init_dirs(self):
+        if not os.path.exists(self.__dir.split('/')[1]):
+            os.mkdir(self.__dir.split('/')[1])
+        if not os.path.exists(self.__dir):
+            os.mkdir(self.__dir)
