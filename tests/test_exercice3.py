@@ -1,17 +1,16 @@
 import unittest
 
 from models import PresidentGame
+from rules import GameRules
 
 
 class TestGameExercice3(unittest.TestCase):
 
     def test_winner_ladder_no_neutrals(self):
-        game = PresidentGame(2, 2)
-        for player in game.players:
-            game.increment_round()
-            game.set_win(player)
-            game._run = False
+        game = PresidentGame(0, 4, skip_inputs=True)
+        game.start(override_test=True)
 
+        print(game._rounds_winners)
         ladder = game.winners()
         # scanning for "round -> rank"
         print(ladder)
@@ -22,11 +21,8 @@ class TestGameExercice3(unittest.TestCase):
         self.assertNotRegex(str(ladder), "Neut")
 
     def test_winner_ladder_two_neutrals(self):
-        game = PresidentGame(4, 2)
-        for player in game.players:
-            game.increment_round()
-            game.set_win(player)
-            game._run = False
+        game = PresidentGame(0, 6, skip_inputs=True)
+        game.start(override_test=True)
         ladder = [winner for winner in game.winners()]
         # scanning for "round -> rank"
         self.assertRegex(str(ladder), "Pres")
@@ -37,8 +33,9 @@ class TestGameExercice3(unittest.TestCase):
         self.assertRegex(str(ladder), "Trouf")
 
     def test_revolution(self):
-        game = PresidentGame(3, 0, "Mistayan")
+        game = PresidentGame(3, 0, "Mistayan", skip_inputs=True)
         strongest_before = game.strongest_card
+        GameRules.USE_REVOLUTION = True
         game.set_revolution()
         # After revolution, values should be reversed
         strongest_after = game.strongest_card
@@ -46,12 +43,18 @@ class TestGameExercice3(unittest.TestCase):
 
     def test_one_game_3_AIs(self):
         # the simple fact that it runs until the end is proof
-        game = PresidentGame(0, 3, skip_inputs=1)
+        game = PresidentGame(0, 3, skip_inputs=True)
         game.game_loop()
 
     def test_three_games_3_AIs_no_exchanges(self):
         # the simple fact that it runs until the end is proof
         game = PresidentGame(0, 3, skip_inputs=3)
+        game.game_loop()
+        game._initialize_game()
+        game._rounds_winners = []
+        game.game_loop()
+        game._initialize_game()
+        game._rounds_winners = []
         game.game_loop()
 
     def test_two_games_3_AIs_one_exchange(self):
@@ -59,12 +62,13 @@ class TestGameExercice3(unittest.TestCase):
         game = PresidentGame(0, 3, skip_inputs=2)
         game.start(override_test=True)
         total = 0
+        players_save = game.players.copy()
         for pile in game.last_rounds_piles:
             total += len(pile)
-        # Not everyone played their hand...
         for player in game.players:
             total += len(player.hand)
         self.assertEqual(total, 52)
+        print(players_save)
 
 
 

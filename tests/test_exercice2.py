@@ -28,12 +28,12 @@ class TestPlayers(unittest.TestCase):
 
 class TestGame(unittest.TestCase):
     def test_default_game_has_three_players(self):
-        game = PresidentGame()
+        game = PresidentGame(skip_inputs=True)
         self.assertTrue(len(game.players) == 3)
 
     def test_game_launch_distributes_cards(self):
         """ Game generation should distribute cards as evenly as possible. """
-        game = PresidentGame(3, 0)
+        game = PresidentGame(3, 0, skip_inputs=True)
         player_1 = game.players[0]
         player_2 = game.players[1]
         player_3 = game.players[2]
@@ -43,7 +43,7 @@ class TestGame(unittest.TestCase):
 
     def test_game_human_or_ai(self):
         """ verifies that AI are not humans """
-        game = PresidentGame(1, 2)
+        game = PresidentGame(1, 2, skip_inputs=True)
         human = game.players[0]
         ai_1 = game.players[1]
         ai_2 = game.players[2]
@@ -56,7 +56,7 @@ class TestGame(unittest.TestCase):
          Player giving a card should have 1 less card,
          self receiving should have 1 more card, which is the given card
         """
-        game = PresidentGame(3, 0)
+        game = PresidentGame(3, 0, skip_inputs=True)
         player_1: Human = game.players[0]
         player_2 = game.players[1]
         p1_copy = player_1.hand[::]
