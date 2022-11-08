@@ -72,6 +72,6 @@ class TestGameExercice3(unittest.TestCase):
         print(players_save)
 
     def test_trigger_CheaterDetected_Error(self):
-        self.assertRaises(CheaterDetected("test"))
+        self.assertRaises(CheaterDetected)
 
 
