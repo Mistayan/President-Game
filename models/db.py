@@ -24,6 +24,7 @@ class Database:
         self.__dir: Final = f"./Saves/{game_name}"
         self.__init_dirs()
         self.__data = []
+        self.__fp = None
         self.__logger = logging.getLogger(__class__.__name__)
         self.__name: Final = f"results"
         self.__file = self.__new_save()
