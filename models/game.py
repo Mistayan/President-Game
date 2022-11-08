@@ -200,7 +200,6 @@ class CardGame(ABC):
     def increment_round(self) -> None:
         self._round += 1
         self.__logger.info(f"#### ROUND : {self._round} ####")
-        self._free_pile()
 
     @abstractmethod
     def start(self, override_test=False) -> None:
@@ -451,6 +450,7 @@ class PresidentGame(CardGame):
             self.required_cards = 0  # The only change we require compared to CardGame.
             self.increment_round()  # set new round...
             self.round_loop()
+            self._free_pile()
             # Check if players still playing game:
             if self.still_alive == 1:  # If not,
                 for player in self.players:
