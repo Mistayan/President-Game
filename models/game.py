@@ -337,16 +337,17 @@ class CardGame(ABC):
                 return i
         raise PlayerNotFound(player)
 
-    def _next_player(self, skip) -> (int, Player):
+    def _next_player(self) -> (int, Player):
         self.__logger.info("Searching next player...")
+        skip = True
         for _ in range(2):
             for index, player in enumerate(self.players):
                 if skip and index == self.last_playing_player_index:  # Player found
                     skip = False  # Stop skipping
                 if not skip and player.is_active:  # If Next player cannot play, skip
                     return index, player
-            self.__logger.info("cycling one more time (end of list, no active player found)...")
-        return 0, None
+            self.__logger.debug("cycling one more time (end of list, no active player found)...")
+        raise PlayerNotFound("No next player...")
 
     @property
     def count_humans(self):
@@ -475,20 +476,20 @@ class PresidentGame(CardGame):
         """
 
         print(' '.join(["#" * 15, "New Round", "#" * 15]), flush=True)
-        skip = True
+        self._round > 1 and self.show_players()
         while not self._everyone_folded:
             self._reset_played_status()  # Everyone played, reset this status
 
             if not GameRules.WAIT_NEXT_ROUND_IF_FOLD and not self._everyone_folded:
                 self._reset_fold_status()
-            self._cycle_players(skip)
+            self._cycle_players()
 
         self._logger.warning("Everyone folded : EXITING ROUND_LOOP")
         # END ROUND_LOOP
 
-    def _cycle_players(self, skip):
+    def _cycle_players(self):
         while self.count_active_players >= 1:
-            index, player = self._next_player(skip)
+            index, player = self._next_player()
             if player and player.is_active:
                 cards = self.player_loop(player)
                 if cards:  # If player played
