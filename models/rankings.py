@@ -62,7 +62,7 @@ class PresidentRank:
         """
         index = self.__possible_rank.index(self.rank_name)
         self.logger.debug(f"index: {index} -> advantage of {self.__advantages[index]}")
-        return self.__advantages[index] // 2 if len(self.players) <= 3\
+        return self.__advantages[index] // 2 if len(self.players) <= 3 \
             else self.__advantages[index]
 
     def __str__(self):

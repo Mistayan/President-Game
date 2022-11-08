@@ -1,7 +1,7 @@
 # Le jeu du président
 
 Le président (aussi appelé le troufion) est un jeu de cartes rapide et amusant, au cours duquel la
-hiérarchie des joueurs changera à chaque manche. 
+hiérarchie des joueurs changera à chaque manche.
 Le vainqueur d'une manche devient le président, alors que le perdant est proclamé troufion.
 Une fois que vous maitriserez les règles de base, vous pourrez essayer différentes
 variantes de ce jeu très populaire.
@@ -14,8 +14,8 @@ Règles du jeu :
 - Ce jeu se joue par tours. Tant que quelqu'un peut et veut jouer, le tour continue et tourne dans
   le sens horaire.
 - Le premier joueur choisit des cartes d'une même valeur et les pose sur la table.
-- Suite à cela, chaque joueur doit fournir autant de cartes que le joueur précédent des cartes d'une
-  valeur supérieure ou égale.
+- Suite à cela, chaque joueur doit fournir autant de cartes que le joueur précédent des cartes
+  d'une valeur supérieure ou égale.
 - Un joueur a le droit de sauter son tour et reprendre le tour d'après.
 - Un tour est fini lorsque plus personne ne joue. C'est alors le dernier à avoir joué qui ouvre la
   manche suivante. Ou si un joueur pose un ou plusieurs deux. Ce qui mets immédiatement fin au
@@ -90,11 +90,11 @@ Il est possible de sélectionner plusieurs cartes dès lors qu'elles ont la mêm
 
 Une vérification doit être mise en place pour voir si le choix de l'utilisateur est correct.
 
-
 ## Rush 4
 
 Implémenter une interface graphique (TK ?)
 Faire communiquer l'interface d'un joueur au jeu
+
 ```mermaid
 classDiagram
     Player --> TK
@@ -122,9 +122,7 @@ classDiagram
 - [ ] Présentation graphique aboutie
 - [x] Fonctionnalités avancées de jeu du président
 
-
 > Réalisation des fonctionnalités en TDD / CDD.
-
 
 - [x] Présentation des joueurs en début de partie et affichage du nombre de cartes que chaque
   joueur a en main.
@@ -143,15 +141,14 @@ classDiagram
 - [x] Intelligence artificielle
     - Ajouter un raisonnement simple en plus du raisonnement déjà existant.
 
-
 # Comment utiliser le logiciel :
 
 > Il est fortement recommandé d'utiliser un environnement virtuel :
 > > python -m venv venv  
-> > .\venv\Scripts\activate  
+> > .\venv\Scripts\activate
 
-> pip install -r requirements.txt  
+> pip install -r requirements.txt
 >
-> Modifier rules.py pour adapter les regles du jeu  
-> 
+> Modifier rules.py pour adapter les regles du jeu
+>
 > python main.py  

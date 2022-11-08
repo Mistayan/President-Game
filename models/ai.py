@@ -54,7 +54,7 @@ class AI(Player):
             self.__logger.info(f"Estimating my hand... {self.hand}")
             self.__logger.info(f"Against... {self.game.pile}")
             play = self.calc_best_card(n_cards_to_play)
-        if (action == 'give' and n_cards_to_play == 1 and not play)\
+        if (action == 'give' and n_cards_to_play == 1 and not play) \
                 or self.first and not play:
             # You HAVE TO give/play a card.
             play = self.calc_best_card(n_cards_to_play, split=True)
@@ -80,7 +80,7 @@ class AI(Player):
         if self.max_combo < 4:
             n_cards_to_play = self.calc_n_cards(self.max_combo,
                                                 True if self.got_revolution_in_hand else False)
-        elif self.max_combo == 4 and\
+        elif self.max_combo == 4 and \
                 (self.calc_revolution_interest() <= 0.25 or len(self.hand) == 4):
             n_cards_to_play = 4
         return n_cards_to_play
@@ -139,7 +139,7 @@ class AI(Player):
                 self.__logger.debug(f"my interest goes to {k} (no splits)")
                 return k
             # otherwise, play a card from a plit combo.
-            elif split and nb_cards in (v-1, v-2) and self.game.card_can_be_played(k):
+            elif split and nb_cards in (v - 1, v - 2) and self.game.card_can_be_played(k):
                 self.__logger.debug(f"my interest goes to {k} *** splits ***")
                 return k
         if split:

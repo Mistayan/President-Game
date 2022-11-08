@@ -292,7 +292,6 @@ class Human(Player):
     def play_cli(self, n_cards_to_play=0, override=None, action='play') -> list[Card]:
         if not override:
             if self.game.count_humans > 1:
-
                 print(f"{self} : press Enter to start your turn\n"
                       f"(this is to avoid last player to see your hand)")
                 input()

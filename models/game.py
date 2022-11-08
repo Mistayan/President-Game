@@ -6,13 +6,13 @@ from typing import Final
 
 import names
 
-from rules import GameRules
 from models import AI
 from models.Errors import CheaterDetected, PlayerNotFound
 from models.db import Database
 from models.deck import Deck, Card, VALUES
 from models.player import Player, Human
 from models.rankings import PresidentRank
+from rules import GameRules
 
 
 class CardGame(ABC):
