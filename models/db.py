@@ -15,9 +15,9 @@ from typing import Final, IO
 
 class Database:
     """ Emulate MongoDB as a simple json file
-    MongoDB requires at least Docker to run, or a fully installed version, or a server.
+    MongoDB requires at least Docker to run, a fully installed version, or a server.
     To keep some simplicity in this program, it is going to be saved in memory, until game ends.
-    Then, will be print to a file, once the game is over.
+    Then, will be print to a file, once the game is over (even after keyboard interrupts).
     """
 
     def __init__(self, game_name: str):
@@ -42,7 +42,7 @@ class Database:
         self.__save()
 
     def __save(self):
-        self.__logger.info(f"saving {self.__data}")
+        self.__logger.debug(f"saving {self.__data}")
         self.__renew_fp()
         json.dump(self.__data, self.__fp)
         self.__fp.close()
