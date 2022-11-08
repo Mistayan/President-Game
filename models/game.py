@@ -8,7 +8,7 @@ import names
 
 from rules import GameRules
 from models import AI
-from models.Errors import CheaterDetected
+from models.Errors import CheaterDetected, PlayerNotFound
 from models.db import Database
 from models.deck import Deck, Card, VALUES
 from models.player import Player, Human
@@ -243,6 +243,10 @@ class CardGame(ABC):
             ...
         return []
 
+    @abstractmethod
+    def card_can_be_played(self, card):
+        ...
+
     def queen_of_heart_starts(self):
         """Only triggers if rule in True
         set the player with queen of heart as the first player"""
@@ -296,9 +300,58 @@ class CardGame(ABC):
         }
         self.__db.update(to_save)
 
-    @abstractmethod
     def _init_db(self, name=None):
         self.__db = Database(name or __class__.__name__)
+
+    def _do_play(self, player, index, cards) -> None:
+        """ Log the play attempt,
+            add player's cards to pile
+            sets current player to next round's starting player (if no one plays after) """
+        self.__logger.debug(f"{player} tries to play {cards}")
+        [self.add_to_pile(card) for card in cards]
+        self.last_playing_player_index = index
+
+    @property
+    def best_card_played(self) -> bool:
+        """ Returns True if the last card played is the best card"""
+        return self.pile[-1] == self.VALUES[-1]
+
+    def _reset_fold_status(self) -> None:
+        self.__logger.debug("Resetting players 'fold' status")
+        [p.set_fold(False) for p in self.players]
+
+    def _reset_played_status(self) -> None:
+        self.__logger.debug("Resetting players 'played' status")
+        [p.set_played(False) for p in self.players]
+
+    @property
+    def _everyone_folded(self):
+        return [p.folded or p.won for p in self.players].count(True) == len(self.players)
+
+    @property
+    def _everyone_played(self):
+        return [p.played_turn or p.won for p in self.players].count(True) == len(self.players)
+
+    def get_player_index(self, player):
+        for i, p in enumerate(self.players):
+            if p == player:
+                return i
+        raise PlayerNotFound(player)
+
+    def _next_player(self, skip) -> (int, Player):
+        self.__logger.info("Searching next player...")
+        for _ in range(2):
+            for index, player in enumerate(self.players):
+                if skip and index == self.last_playing_player_index:  # Player found
+                    skip = False  # Stop skipping
+                if not skip and player.is_active:  # If Next player cannot play, skip
+                    return index, player
+            self.__logger.info("cycling one more time (end of list, no active player found)...")
+        return 0, None
+
+    @property
+    def count_humans(self):
+        return [p.is_human for p in self.players].count(True)
 
 
 class PresidentGame(CardGame):
@@ -382,7 +435,7 @@ class PresidentGame(CardGame):
         if adv < 0:  # Give best card if negative advantage
             card = player.hand[-1]
             if player.rank.rank_name == "Troufion":
-                self.last_playing_player_index = [p == player for p in self.players][0]
+                self.last_playing_player_index = self.get_player_index(player)
         if adv > 0:  # Otherwise choose card to give
             result = player.play_cli(1)
             if result:
@@ -421,44 +474,37 @@ class PresidentGame(CardGame):
         If a player is left alone on the table, the game ends.
         """
 
-        print(' '.join(["#" * 15, "New Round", "#" * 15]))
+        print(' '.join(["#" * 15, "New Round", "#" * 15]), flush=True)
         skip = True
-        while self.count_active_players > 1:
-            for index, player in enumerate(self.players):
-                # Skip players until last round's winner is current_player (or the one after him)
-                if skip and index == self.last_playing_player_index:  # Player found
-                    skip = False  # Stop skipping
-                # If Next player cannot play, skip
-                if not skip and player.is_active:
-                    cards = self.player_loop(player)
-                    print(f"{player} played {cards}" if cards
-                          else f"{player} Folded.")
+        while not self._everyone_folded:
+            self._reset_played_status()  # Everyone played, reset this status
 
-                    if cards:  # If player played
-                        self._logger.debug(f"{player} tries to play {cards}")
-                        [self.add_to_pile(card) for card in cards]
-                        self.last_playing_player_index = index
-                        self.set_revolution() if len(cards) == 4 else None  # REVOLUTION ?
-                        if self.best_card_played:
-                            self.player_lost(player)
-                            if GameRules.PLAYING_BEST_CARD_END_ROUND:
-                                break
-                    self.set_win(player) or player.set_played()  # If player has no more cards, WIN
+            if not GameRules.WAIT_NEXT_ROUND_IF_FOLD and not self._everyone_folded:
+                self._reset_fold_status()
+            self._cycle_players(skip)
 
-                    # Check if last played cards match the strongest value
-                    if GameRules.PLAYING_BEST_CARD_END_ROUND and self.best_card_played:
-                        print(' '.join([
-                            "#" * 15,
-                            "TERMINATING Round, Best Card Value Played !",
-                            "#" * 15]))
-                        break
-            # Everyone played
-            for player in self.players:
-                player.set_played(False)
-                # player.set_fold(False) if not GameRules.WAIT_NEXT_ROUND_IF_FOLD else None
-            self._logger.warning("EXITING ROUND_LOOP")
-
+        self._logger.warning("Everyone folded : EXITING ROUND_LOOP")
         # END ROUND_LOOP
+
+    def _cycle_players(self, skip):
+        while self.count_active_players >= 1:
+            index, player = self._next_player(skip)
+            if player and player.is_active:
+                cards = self.player_loop(player)
+                if cards:  # If player played
+                    self._do_play(player, index, cards)
+                    if self.best_card_played:
+                        self.player_lost(player)
+                        if GameRules.PLAYING_BEST_CARD_END_ROUND:
+                            break
+            player and self.set_win(player)  # If player has no more cards, WIN
+
+            # Check if last played cards match the strongest value
+            if GameRules.PLAYING_BEST_CARD_END_ROUND and self.best_card_played:
+                print(' '.join(["#" * 15,
+                                "TERMINATING Round, Best Card Value Played !", "#" * 15]))
+                break
+        # Everyone played, reset status
 
     def player_loop(self, player: Player) -> list[Card]:
         """
@@ -473,7 +519,7 @@ class PresidentGame(CardGame):
         :param player: current_player to play
         :return: cards the player played ; [] otherwise
         """
-        if player.is_human:
+        if player.is_human and self.count_humans > 1:
             print("\n" * 10)
         cards = []
         while player.is_active:
@@ -550,7 +596,6 @@ class PresidentGame(CardGame):
         if GameRules.FINISH_WITH_BEST_CARD__LOOSE and not len(player.hand):
             self.set_lost(player, 'FINISH_WITH_BEST_CARD__LOOSE')
 
-    @property
-    def best_card_played(self):
-        """ Returns True if the last card played is the best card"""
-        return self.pile[-1] == self.VALUES[-1]
+    def _do_play(self, player, index, cards):
+        super()._do_play(player, index, cards)
+        self.set_revolution() if len(cards) == 4 else None  # REVOLUTION ?
