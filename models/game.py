@@ -44,7 +44,6 @@ class CardGame(ABC):
         self.__logger.debug(self.__super_private)
         self.players = []
         self.pile = []
-        # self._init_db()
         if number_of_players:
             for name in players_names:  # Named players
                 self.players += [Human(name=str(name), game=self)]
@@ -311,7 +310,7 @@ class PresidentGame(CardGame):
         self._logger: Final = logging.getLogger(__class__.__name__)
         self.pile = []  # Pre-instantiating pile to avoid null/abstract pointer
         super().__init__(number_of_players, number_of_ai, *players_names, skip_inputs=skip_inputs)
-        self._init_db(__class__.__name__)
+        super()._init_db(__class__.__name__)
         self._revolution = False
         self.queen_of_heart_starts()  # Only triggers if rule is True. First game only !
 
@@ -542,9 +541,6 @@ class PresidentGame(CardGame):
         return not self.pile or \
             (self.get_pile()[-1] <= card and not self._revolution
              or self.get_pile()[-1] >= card and self._revolution)
-
-    def _init_db(self, name=None):
-        super()._init_db(__class__.__name__)
 
     def player_lost(self, player):
         """ If player has no cards in hand, and the rule is set to True,
