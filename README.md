@@ -46,6 +46,7 @@ Attention, la carte la plus forte est le `2`, puis l'as, puis le `R`, `D`, `V`, 
 ```mermaid
 classDiagram
     Deck *-- Card
+    conf *-- CardGame
     CardGame *-- Deck
     CardGame <|-- PresidentGame
     rules *-- PresidentGame
@@ -117,7 +118,7 @@ classDiagram
 - [x] Un joueur face à 3 IA
 - [x] Generation des cartes
 - [x] Validation des tests unitaires
-- [ ] Présentation graphique
+- [x] Présentation CLI
 - [ ] Présentation graphique aboutie
 - [x] Fonctionnalités avancées de jeu du président
 
@@ -131,8 +132,7 @@ classDiagram
     - Chaque utilisateur doit fournir s'il peut (ou veut) la quantité de cartes demandées.
     - Le vainqueur d'une manche ouvre la manche suivante
     - Il existe un gagnant (celui qui a vidé sa main) et un perdant (le dernier joueur a encore
-      avoir des cartes en
-      main).
+      des cartes en main).
 - [x] Gestion d'une fin et lancement d'une nouvelle partie, affichage des scores
 - [x] Le mécanisme de troufion et de président
     - En fonction du nombre de joueurs, et de la partie précédente il peut exister :
@@ -147,10 +147,11 @@ classDiagram
 # Comment utiliser le logiciel :
 
 > Il est fortement recommandé d'utiliser un environnement virtuel :
-> >python -m venv venv
+> > python -m venv venv  
+> > .\venv\Scripts\activate  
 
-> pip install -r requirements.txt
-
-> Modifier rules.py pour adapter les regles du jeu
- 
-> Lancer main.py
+> pip install -r requirements.txt  
+>
+> Modifier rules.py pour adapter les regles du jeu  
+> 
+> python main.py  
