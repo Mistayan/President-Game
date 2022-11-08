@@ -144,8 +144,3 @@ class AI(Player):
                 return k
         if split:
             return self.calc_best_card(nb_cards, split=not split)
-
-    def set_win(self, value=True):
-        self.__logger.info("I have won" if not len(self.hand) else "I have Lost")
-        super(AI, self).set_win(value)
-

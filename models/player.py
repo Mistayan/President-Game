@@ -6,6 +6,7 @@ from typing import Final
 import names
 
 from models.card import Card
+from rules import GameRules
 
 
 class Player(ABC):
@@ -46,17 +47,16 @@ class Player(ABC):
         self.last_played = []
 
     @property
-    def won(self):
+    def won(self) -> bool:
         return self._won
 
-    def set_win(self, value=True):
-        self._logger.info("I have won" if not len(self.hand) else "I have Lost")
+    def set_win(self, value: bool = True) -> None:
+        """ set _won to given value"""
+        self._logger.info(f"{self} {'have won' if not len(self.hand) else 'have Lost'}")
         self._won = value
 
-    @abstractmethod
-    def set_rank(self, rank_pointer):
-        """ set ranks to given pointer
-        Method is abstract for you to implement loggers for current player"""
+    def set_rank(self, rank_pointer) -> None:
+        """ set ranks to given pointer"""
         self.rank = rank_pointer
 
     def add_to_hand(self, card: Card) -> None:
@@ -84,36 +84,37 @@ class Player(ABC):
         return card
 
     @property
-    def is_active(self):
+    def is_active(self) -> bool:
         """
         A player is considered active if he hasn't :
         folded,
         played his turn,
         won the game
         """
-        active = not (self.is_folded or self.played_this_turn or self.won)
+        active = not (self.folded or self.played_turn or self.won)
         self._logger.debug(f"{self} says i'm {'' if active else 'not '}active")
         if not active:
-            self._logger.debug("Reasons:")
-            self._logger.debug("folded") if self._folded else None
-            self._logger.debug("played") if self._played_turn else None
-            self._logger.debug("won") if self._won else None
+            self._logger.debug(f"Reasons: {'won.' if self._won else ''}"
+                               f"{'folded. ' if not self._won and self.folded else ''}"
+                               f"{'played. ' if not self._won and self.played_turn else ''}")
         return active
 
     @property
-    def is_folded(self):
+    def folded(self) -> bool:
         return self._folded
 
-    def set_fold(self, status=True):
-        self._logger.debug(f"{self} fold") if status else None
-        self._folded = status
+    def set_fold(self, value=True) -> None:
+        """ set fold to given value (True by default)"""
+        value and self._folded is False and self._logger.info(f"{self} folds")
+        self._folded = value
 
     @property
-    def played_this_turn(self):
+    def played_turn(self) -> bool:
         return self._played_turn
 
-    def set_played(self, value=True):
-        self._logger.debug(f"{self} played") if value else None
+    def set_played(self, value=True) -> None:
+        """ set played to given value (True by default)"""
+        value and self._logger.info(f"{self} played")
         self._played_turn = value
 
     @property
@@ -204,17 +205,16 @@ class Player(ABC):
         """ Implement logic to ask_fold the number of cards to play to player"""
         ...
 
-    def choose_cards_to_play(self, n_cards_to_play, override: str = None):
+    def choose_cards_to_play(self, n_cards_to_play, override: str = None) -> list[Card]:
         """ use override to force input from external sources, instead of builtins inputs
         If max_combo <= n_cards_to_play , cannot play ! (ask_fold to fold by pressing enter)
         Otherwise, player choose a card number from his hand and give N times this card.
-
         """
         cards_to_play = []
         if n_cards_to_play <= self.max_combo:
             _in = input(f"{n_cards_to_play} combo required: (your max : {self.max_combo})\n"
-                        f"[2-9 JQKA] or 'F' to fold "
-                        f"(you will not be able to play current round)\n") \
+                        f"[2-9 JQKA] or 'F' to fold"
+                        f"{'(you will not be able to play current round)' if GameRules.WAIT_NEXT_ROUND_IF_FOLD else ''}\n") \
                 .upper() if not override else override.upper()
             # Check fold status
             if not (_in and _in[0] == 'F'):
@@ -236,11 +236,11 @@ class Player(ABC):
         _card = None
         if _in == "FOLD" or (_in and _in[0] == 'F'):
             self.set_fold()
-            _card = None
-        for card in self.hand:
-            if card.number == _in:
-                _card = card
-                break
+        else:
+            for card in self.hand:
+                if card.number == _in:
+                    _card = card
+                    break
         return _card
 
     def choose_card_to_give(self) -> Card:
@@ -283,7 +283,7 @@ class Human(Player):
         """ Return True for Yes, False for No.
                  False by default"""
         answer = False
-        _in = input(f"{self} : [Y]es / [N]o ?>").lower()
+        _in = input(f"{self}, fold ?[Y]es / [N]o ?>").lower()
         if _in and _in[0] == "y":
             answer = True
 
@@ -291,7 +291,8 @@ class Human(Player):
 
     def play_cli(self, n_cards_to_play=0, override=None, action='play') -> list[Card]:
         if not override:
-            if [player.is_human for player in self.game.players].count(True) != 1:
+            if self.game.count_humans > 1:
+
                 print(f"{self} : press Enter to start your turn\n"
                       f"(this is to avoid last player to see your hand)")
                 input()
@@ -301,7 +302,3 @@ class Human(Player):
 
     def play_tk(self, n_cards_to_play=0) -> list[Card]:
         pass
-
-    def set_rank(self, rank_pointer):
-        self.__logger.debug(f"I have been assigned {rank_pointer}")
-        super(Human, self).set_rank(rank_pointer)
