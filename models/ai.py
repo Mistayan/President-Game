@@ -4,6 +4,7 @@ from collections import Counter
 import names
 
 from models.player import Player, Card
+from rules import GameRules
 
 
 def calc_revolution_interest():
@@ -66,11 +67,11 @@ class AI(Player):
     def ask_fold(self):
         """ Never fold, unless necessary """
         self.fold_counter += 1
-        if self.fold_counter < 5:
+        if self.fold_counter < 2:
             return False
         else:
             self.fold_counter = 0
-            self.set_fold()
+            # self.set_fold()
             return True
 
     def ask_n_cards_to_play(self) -> int:
@@ -80,13 +81,15 @@ class AI(Player):
             n_cards_to_play = self.calc_n_cards(self.max_combo,
                                                 True if self.got_revolution_in_hand else False)
         elif self.max_combo == 4 and\
-                (self.calc_revolution_interest() < 0.25 or len(self.hand) == 4):
+                (self.calc_revolution_interest() <= 0.25 or len(self.hand) == 4):
             n_cards_to_play = 4
         return n_cards_to_play
 
     def calc_revolution_interest(self) -> float:
         """ Closer To 0 means you got mainly low-power cards.
         Revolution might be considered, since values are reversed"""
+        if not GameRules.USE_REVOLUTION:
+            return 0
         counter = Counter([card.number for card in self.hand])
         total = 0
         for number, count in self.counter.items():
@@ -141,3 +144,8 @@ class AI(Player):
                 return k
         if split:
             return self.calc_best_card(nb_cards, split=not split)
+
+    def set_win(self, value=True):
+        self.__logger.info("I have won" if not len(self.hand) else "I have Lost")
+        super(AI, self).set_win(value)
+
