@@ -1,6 +1,7 @@
 import unittest
 
 from models import PresidentGame
+from models.Errors import CheaterDetected
 from rules import GameRules
 
 
@@ -70,6 +71,7 @@ class TestGameExercice3(unittest.TestCase):
         self.assertEqual(total, 52)
         print(players_save)
 
-
+    def test_trigger_CheaterDetected_Error(self):
+        self.assertRaises(CheaterDetected("test"))
 
 
