@@ -66,7 +66,7 @@ class CardGame(ABC):
         self.last_playing_player_index = 0
         self.VALUES = VALUES
         self.deck.shuffle()
-        self._round = 1
+        self._round = 0
         self._run = True
         for player in self.players:
             player.reset()
@@ -198,9 +198,8 @@ class CardGame(ABC):
         player.set_win()
 
     def increment_round(self) -> None:
-        self.__logger.info(f"#### INCREMENTING ROUND : {self._round} ####")
         self._round += 1
-        self._reset_players_status()
+        self.__logger.info(f"#### ROUND : {self._round} ####")
         self._free_pile()
 
     @abstractmethod
@@ -397,12 +396,14 @@ class PresidentGame(CardGame):
         self._logger.info('game loop')
         while self.still_alive > 1:
             self.required_cards = 0  # The only change we require compared to CardGame.
-            self.round_loop()
             self.increment_round()  # set new round...
+            self.round_loop()
             # Check if players still playing game:
             if self.still_alive == 1:  # If not,
                 for player in self.players:
-                    self.set_win(player, False) if not player.won else None
+                    self.set_win(player, False)
+            else:
+                self._reset_players_status()
             # Whenever a new round starts, must reset pile
         # END GAME_LOOP
 
@@ -492,12 +493,14 @@ class PresidentGame(CardGame):
                     print(f"Card{'s' if len(cards) > 1 else ''} not powerful enough. Pick again")
                     for card in cards:  # Give cards back...
                         player.add_to_hand(card)
-            elif not player.is_folded:  # Fail-safe for unexpected behaviour...
+            elif not player.folded:  # Fail-safe for unexpected behaviour...
                 print(f"Not enough {cards[0].number} in hand" if cards
                       else f"No card{'s' if len(cards) > 1 else ''} played")
-                if not cards and player.ask_fold():
+                if not cards and not player.folded and player.ask_fold():
                     player.set_fold()
-
+        print(f"{player} played {cards}" if cards
+              else f"{player} Folded.")
+        player.set_played()
         return cards
         # END PLAYER_LOOP
 
@@ -538,9 +541,8 @@ class PresidentGame(CardGame):
 
     def card_can_be_played(self, card):
         """ Returns True if the card can be played according to pile and rules """
-        return not self.pile or \
-            (self.get_pile()[-1] <= card and not self._revolution
-             or self.get_pile()[-1] >= card and self._revolution)
+        return not self.pile or (self.get_pile()[-1] <= card and not self._revolution
+                                 or self.get_pile()[-1] >= card and self._revolution)
 
     def player_lost(self, player):
         """ If player has no cards in hand, and the rule is set to True,
