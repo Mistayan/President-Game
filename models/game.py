@@ -216,10 +216,12 @@ class CardGame(ABC):
 
     def check_if_played_last(self, player):
         result = False
-        if self.pile and player.last_played and len(self.pile) >= len(player.last_played):
-            result = [not self.pile[-i] != card
-                      for i, card in enumerate(player.last_played[::-1])
-                      ].count(True) == len(player.last_played)
+        if self.pile and player.last_played:
+            if len(self.pile) >= len(player.last_played):
+                result = [card.same_as(self.pile[-(i+1)])
+                          for i, card in enumerate(player.last_played[::-1])
+                          ].count(True) == len(player.last_played)
+
         return result
 
     @abstractmethod
