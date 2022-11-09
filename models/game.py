@@ -198,6 +198,13 @@ class CardGame(ABC):
         self._round += 1
         self.__logger.info(f"#### ROUND : {self._round} ####")
 
+    def check_if_played_last(self, player):
+        result = False
+        if self.pile and player.last_played and len(self.pile) >= len(player.last_played):
+            result = [not self.pile[-i] != card
+                      for i, card in enumerate(player.last_played[::-1])].count(True)
+        return result
+
     @abstractmethod
     def start(self, override_test=False) -> None:
         """
