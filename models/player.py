@@ -91,7 +91,7 @@ class Player(ABC):
         played his turn,
         won the game
         """
-        active = not (self.folded or self.played_turn or self.won)
+        active = not self.folded and not self.played_turn and not self.won
         self._logger.debug(f"{self} says i'm {'' if active else 'not '}active")
         if not active:
             self._logger.debug(f"Reasons: {'won.' if self._won else ''}"
@@ -169,10 +169,9 @@ class Player(ABC):
         answer = override
         if not answer:
             _in = input(f"{self}, fold ?[Y]es / [N]o ?>").lower()
-        if _in and _in[0] == "y" or answer:
-            self.set_fold()
-            answer = True
-
+            if _in and _in[0] == "y":
+                self.set_fold()
+                answer = True
         return answer
 
     def _play_cards(self, n_cards_to_play: int, wanted_card: str) -> list[Card]:

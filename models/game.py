@@ -187,16 +187,16 @@ class CardGame(ABC):
             return False
         for test in self._rounds_winners:
             if test[0] == player:
-                raise CheaterDetected(
-                    f"{player} already in the ladder.")
+                raise CheaterDetected(f"{player} already in the ladder.")
         if win:
+            if GameRules.FINISH_WITH_BEST_CARD__LOOSE and self.best_card_played:
+                self.set_lost(player)
             self.__logger.info(f"{player} won the place N°{len(self._rounds_winners) + 1}")
+            winner_data = [player, self._round, player.last_played[0]]
+            self._rounds_winners.append(winner_data)
+            player.set_win()
         else:
-            self.__logger.info(f"{player} lost the game.")
-        player.set_win()
-        winner_data = [player, self._round, player.last_played[0]]
-        self.__logger.debug(winner_data)
-        self._rounds_winners.append(winner_data)
+            self.set_lost(player, 'did not win')
         return True
 
     def set_lost(self, player, reason=None) -> None:
@@ -213,6 +213,7 @@ class CardGame(ABC):
     def increment_round(self) -> None:
         self._round += 1
         self.__logger.info(f"#### ROUND : {self._round} ####")
+        self._reset_fold_status()
 
     def check_if_played_last(self, player):
         result = False
@@ -287,25 +288,27 @@ class CardGame(ABC):
     def _cycle_players(self):
         """ round_loop sub part
         cycle players turns until no one is able to play.
+
+        if there is no pile (first to play / first round), skip until last round's winner found
+        if player cannot play, select next
         """
-        skip = True
-        while self.count_active_players:
+        skip = self.pile == []
+        while not self.everyone_played:
             for index, player in enumerate(self.players):
                 if skip and index == self.last_playing_player_index:
-                    # First time a player is found means the round started
-                    skip = False  # Wanted player found, Stop skipping
+                    skip = False
                 # Skip until player can play or is the last standing
-                if not skip and player.is_active:
-                    cards = self.player_loop(player)
-                    if cards:  # If player played
-                        self._do_play(player, cards)
-                        # If player has no more cards, WIN
-                        len(player.hand) == 0 and self.set_win(player)
-                        if self.best_card_played:
-                            self.player_lost(player)
-                            if GameRules.PLAYING_BEST_CARD_END_ROUND:
-                                break
-                    # player.set_played()
+                if not skip:
+                    if player.is_active:
+                        cards = self.player_loop(player)
+                        if cards and self._do_play(index, player, cards):  # If player played
+                            skip = True  # Set True to be able to find next player on next loop
+                    # If player has no more cards, WIN (or lose, depending on rules)
+                    if len(player.hand) == 0 and not self.player_lost(player):
+                        self.set_win(player)
+                    player.set_played()  # No matter what player did, consider he played
+            if self.best_card_played and GameRules.PLAYING_BEST_CARD_END_ROUND:
+                break
 
     def ask_yesno(self, question):
         """ Ask a question that requires  yes/no answer
