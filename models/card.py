@@ -1,3 +1,4 @@
+from __future__ import annotations
 from rules import GameRules
 
 
@@ -80,6 +81,10 @@ class Card:
 
     def unicode_safe(self):
         return f"{self.number} of {GameRules.COLORS[self.color]}"
+
+    def same_as(self, card: Card):
+        """ compare hashes to assert the cards are strictly the same"""
+        return self == card
 
     def __str__(self):
         return f"{self.number}{self.color}"
