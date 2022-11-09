@@ -613,8 +613,9 @@ class PresidentGame(CardGame):
 
     def player_lost(self, player):
         """ If player has no cards in hand, and the rule is set to True,
-        Game sets current player to looser"""
-        if GameRules.FINISH_WITH_BEST_CARD__LOOSE and not len(player.hand):
+        Game sets current player to losers"""
+        if GameRules.FINISH_WITH_BEST_CARD__LOOSE and not len(player.hand)\
+                and self.best_card_played:
             self.set_lost(player, 'FINISH_WITH_BEST_CARD__LOOSE')
 
     def _do_play(self, player, cards):
