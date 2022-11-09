@@ -2,7 +2,7 @@ import logging
 import random
 import string
 from abc import ABC, abstractmethod
-from typing import Final
+from typing import Final, Any
 
 import names
 
@@ -72,22 +72,31 @@ class CardGame(ABC):
         pass
 
     @property
-    def still_alive(self):
+    def count_still_alive(self) -> int:
+        """ returns a counter or players that hasn't won the game """
         still_alive = [player.won for player in self.players].count(False)
         self.__logger.debug(f"Active players : {still_alive}")
         return still_alive
 
     @property
-    def count_active_players(self):
+    def count_active_players(self) -> int:
+        """ returns the number of players able to play during current round """
         return self._active_players.count(True)
 
     @property
-    def _active_players(self):
+    def _active_players(self) -> list[bool]:
+        """ returns a list [True/False if player able to play] for each player in game """
         return [player.is_active for player in self.players]
 
     @property
     def strongest_card(self):
+        """ returns the actual best card in the game (take into considerations values changes)"""
         return self.VALUES[-1]
+
+    @property
+    def everyone_played(self):
+        """ returns True if everyone played his turn """
+        return [p.played_turn for p in self.players].count(True) == len(self.players)
 
     def add_to_pile(self, card: Card) -> None:
         """ add a given card to the current pile, therefore visible to everyone """
@@ -95,18 +104,23 @@ class CardGame(ABC):
 
     @property
     def pile(self) -> list:
+        """ returns game's pile"""
         return self._pile
 
     def _free_pile(self):
+        """ Save current pile to memory, and reset it for next round """
         self.__logger.info("########## resetting pile ##########")
         self.last_rounds_piles.append(self.pile)
         self._pile = []
 
     def show_players(self):
+        """ On the beginning of a game, and when every round starts,
+         players should see others and their number of cards in hand"""
         for player in self.players:
             print(f"{player} : {len(player.hand)} Cards")
 
-    def winners(self) -> list[dict]:
+    def winners(self) -> list[dict[str, Any]]:
+        """ Generate winners ladder, appends losers starting from the last one"""
         rank_gen = ()
         self.__logger.debug(f"\nwinners : {self._rounds_winners}\nLoosers : {self._looser_queue}")
         if self._rounds_winners and not self._run:
@@ -133,6 +147,11 @@ class CardGame(ABC):
             print(winner)
 
     def player_give_card_to(self, player: Player, give: Card, to):
+        """
+        What it does is in the name
+        :param player: the player that will give a card
+        :param give: the card to give (it will be removed from player's hand, fail if he doesn't)
+        :param to: Player, CardGame or a buffer_list to give to (anything else will fail) """
         try:
             card = player.remove_from_hand(give)
             if isinstance(to, Player):
@@ -175,9 +194,7 @@ class CardGame(ABC):
         else:
             self.__logger.info(f"{player} lost the game.")
         player.set_win()
-        winner_data = [player, self._round,
-                       self.pile[-1] if self.pile and win
-                       else player.last_played[0] if player.last_played else None]
+        winner_data = [player, self._round, player.last_played[0]]
         self.__logger.debug(winner_data)
         self._rounds_winners.append(winner_data)
         return True
@@ -225,7 +242,7 @@ class CardGame(ABC):
     def game_loop(self):
         """ A classic game loop """
         self.__logger.info('game loop')
-        while self.still_alive > 1:
+        while self.count_still_alive > 1:
             self.round_loop()
             # Whenever a new round starts, must reset pile
             self.increment_round()  # And do more stuff to set new round...
@@ -306,18 +323,18 @@ class CardGame(ABC):
     def _init_db(self, name=None):
         self.__db = Database(name or __class__.__name__)
 
-    def _do_play(self, player, index, cards) -> None:
+    def _do_play(self, player, cards) -> None:
         """ Log the play attempt,
             add player's cards to pile
             sets current player to next round's starting player (if no one plays after) """
         self.__logger.debug(f"{player} tries to play {cards}")
         [self.add_to_pile(card) for card in cards]
-        self.last_playing_player_index = index
+        self.last_playing_player_index = self.get_player_index(player)
 
     @property
     def best_card_played(self) -> bool:
         """ Returns True if the last card played is the best card"""
-        return self.pile[-1] == self.VALUES[-1]
+        return self.pile and self.pile[-1] == self.VALUES[-1]
 
     def _reset_fold_status(self) -> None:
         self.__logger.debug("Resetting players 'fold' status")
@@ -328,12 +345,12 @@ class CardGame(ABC):
         [p.set_played(False) for p in self.players]
 
     @property
-    def _everyone_folded(self):
+    def everyone_folded(self):
         return [p.folded or p.won for p in self.players].count(True) == len(self.players)
 
     @property
     def _everyone_played(self):
-        return [p.played_turn or p.won for p in self.players].count(True) == len(self.players)
+        return [p.played_turn for p in self.players].count(True) == len(self.players)
 
     def get_player_index(self, player):
         for i, p in enumerate(self.players):
@@ -342,6 +359,12 @@ class CardGame(ABC):
         raise PlayerNotFound(player)
 
     def _next_player(self) -> (int, Player):
+        """
+        Try to find the last playing player.
+        If he already played, skip to next player.
+        if we reached the end of the list, start over without skipping anyone but the last player
+        If the last player is the only one who can play, let him play.
+        """
         self.__logger.info("Searching next player...")
         skip = True
         for _ in range(2):
@@ -451,19 +474,15 @@ class PresidentGame(CardGame):
         """ Keep CardGame logic,
         but we require required_cards to be set since it is vital to this game"""
         self._logger.info('game loop')
-        while self.still_alive > 1:
+        while self.count_still_alive > 1:
             self.required_cards = 0  # The only change we require compared to CardGame.
             self.increment_round()  # set new round...
             self.round_loop()
             self._free_pile()
             # Check if players still playing game:
-            if self.still_alive == 1:  # If not,
+            if self.count_still_alive == 1:  # If not,
                 for player in self.players:
                     self.set_win(player, False)
-            else:
-                self._reset_players_status()
-            # Whenever a new round starts, must reset pile
-        # END GAME_LOOP
 
     def round_loop(self):
         """
@@ -481,10 +500,8 @@ class PresidentGame(CardGame):
 
         print(' '.join(["#" * 15, "New Round", "#" * 15]), flush=True)
         self._round > 1 and self.show_players()
-        while not self._everyone_folded:
-            self._reset_played_status()  # Everyone played, reset this status
-
-            if not GameRules.WAIT_NEXT_ROUND_IF_FOLD and not self._everyone_folded:
+        while not self.everyone_folded:
+            if not GameRules.WAIT_NEXT_ROUND_IF_FOLD and not self.everyone_folded:
                 self._reset_fold_status()
             self._cycle_players()
 
