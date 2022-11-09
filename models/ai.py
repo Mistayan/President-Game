@@ -109,7 +109,7 @@ class AI(Player):
             result = 0.042
 
         if not requires_low_result and result:
-            result = 1 / (result ** combo)
+            result = 1 / result ** combo
         self.__logger.debug(f" My estimation for a combo of {combo} : {result:.3f}")
         if result >= 1.43 and requires_low_result and combo > 1:
             # and not (len(self.hand) < self.max_combo):
@@ -119,6 +119,8 @@ class AI(Player):
         return combo
 
     def calc_best_card(self, nb_cards, split=False):
+        if self.game.check_if_played_last(self):
+            return 'F'
         _local_counter = Counter(self.counter.items())
         if self.got_revolution_in_hand:
             _local_counter = _local_counter[::-1]
