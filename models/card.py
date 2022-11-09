@@ -34,8 +34,8 @@ class Card:
 
     def __ne__(self, other):
         """ Ensure cards are different even if __eq__ is True"""
-        self_color = COLORS.index(self.color)
-        other_color = COLORS.index(other.color)
+        self_color = list(COLORS).index(self.color)
+        other_color = list(COLORS).index(other.color)
         return not self == other and not self_color == other_color
 
     def __gt__(self, other):
