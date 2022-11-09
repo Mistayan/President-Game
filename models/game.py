@@ -207,8 +207,7 @@ class CardGame(ABC):
         self._looser_queue.append([player,
                                    self._round,
                                    player.hand[-1] if player.hand and not reason
-                                   else self.pile[-1]
-                                   ])
+                                   else player.last_played[-1] if player.last_played else None])
         player.set_win()
 
     def increment_round(self) -> None:
