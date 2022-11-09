@@ -202,14 +202,12 @@ class CardGame(ABC):
 
     def set_lost(self, player, reason=None) -> None:
         """ Set player status to winner and append [Player, Rank] to _rounds_winners"""
-        if len(player.hand):
-            return
         self.__logger.info(f"{player} Lost the game.")
         self._looser_queue.append([player,
                                    self._round,
                                    player.hand[-1] if player.hand and not reason
                                    else player.last_played[-1] if player.last_played else None])
-        player.set_win()
+        player.set_win()  # It just means that a player cannot play anymore for current game
 
     def increment_round(self) -> None:
         self._round += 1
@@ -281,10 +279,14 @@ class CardGame(ABC):
 
     def player_lost(self, player):
         """ If player has no cards in hand, and the rule is set to True,
-        Game sets current player to losers"""
+        Game sets current player to losers
+        :returns: True if player lost, False otherwise"""
+        status = False
         if GameRules.FINISH_WITH_BEST_CARD__LOOSE and not len(player.hand)\
                 and self.best_card_played:
             self.set_lost(player, 'FINISH_WITH_BEST_CARD__LOOSE')
+            status = True
+        return status
 
     def _cycle_players(self):
         """ round_loop sub part
@@ -360,13 +362,14 @@ class CardGame(ABC):
     def _init_db(self, name=None):
         self.__db = Database(name or __class__.__name__)
 
-    def _do_play(self, player, cards) -> None:
+    def _do_play(self, index, player, cards) -> bool:
         """ Log the play attempt,
             add player's cards to pile
             sets current player to next round's starting player (if no one plays after) """
         self.__logger.debug(f"{player} tries to play {cards}")
         [self.add_to_pile(card) for card in cards]
-        self.last_playing_player_index = self.get_player_index(player)
+        self.last_playing_player_index = index
+        return True
 
     @property
     def best_card_played(self) -> bool:
