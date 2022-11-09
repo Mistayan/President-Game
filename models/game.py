@@ -51,6 +51,7 @@ class CardGame(ABC):
         self._rounds_winners = []
         self._looser_queue = []
         self._run = True
+        self.__db: Database = None
         # Since this is the first game, we consider the player wants to play
 
     def _initialize_game(self):
@@ -343,13 +344,17 @@ class CardGame(ABC):
             json_winners.append(ww)
         return json_winners
 
-    def save_results(self, name):
+    def save_results(self, name) -> (dict | None):
         to_save = {
             "game": name,
             "players": [player.name for player in self.players],
             "winners": self.__winners_unicode_safe(self.winners()),
             "cards_played": self.__pile_to_unicode_safe(),
         }
+        if not self.__db:
+            self.__logger.info("Could not save. Game has been created with save = False")
+            return to_save
+
         self.__db.update(to_save)
 
     def _init_db(self, name=None):
@@ -398,12 +403,12 @@ class CardGame(ABC):
 class PresidentGame(CardGame):
     required_cards = 0
 
-    def __init__(self, number_of_players=3, number_of_ai=0, *players_names, skip_inputs: int = 0):
+    def __init__(self, number_of_players=3, number_of_ai=0, *players_names, skip_inputs: int = 0, save=True):
         """ Instantiate a CardGame with President rules and functionalities """
         self._logger: Final = logging.getLogger(__class__.__name__)
         self._pile = []  # Pre-instantiating pile to avoid null/abstract pointer
         super().__init__(number_of_players, number_of_ai, *players_names, skip_inputs=skip_inputs)
-        super()._init_db(__class__.__name__)
+        save and super()._init_db(__class__.__name__)
         self._revolution = False
         self.queen_of_heart_starts()  # Only triggers if rule is True. First game only !
 
