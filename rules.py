@@ -25,6 +25,9 @@ class GameRules:
     # If set to False, you can play on the next turn.
     WAIT_NEXT_ROUND_IF_FOLD = True  # 'folded' acts like a 'played' status if False
 
+    # Allow loser to play one last card after he ends up alone at the table
+    ALLOW_FINAL_LOSER_PLAY = False
+
     # Set of rules according to rankings
 
     # Extreme = president-troufion
