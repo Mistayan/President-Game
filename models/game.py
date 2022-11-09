@@ -16,17 +16,7 @@ from rules import GameRules
 
 
 class CardGame(ABC):
-    random.SystemRandom().seed("no_AI_allowed")
     __super_private: Final = ''.join(random.choices(string.hexdigits, k=100))
-    players: list
-    last_playing_player_index: int
-    pile: list[Card]
-    deck: Deck
-    last_rounds_piles: list[list[Card]]  # For AI training sets
-    _rounds_winners: list  # For AI training sets
-    _looser_queue: list  # For AI training sets
-    _round: int = 0
-    VALUES = VALUES
 
     @abstractmethod
     def __init__(self, number_of_players=3, number_of_ai=0, *players_names, skip_inputs: int = 0):
@@ -42,8 +32,12 @@ class CardGame(ABC):
         self.skip_inputs = skip_inputs if skip_inputs >= 1 else False
         self.__logger: Final = logging.getLogger(__class__.__name__)
         self.__logger.debug(self.__super_private)
-        self.players = []
-        self.pile = []
+        self.players: list[Player] = []
+        self.last_playing_player_index: int = 0
+        self.last_rounds_piles: list[list[Card]]  # For AI training sets
+        self._round: int = 0
+        self.VALUES = VALUES
+        self._pile: list[Card] = []
         if number_of_players:
             for name in players_names:  # Named players
                 self.players += [Human(name=str(name), game=self)]
@@ -55,12 +49,13 @@ class CardGame(ABC):
         self.deck = Deck()
         self._initialize_game()
         self._rounds_winners = []
+        self._looser_queue = []
         self._run = True
         # Since this is the first game, we consider the player wants to play
 
     def _initialize_game(self):
         self.__logger.info(' '.join(["#" * 15, "PREPARING NEW GAME", "#" * 15]))
-        self.pile = []
+        self._pile = []
         self.last_rounds_piles = []
         self._looser_queue = []
         self.last_playing_player_index = 0
@@ -97,13 +92,14 @@ class CardGame(ABC):
     def add_to_pile(self, card: Card) -> None:
         self.pile.append(card)
 
-    def get_pile(self) -> list:
-        return self.pile
+    @property
+    def pile(self) -> list:
+        return self._pile
 
     def _free_pile(self):
         self.__logger.info("########## resetting pile ##########")
         self.last_rounds_piles.append(self.pile)
-        self.pile = []
+        self._pile = []
 
     def show_players(self):
         for player in self.players:
@@ -360,7 +356,7 @@ class PresidentGame(CardGame):
     def __init__(self, number_of_players=3, number_of_ai=0, *players_names, skip_inputs: int = 0):
         """ Instantiate a CardGame with President rules and functionalities """
         self._logger: Final = logging.getLogger(__class__.__name__)
-        self.pile = []  # Pre-instantiating pile to avoid null/abstract pointer
+        self._pile = []  # Pre-instantiating pile to avoid null/abstract pointer
         super().__init__(number_of_players, number_of_ai, *players_names, skip_inputs=skip_inputs)
         super()._init_db(__class__.__name__)
         self._revolution = False
@@ -587,8 +583,8 @@ class PresidentGame(CardGame):
 
     def card_can_be_played(self, card):
         """ Returns True if the card can be played according to pile and rules """
-        return not self.pile or (self.get_pile()[-1] <= card and not self._revolution
-                                 or self.get_pile()[-1] >= card and self._revolution)
+        return not self.pile or (self.pile[-1] <= card and not self._revolution
+                                 or self.pile[-1] >= card and self._revolution)
 
     def player_lost(self, player):
         """ If player has no cards in hand, and the rule is set to True,
