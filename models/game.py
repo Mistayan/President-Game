@@ -239,21 +239,33 @@ class CardGame(ABC):
 
     @abstractmethod
     def game_loop(self):
-        """ A classic game loop """
-        self.__logger.info('game loop')
-        while self.count_still_alive > 1:
-            self.round_loop()
-            # Whenever a new round starts, must reset pile
-            self.increment_round()  # And do more stuff to set new round...
-            ...
-        # END GAME_LOOP
+        """ A classic game loop
+        implement conditions to stay in the game like so:
+        While ... :
+        <ul>super().game_loop()
+        # do stuff
+        """
+        self.increment_round()  # set new round...
+        self.round_loop()
+        self._free_pile()
+        # Check if players still playing game:
+        if self.count_still_alive <= 1:  # If not,
+            for player in self.players:
+                self.set_win(player, False)
 
     @abstractmethod
     def round_loop(self):
-        """Implement your game logic here"""
-        while ...:
-            # for player in self.players:
-            ...
+        """
+        a classic round loop
+        implement conditions to stay in the loop like so:
+        While ... :
+        <ul>super().round_loop()
+        # do stuff
+        """
+        if not GameRules.WAIT_NEXT_ROUND_IF_FOLD and not self.everyone_folded:
+            self._reset_fold_status()
+        self._reset_played_status()  # Everyone played, reset this status
+        self._cycle_players()
 
     @abstractmethod
     def player_loop(self, player: Player) -> list[Card]:
@@ -498,36 +510,21 @@ class PresidentGame(CardGame):
         self._logger.info('game loop')
         while self.count_still_alive > 1:
             self.required_cards = 0  # The only change we require compared to CardGame.
-            self.increment_round()  # set new round...
-            self.round_loop()
-            self._free_pile()
-            self._reset_fold_status()
-            # Check if players still playing game:
-            if self.count_still_alive == 1:  # If not,
-                for player in self.players:
-                    self.set_win(player, False)
+            super(PresidentGame, self).game_loop()
 
     def round_loop(self):
         """
         A round is defined as follows :
         - Each player play cards or fold, until no one can play.
         - When every player is folded, end round.
-        - Reset 'played' status but not 'folded' status on each turn (for player in self. players)
+        - Reset 'played' status but not 'folded' status on each cycle, unless rules says otherwise
 
-        If first round, first player registered starts the game (or Queen of heart if rule ON)
-        If not first round, first playing player is last round's winner
-        If last round's winner have won the game, next player will take the lead.
-        If this is not the first game, and first round, last game's looser start
-        If a player is left alone on the table, the game ends.
         """
 
         print(' '.join(["#" * 15, "New Round", "#" * 15]), flush=True)
         self._round > 1 and self.show_players()  # display players on new round if round > 1
         while not self.everyone_folded:
-            if not GameRules.WAIT_NEXT_ROUND_IF_FOLD and not self.everyone_folded:
-                self._reset_fold_status()
-            self._reset_played_status()  # Everyone played, reset this status
-            self._cycle_players()
+            super(PresidentGame, self).round_loop()
 
             # Check if rule apply and last played cards match the strongest value
             if GameRules.PLAYING_BEST_CARD_END_ROUND and self.best_card_played:
@@ -618,6 +615,6 @@ class PresidentGame(CardGame):
         return not self.pile or (self.pile[-1] <= card and not self._revolution
                                  or self.pile[-1] >= card and self._revolution)
 
-    def _do_play(self, player, cards):
-        super()._do_play(player, cards)
+    def _do_play(self, index, player, cards):
+        super()._do_play(index, player, cards)
         self.set_revolution() if len(cards) == 4 else None  # REVOLUTION ?
