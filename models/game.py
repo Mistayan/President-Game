@@ -360,21 +360,22 @@ class CardGame(ABC):
 
     def _next_player(self) -> (int, Player):
         """
+        If first to play, do not skip: last_player_playing_index tels us which player starts
         Try to find the last playing player.
         If he already played, skip to next player.
         if we reached the end of the list, start over without skipping anyone but the last player
         If the last player is the only one who can play, let him play.
         """
         self.__logger.info("Searching next player...")
-        skip = True
+        skip = not self.pile
         for _ in range(2):
             for index, player in enumerate(self.players):
-                if skip and index == self.last_playing_player_index:  # Player found
-                    skip = False  # Stop skipping
-                if not skip and player.is_active:  # If Next player cannot play, skip
-                    return index, player
-            self.__logger.debug("cycling one more time (end of list, no active player found)...")
-        raise PlayerNotFound("No next player...")
+                if skip and index == self.last_playing_player_index:
+                    skip = False  # Wanted player found, Stop skipping
+                # Skip until player can play or is the last standing
+                if not skip and player.is_active:
+                    return player
+        # No player able to play, return None
 
     @property
     def count_humans(self):
