@@ -62,7 +62,11 @@ class AI(Player):
     def ask_n_cards_to_play(self) -> int:
         """ pick how many cards would be wisest to be played"""
         n_cards_to_play = 1  # Default value
-        if self.max_combo < 4:
+        if self.max_combo == 4 and \
+                (self.calc_revolution_interest() <= 0.25 or
+                 len(self.hand) <= 6 and self.calc_revolution_interest() < 0.5):
+            n_cards_to_play = 4
+        elif self.max_combo < 4:
             n_cards_to_play = self.calc_n_cards(self.max_combo,
                                                 True if not self.got_revolution_in_hand else False)
         return n_cards_to_play
