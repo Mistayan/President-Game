@@ -64,10 +64,7 @@ class AI(Player):
         n_cards_to_play = 1  # Default value
         if self.max_combo < 4:
             n_cards_to_play = self.calc_n_cards(self.max_combo,
-                                                True if self.got_revolution_in_hand else False)
-        elif self.max_combo == 4 and \
-                (self.calc_revolution_interest() <= 0.25 or len(self.hand) == 4):
-            n_cards_to_play = 4
+                                                True if not self.got_revolution_in_hand else False)
         return n_cards_to_play
 
     def calc_revolution_interest(self) -> float:
@@ -75,6 +72,7 @@ class AI(Player):
         Revolution might be considered, since values are reversed"""
         if not PresidentRules.USE_REVOLUTION:
             return 0
+        self.got_revolution_in_hand = True
         counter = Counter([card.number for card in self.hand])
         total = 0
         for number, count in self.counter.items():
@@ -119,7 +117,7 @@ class AI(Player):
             return 'F'
         _local_counter = Counter(self.counter.items())
         if self.got_revolution_in_hand:
-            _local_counter = _local_counter[::-1]
+            _local_counter = _local_counter.__reversed__()
         for k, v in _local_counter:
             # the card can be played no matter of the pile if first to play
             # OR if value OK according to game's pile and revolution status
