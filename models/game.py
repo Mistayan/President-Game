@@ -123,7 +123,7 @@ class CardGame(ABC):
     def winners(self) -> list[dict[str, Any]]:
         """ Generate winners ladder, appends losers starting from the last one"""
         rank_gen = ()
-        self.__logger.debug(f"\nwinners : {self._rounds_winners}\nLoosers : {self._looser_queue}")
+        self.__logger.debug(f"\nwinners : {self._rounds_winners}\nLosers : {self._looser_queue}")
         if self._rounds_winners and not self._run:
             if self._looser_queue:
                 for player_infos in self._looser_queue[::-1]:
@@ -218,7 +218,8 @@ class CardGame(ABC):
         result = False
         if self.pile and player.last_played and len(self.pile) >= len(player.last_played):
             result = [not self.pile[-i] != card
-                      for i, card in enumerate(player.last_played[::-1])].count(True)
+                      for i, card in enumerate(player.last_played[::-1])
+                      ].count(True) == len(player.last_played)
         return result
 
     @abstractmethod
@@ -571,7 +572,6 @@ class PresidentGame(CardGame):
                 not cards and not player.folded and player.ask_fold(override=not player.is_human)
         print(f"{player} played {cards}" if cards
               else f"{player} Folded.")
-        player.set_played()
         return cards
         # END PLAYER_LOOP
 
