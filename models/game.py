@@ -480,6 +480,7 @@ class PresidentGame(CardGame):
             self.increment_round()  # set new round...
             self.round_loop()
             self._free_pile()
+            self._reset_fold_status()
             # Check if players still playing game:
             if self.count_still_alive == 1:  # If not,
                 for player in self.players:
@@ -495,7 +496,7 @@ class PresidentGame(CardGame):
         If first round, first player registered starts the game (or Queen of heart if rule ON)
         If not first round, first playing player is last round's winner
         If last round's winner have won the game, next player will take the lead.
-        If this is not the first game, last game's looser start
+        If this is not the first game, and first round, last game's looser start
         If a player is left alone on the table, the game ends.
         """
 
@@ -504,30 +505,28 @@ class PresidentGame(CardGame):
         while not self.everyone_folded:
             if not GameRules.WAIT_NEXT_ROUND_IF_FOLD and not self.everyone_folded:
                 self._reset_fold_status()
+            self._reset_played_status()  # Everyone played, reset this status
             self._cycle_players()
 
-        self._logger.warning("Everyone folded : EXITING ROUND_LOOP")
+            # Check if rule apply and last played cards match the strongest value
+            if GameRules.PLAYING_BEST_CARD_END_ROUND and self.best_card_played:
+                print(' '.join(["#" * 15, "TERMINATING Round, Best Card Value Played !", "#" * 15]))
+                break
         # END ROUND_LOOP
 
     def _cycle_players(self):
-        while self.count_active_players >= 1:
-            index, player = self._next_player()
-            if player and player.is_active:
-                cards = self.player_loop(player)
-                if cards:  # If player played
-                    self._do_play(player, cards)
-                    if self.best_card_played:
-                        self.player_lost(player)
-                        if GameRules.PLAYING_BEST_CARD_END_ROUND:
-                            break
-            player and self.set_win(player)  # If player has no more cards, WIN
-
-            # Check if last played cards match the strongest value
-            if GameRules.PLAYING_BEST_CARD_END_ROUND and self.best_card_played:
-                print(' '.join(["#" * 15,
-                                "TERMINATING Round, Best Card Value Played !", "#" * 15]))
+        while not self.everyone_played or not self.everyone_folded:
+            player = self._next_player()
+            if not player:
                 break
-        # Everyone played, reset status
+            cards = self.player_loop(player)
+            if cards:  # If player played
+                self._do_play(player, cards)
+                len(player.hand) == 0 and self.set_win(player)  # If player has no more cards, WIN
+                if self.best_card_played:
+                    self.player_lost(player)
+                    if GameRules.PLAYING_BEST_CARD_END_ROUND:
+                        break
 
     def player_loop(self, player: Player) -> list[Card]:
         """
