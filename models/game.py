@@ -497,7 +497,7 @@ class PresidentGame(CardGame):
             if player and player.is_active:
                 cards = self.player_loop(player)
                 if cards:  # If player played
-                    self._do_play(player, index, cards)
+                    self._do_play(player, cards)
                     if self.best_card_played:
                         self.player_lost(player)
                         if GameRules.PLAYING_BEST_CARD_END_ROUND:
@@ -600,6 +600,7 @@ class PresidentGame(CardGame):
         if GameRules.FINISH_WITH_BEST_CARD__LOOSE and not len(player.hand):
             self.set_lost(player, 'FINISH_WITH_BEST_CARD__LOOSE')
 
-    def _do_play(self, player, index, cards):
-        super()._do_play(player, index, cards)
+    def _do_play(self, player, cards):
+        super()._do_play(player, cards)
         self.set_revolution() if len(cards) == 4 else None  # REVOLUTION ?
+        self.last_playing_player_index = self.get_player_index(player)
