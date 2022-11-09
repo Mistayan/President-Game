@@ -115,6 +115,7 @@ class AI(Player):
 
     def calc_best_card(self, nb_cards, split=False):
         if self.game.check_if_played_last(self):
+            self.__logger.info(f"played last, not raising myself")
             return 'F'
         _local_counter = Counter(self.counter.items())
         if self.got_revolution_in_hand:
