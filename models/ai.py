@@ -50,13 +50,11 @@ class AI(Player):
         if n_cards_to_play == 0:  # No previous player, choose n_cards
             self.first = True
             n_cards_to_play = self.ask_n_cards_to_play()
-        if n_cards_to_play <= self.max_combo:
-            self.__logger.info(f"Estimating my hand... {self.hand}")
-            self.__logger.info(f"Against... {self.game.pile}")
+        if n_cards_to_play <= self.max_combo and action == "play":
+            self.__logger.debug(f"Estimating my hand : {self.hand}\tAgainst : {self.game.pile}")
             play = self.calc_best_card(n_cards_to_play)
-        if (action == 'give' and n_cards_to_play == 1 and not play) \
+        if (action == "give" and n_cards_to_play == 1 and not play) \
                 or self.first and not play:
-            # You HAVE TO give/play a card.
             play = self.calc_best_card(n_cards_to_play, split=True)
         return super().play_cli(n_cards_to_play, play or 'F')
 
