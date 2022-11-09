@@ -90,7 +90,8 @@ class CardGame(ABC):
         return self.VALUES[-1]
 
     def add_to_pile(self, card: Card) -> None:
-        self.pile.append(card)
+        """ add a given card to the current pile, therefore visible to everyone """
+        self._pile.append(card)
 
     @property
     def pile(self) -> list:
