@@ -278,6 +278,36 @@ class CardGame(ABC):
                         self.last_playing_player_index = i
                         return
 
+    def player_lost(self, player):
+        """ If player has no cards in hand, and the rule is set to True,
+        Game sets current player to losers"""
+        if GameRules.FINISH_WITH_BEST_CARD__LOOSE and not len(player.hand)\
+                and self.best_card_played:
+            self.set_lost(player, 'FINISH_WITH_BEST_CARD__LOOSE')
+
+    def _cycle_players(self):
+        """ round_loop sub part
+        cycle players turns until no one is able to play.
+        """
+        skip = True
+        while self.count_active_players:
+            for index, player in enumerate(self.players):
+                if skip and index == self.last_playing_player_index:
+                    # First time a player is found means the round started
+                    skip = False  # Wanted player found, Stop skipping
+                # Skip until player can play or is the last standing
+                if not skip and player.is_active:
+                    cards = self.player_loop(player)
+                    if cards:  # If player played
+                        self._do_play(player, cards)
+                        # If player has no more cards, WIN
+                        len(player.hand) == 0 and self.set_win(player)
+                        if self.best_card_played:
+                            self.player_lost(player)
+                            if GameRules.PLAYING_BEST_CARD_END_ROUND:
+                                break
+                    # player.set_played()
+
     def ask_yesno(self, question):
         """ Ask a question that requires  yes/no answer
         if self.skip_input is active, will return True"""
@@ -357,25 +387,6 @@ class CardGame(ABC):
             if p == player:
                 return i
         raise PlayerNotFound(player)
-
-    def _next_player(self) -> (int, Player):
-        """
-        If first to play, do not skip: last_player_playing_index tels us which player starts
-        Try to find the last playing player.
-        If he already played, skip to next player.
-        if we reached the end of the list, start over without skipping anyone but the last player
-        If the last player is the only one who can play, let him play.
-        """
-        self.__logger.info("Searching next player...")
-        skip = not self.pile
-        for _ in range(2):
-            for index, player in enumerate(self.players):
-                if skip and index == self.last_playing_player_index:
-                    skip = False  # Wanted player found, Stop skipping
-                # Skip until player can play or is the last standing
-                if not skip and player.is_active:
-                    return player
-        # No player able to play, return None
 
     @property
     def count_humans(self):
@@ -501,7 +512,7 @@ class PresidentGame(CardGame):
         """
 
         print(' '.join(["#" * 15, "New Round", "#" * 15]), flush=True)
-        self._round > 1 and self.show_players()
+        self._round > 1 and self.show_players()  # display players on new round if round > 1
         while not self.everyone_folded:
             if not GameRules.WAIT_NEXT_ROUND_IF_FOLD and not self.everyone_folded:
                 self._reset_fold_status()
@@ -513,20 +524,6 @@ class PresidentGame(CardGame):
                 print(' '.join(["#" * 15, "TERMINATING Round, Best Card Value Played !", "#" * 15]))
                 break
         # END ROUND_LOOP
-
-    def _cycle_players(self):
-        while not self.everyone_played or not self.everyone_folded:
-            player = self._next_player()
-            if not player:
-                break
-            cards = self.player_loop(player)
-            if cards:  # If player played
-                self._do_play(player, cards)
-                len(player.hand) == 0 and self.set_win(player)  # If player has no more cards, WIN
-                if self.best_card_played:
-                    self.player_lost(player)
-                    if GameRules.PLAYING_BEST_CARD_END_ROUND:
-                        break
 
     def player_loop(self, player: Player) -> list[Card]:
         """
@@ -611,14 +608,6 @@ class PresidentGame(CardGame):
         return not self.pile or (self.pile[-1] <= card and not self._revolution
                                  or self.pile[-1] >= card and self._revolution)
 
-    def player_lost(self, player):
-        """ If player has no cards in hand, and the rule is set to True,
-        Game sets current player to losers"""
-        if GameRules.FINISH_WITH_BEST_CARD__LOOSE and not len(player.hand)\
-                and self.best_card_played:
-            self.set_lost(player, 'FINISH_WITH_BEST_CARD__LOOSE')
-
     def _do_play(self, player, cards):
         super()._do_play(player, cards)
         self.set_revolution() if len(cards) == 4 else None  # REVOLUTION ?
-        self.last_playing_player_index = self.get_player_index(player)
