@@ -97,7 +97,7 @@ class CardGame(ABC):
     @property
     def everyone_played(self):
         """ returns True if everyone played his turn """
-        return [p.played_turn for p in self.players].count(True) == len(self.players)
+        return [p.played_turn or p.won for p in self.players].count(True) == len(self.players)
 
     def add_to_pile(self, card: Card) -> None:
         """ add a given card to the current pile, therefore visible to everyone """
