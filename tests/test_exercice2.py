@@ -2,6 +2,7 @@ import unittest
 
 from models import Human
 from models.game import PresidentGame
+from models.player import Player
 
 
 class TestPlayers(unittest.TestCase):
@@ -57,7 +58,7 @@ class TestGame(unittest.TestCase):
          self receiving should have 1 more card, which is the given card
         """
         game = PresidentGame(3, 0, skip_inputs=True)
-        player_1: Human = game.players[0]
+        player_1: Player = game.players[0]
         player_2 = game.players[1]
         p1_copy = player_1.hand[::]
         p2_copy = player_2.hand[::]

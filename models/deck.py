@@ -4,14 +4,14 @@ import logging
 import random
 from typing import Final
 
-from .card import Card
-from .conf import VALUES, COLORS
+from models import Card
+from rules import GameRules
 
 logger = logging.getLogger(__name__)
 
 
 class Deck:
-    __number_of_cards: Final = len(VALUES) * len(COLORS)
+    __number_of_cards: Final = len(GameRules.VALUES) * len(GameRules.COLORS)
 
     def __init__(self):
         """
@@ -19,8 +19,8 @@ class Deck:
         """
         self.cards = []
         logger.info(f"Generating Deck")
-        for color in COLORS:
-            for value in VALUES:
+        for color in GameRules.COLORS:
+            for value in GameRules.VALUES:
                 self.cards.append(Card(value, color))
 
     def shuffle(self) -> Deck:

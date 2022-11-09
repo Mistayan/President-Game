@@ -3,12 +3,9 @@ from collections import Counter
 
 import names
 
-from models.player import Player, Card
-from rules import GameRules
-
-
-def calc_revolution_interest():
-    pass
+from models import Card
+from rules import PresidentRules
+from .player import Player
 
 
 class AI(Player):
@@ -76,7 +73,7 @@ class AI(Player):
     def calc_revolution_interest(self) -> float:
         """ Closer To 0 means you got mainly low-power cards.
         Revolution might be considered, since values are reversed"""
-        if not GameRules.USE_REVOLUTION:
+        if not PresidentRules.USE_REVOLUTION:
             return 0
         counter = Counter([card.number for card in self.hand])
         total = 0

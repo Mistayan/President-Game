@@ -6,13 +6,13 @@ from typing import Final, Any
 
 import names
 
-from models import AI
-from models.Errors import CheaterDetected, PlayerNotFound
-from models.db import Database
-from models.deck import Deck, Card, VALUES
-from models.player import Player, Human
+from .ai import AI
+from .player import Player, Human
+from .db import Database
+from models import Deck, Card
 from models.rankings import PresidentRank
-from rules import GameRules
+from rules import GameRules, PresidentRules
+from models.Errors import CheaterDetected, PlayerNotFound
 
 
 class CardGame(ABC):
@@ -36,7 +36,7 @@ class CardGame(ABC):
         self.last_playing_player_index: int = 0
         self.last_rounds_piles: list[list[Card]]  # For AI training sets
         self._round: int = 0
-        self.VALUES = VALUES
+        self.VALUES = GameRules.VALUES
         self._pile: list[Card] = []
         if number_of_players:
             for name in players_names:  # Named players
@@ -60,7 +60,7 @@ class CardGame(ABC):
         self.last_rounds_piles = []
         self._looser_queue = []
         self.last_playing_player_index = 0
-        self.VALUES = VALUES
+        self.VALUES = GameRules.VALUES
         self.deck.shuffle()
         self._round = 0
         self._run = True
@@ -589,7 +589,7 @@ class PresidentGame(CardGame):
 
         Inspired by the French revolution, yet to become True.
         """
-        if not GameRules.USE_REVOLUTION:
+        if not PresidentRules.USE_REVOLUTION:
             return
         self._revolution = not self._revolution
         self.VALUES = self.VALUES[::-1]

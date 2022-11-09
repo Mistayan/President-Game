@@ -1,4 +1,5 @@
-from .ai import AI
-from .conf import VALUES, COLORS
-from .game import PresidentGame, CardGame, Card
+from .card import Card
+from .deck import Deck
+from .game import PresidentGame
 from .player import Human
+from .ai import AI
