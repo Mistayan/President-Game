@@ -64,16 +64,6 @@ class AI(Player):
         """ Graphical or CLI does not matter for AI ... Only datas"""
         return self.play_cli()
 
-    def ask_fold(self):
-        """ Never fold, unless necessary """
-        self.fold_counter += 1
-        if self.fold_counter < 2:
-            return False
-        else:
-            self.fold_counter = 0
-            # self.set_fold()
-            return True
-
     def ask_n_cards_to_play(self) -> int:
         """ pick how many cards would be wisest to be played"""
         n_cards_to_play = 1  # Default value

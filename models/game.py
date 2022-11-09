@@ -543,8 +543,7 @@ class PresidentGame(CardGame):
             elif not player.folded:  # Fail-safe for unexpected behaviour...
                 print(f"Not enough {cards[0].number} in hand" if cards
                       else f"No card{'s' if len(cards) > 1 else ''} played")
-                if not cards and not player.folded and player.ask_fold():
-                    player.set_fold()
+                not cards and not player.folded and player.ask_fold(override=not player.is_human)
         print(f"{player} played {cards}" if cards
               else f"{player} Folded.")
         player.set_played()

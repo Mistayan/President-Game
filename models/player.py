@@ -162,12 +162,20 @@ class Player(ABC):
             v = 0
         return v
 
-    @abstractmethod
-    def ask_fold(self):
-        """ Implement if player should fold or not"""
-        ...
+    def ask_fold(self, override: bool = False) -> bool:
+        """ Return True for Yes, False for No.
+                 False by default"""
 
-    def _play_cards(self, n_cards_to_play: int, wanted_card: str):
+        answer = override
+        if not answer:
+            _in = input(f"{self}, fold ?[Y]es / [N]o ?>").lower()
+        if _in and _in[0] == "y" or answer:
+            self.set_fold()
+            answer = True
+
+        return answer
+
+    def _play_cards(self, n_cards_to_play: int, wanted_card: str) -> list[Card]:
         """
         Ensure there are enough of designated card in player's hand.
         Remove 1 card at a time from hand and place it in result (temporary)
@@ -278,16 +286,6 @@ class Human(Player):
             except ValueError:
                 n = 0
         return 1 if n < 1 else n
-
-    def ask_fold(self):
-        """ Return True for Yes, False for No.
-                 False by default"""
-        answer = False
-        _in = input(f"{self}, fold ?[Y]es / [N]o ?>").lower()
-        if _in and _in[0] == "y":
-            answer = True
-
-        return answer
 
     def play_cli(self, n_cards_to_play=0, override=None, action='play') -> list[Card]:
         if not override:
