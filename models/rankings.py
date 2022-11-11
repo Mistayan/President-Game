@@ -51,7 +51,7 @@ class PresidentRank:
         adv = self.__advantages[index]
         if not adv:  # president / troufion -> adv = None
             rnk = PresidentRules.EXTREME_RANKS
-            adv = rnk["give"] if self.nb_players < rnk["below"] else rnk["else"]
+            adv = rnk["give"] if self.nb_players > rnk["above"] else rnk["else"]
         return adv
 
     def __str__(self):

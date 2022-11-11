@@ -9,14 +9,14 @@ from rules import PresidentRules
 
 
 class PresidentGame(CardGame):
-    def __init__(self, nb_players=3, nb_ai=0, *players_names, skip_inputs: int = 0, save=True):
+    def __init__(self, nb_players=3, nb_ai=0, *players_names, nb_games: int = 0, save=True):
         """ Instantiate a CardGame with President rules and functionalities """
         self._logger: Final = logging.getLogger(__class__.__name__)
         if 3 < nb_players + nb_ai > 6:
             raise ValueError(f"Invalid Total Number of Players to create PresidentGame. 3-6")
         self._pile = []  # Pre-instantiating pile to avoid null/abstract pointer
         self.players = []
-        super().__init__(nb_players, nb_ai, *players_names, skip_inputs=skip_inputs, save=save)
+        super().__init__(nb_players, nb_ai, *players_names, nb_games=nb_games, save=save)
         self.game_name = __class__.__name__  # Override name
         self._revolution = False
 

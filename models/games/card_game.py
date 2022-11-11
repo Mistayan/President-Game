@@ -22,7 +22,7 @@ class CardGame(Game):
     # Will only be generated on first run of an instance, while GameManager runs
     __super_private: Final = ''.join(random.choices(string.hexdigits, k=100))
 
-    def __init__(self, nb_players=3, nb_ai=0, *players_names, skip_inputs: int = 0, save=True):
+    def __init__(self, nb_players=3, nb_ai=0, *players_names, nb_games: int = 0, save=True):
         """
         Game Instance.
         Players (includes IA) : 3-6 players
@@ -30,13 +30,13 @@ class CardGame(Game):
         :param nb_ai: int 1-5
         :param players_names: "p1", "p2", ..., "p6"
         """
-        super().__init__(nb_players=nb_players, nb_ai=nb_ai, *players_names, save=save)
+        super().__init__(nb_players, nb_ai, *players_names, save=save)
         self.__logger: Final = logging.getLogger(__class__.__name__)
         self.__logger.debug(self.__super_private)
         # self.players = []
         # self._winners = []
         # self._losers = []
-        self.skip_inputs = skip_inputs if skip_inputs >= 1 else False
+        self.skip_inputs = nb_games if nb_games >= 1 else False
         self.game_name = __class__.__name__
         self.last_playing_player_index: int = 0
         self.plays: list[list[Card]]  # For AI training sets
@@ -233,7 +233,7 @@ class CardGame(Game):
         if not self._run:
             self._initialize_game()
             print(flush=True)
-            input("press Enter to start the game")
+            not override_test and input("press Enter to start the game")
         while self._run:
             [player.sort_hand() for player in self.players]
             self._run_loop()
@@ -245,8 +245,7 @@ class CardGame(Game):
         print("".join(["#" * 15, "GAME DONE", "#" * 15]))
         self.show_winners()
         self.save_results(self.game_name)
-        self._run = self.ask_yesno("Another Game") \
-            if not (override_test and self.skip_inputs) else False  # Tests only
+        self._run = self.ask_yesno("Another Game") if override_test and self.skip_inputs else False
 
         if self._run:  # reset most values
             self._initialize_game()
@@ -278,6 +277,8 @@ class CardGame(Game):
         Next player choose N cards to play. if N == 0, N = player's choice
         If no player able to play or someone played a closing rule, round is over
         """
+        self.count_still_alive > 1 or \
+        GameRules.LOSER_CAN_PLAY and self.count_still_alive >= 1
         self._reset_played_status()  # Everyone played, reset this status
         for index, player in self.next_player:
             if not player:  # No one left standing

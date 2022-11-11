@@ -55,8 +55,8 @@ class Game(ABC):
         json_winners = []
         for winner in winners:
             ww = winner.copy()
-            if winner['last_played_card']:
-                ww["last_played_card"] = winner["last_played_card"].unicode_safe() or None
+            if winner['last_play']:
+                ww["last_play"] = winner["last_play"].unicode_safe() or None
             json_winners.append(ww)
         return json_winners
 
@@ -93,9 +93,8 @@ class Game(ABC):
         rank_gen = [{"player": player_infos[0].name,
                          "rank": i + 1,
                          "round": player_infos[1],
-                         "last_played_card": player_infos[2]
+                         "last_play": player_infos[2]
                          } for i, player_infos in enumerate(self._winners)]
-        print(rank_gen)
         return rank_gen
 
     def _reset_winner(self):

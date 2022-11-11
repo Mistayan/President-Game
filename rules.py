@@ -53,7 +53,7 @@ class PresidentRules:
                     "give": 1,           # card
                     }
 
-    # Rankings and their rewards
+    # Rankings names and their rewards
     RANKINGS = {"President": None,  # To be defined on each game, if players leave
                 "Vice-President": MEDIUM_RANKS["give"],
                 "Neutre": 0,
