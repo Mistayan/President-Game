@@ -45,17 +45,49 @@ Attention, la carte la plus forte est le `2`, puis l'as, puis le `R`, `D`, `V`, 
 
 ```mermaid
 classDiagram
-    Deck *-- Card
-    conf *-- CardGame
+    Database *-- Game
+    Game <|-- CardGame
+    GameRules *-- CardGame
     CardGame *-- Deck
+    Deck *-- Card
+    class Game{
+        Meta: ABC
+        +[Player] players
+        +[Database] __db
+        +register_player()
+        +save_results()
+    }
+    class CardGame{
+        +Deck
+        +start()
+    }
+    class Database{
+        +update()
+    }
+    class Deck{
+        +[Card] cards
+        +shuffle()
+    }
+    class Card{
+        +number
+        +color
+    }
+```
+
+```mermaid
+classDiagram
     CardGame <|-- PresidentGame
-    rules *-- PresidentGame
+    RankingRules *-- PresidentRankings
+    PresidentRules *-- PresidentGame
+    PresidentRankings *-- PresidentGame
     PresidentGame *-- Player
     Player <|-- AIPlayer
     Player <|-- HumanPlayer
+    
+    class CardGame{
+    }
     class PresidentGame{
-        +[Player] players
-        +distribute_cards()
+        +do_exchanges()
     }
     class Player{
         +String name
@@ -64,9 +96,9 @@ classDiagram
         +remove_from_hand()
         +play()
     }
-    class Deck{
-        +[Card] cards
-        +shuffle()
+    class PresidentRankings{
+        +rank_name
+        +advantage()
     }
     class AIPlayer{
         +play()
@@ -74,13 +106,7 @@ classDiagram
     class HumanPlayer{
         +play()
     }
-    class Card{
-        number
-        color
-    }
-    
 ```
-
 ## Rush 3
 
 Implémenter une petite interface pour représenter les cartes au sein
@@ -88,6 +114,19 @@ de la console et permettre au joueur de choisir les cartes à jouer.
 
 Il est possible de sélectionner plusieurs cartes dès lors qu'elles ont la même valeur.
 
+```mermaid
+classDiagram
+    class Cli{
+        +Interface StdIO
+        +prompt()
+        +display()
+        +send()
+        +receive()
+    }
+    Cli <--> Player
+    Cli <--> CardGame
+
+```
 Une vérification doit être mise en place pour voir si le choix de l'utilisateur est correct.
 
 ## Rush 4
@@ -97,10 +136,10 @@ Faire communiquer l'interface d'un joueur au jeu
 
 ```mermaid
 classDiagram
-    Player --> TK
+    Player <--> TK
     TK <--> PresidentGame
     class TK {
-    + Interface
+    + Interface Visuelle
     
     + get_cards_from_player()
     + send_cards_to_game()

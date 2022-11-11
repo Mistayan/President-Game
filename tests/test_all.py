@@ -7,9 +7,7 @@ Creation-date: 11/01/22
 """
 import unittest
 
-from .test_exercice1 import TestCardsExercice1, TestDeckExercice1
-from .test_exercice2 import TestPlayers, TestGame
-from .test_exercice3 import TestGameExercice3
+import tests
 
 
 class TestAll(unittest.TestCase):

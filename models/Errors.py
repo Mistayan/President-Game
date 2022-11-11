@@ -11,19 +11,20 @@ from typing import Final
 critical: Final = "".join(["\n", "🚨" * 25, "\n"])
 
 
-class CheaterDetected(Exception):
+class CheaterDetected(BaseException):
 
-    def __init__(self, e=None):
+    def __init__(self, e=""):
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.CRITICAL)
         logger.critical("".join([critical, str(e), critical]))
-        raise Exception(e)
+        raise self
 
 
-class PlayerNotFound(Exception):
+
+class PlayerNotFound(BaseException):
 
     def __init__(self, e):
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.CRITICAL)
         logger.critical("".join([critical, f"Player Not Found : {str(e)}", critical]))
-        raise Exception(e)
+        raise self

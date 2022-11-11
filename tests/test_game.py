@@ -1,30 +1,7 @@
 import unittest
 
-from models import Human
-from models.game import PresidentGame
-from models.player import Player
-
-
-class TestPlayers(unittest.TestCase):
-    def test_player_constructor(self):
-        player_trump = Human('Trump')
-        self.assertTrue(player_trump.name == 'Trump')
-
-    def test_incognito_player_should_have_random_name(self):
-        player_incognito = Human()
-        self.assertFalse(player_incognito.name == '')
-
-    def test_player_is_active(self):
-        player = Human()
-        self.assertTrue(player.is_active)
-        player.set_fold()
-        self.assertFalse(player.is_active)
-        player.set_fold(False)
-        player.set_played()
-        self.assertFalse(player.is_active)
-        player.set_played(False)
-        player.set_win()
-        self.assertFalse(player.is_active)
+from models.games import PresidentGame
+from models.players.player import Player
 
 
 class TestGame(unittest.TestCase):
@@ -38,6 +15,7 @@ class TestGame(unittest.TestCase):
         player_1 = game.players[0]
         player_2 = game.players[1]
         player_3 = game.players[2]
+        game._initialize_game()
         self.assertTrue(len(player_1.hand) > 0)
         self.assertTrue(len(player_1.hand) >= len(player_2.hand))
         self.assertFalse(len(player_1.hand) == len(player_2.hand) == len(player_3.hand))
@@ -58,6 +36,7 @@ class TestGame(unittest.TestCase):
          self receiving should have 1 more card, which is the given card
         """
         game = PresidentGame(3, 0, skip_inputs=True)
+        game._initialize_game()
         player_1: Player = game.players[0]
         player_2 = game.players[1]
         p1_copy = player_1.hand[::]

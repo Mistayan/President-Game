@@ -1,9 +1,9 @@
-from models.game import PresidentGame
+from models.games import PresidentGame
 
 if __name__ == '__main__':
     # INIT
     humans_names = (input("Player Name ?"),)
-    game = PresidentGame(1, 3, *humans_names)
+    game = PresidentGame(nb_players=1, nb_ai=3)
 
     # Start the game. (no TK so far)
     game.start()

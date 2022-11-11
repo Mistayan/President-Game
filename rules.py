@@ -20,7 +20,7 @@ class GameRules:
     QUEEN_OF_HEART_STARTS = True
 
     # Player finishing the game with the best cards instantly loose instead of winning.
-    FINISH_WITH_BEST_CARD__LOOSE = True
+    FINISH_WITH_BEST_CARD__LOOSE = False
 
     # When the best card is played by someone, ends current round and starts next one
     PLAYING_BEST_CARD_END_ROUND = True
@@ -28,10 +28,14 @@ class GameRules:
     # If set to False, you can play on the next turn.
     WAIT_NEXT_ROUND_IF_FOLD = True  # 'folded' acts like a 'played' status if False
 
+    # If True, the loser of a game will be able to play until he finishes his hand
+    LOSER_CAN_PLAY = False
+
 
 class PresidentRules:
     # 4 cards of the same value played at once revert game's cards power
     USE_REVOLUTION = True
+    NEW_GAME_RESET_REVOLUTION = True
 
     # Ta-Gueule is a rule to make player after actual one to skip his turn (like a played)
     # if the actual player plays the same set of card that is on top of the pile
@@ -39,14 +43,13 @@ class PresidentRules:
     # Set of rules according to rankings
 
     # Extreme = president-troufion
-    EXTREME_RANKS = {"give": 1,   # card
-                     "below": 4,  # players
-                     "or": 2,     # cards
-                     "above": 4,   # players
+    EXTREME_RANKS = {"give": 2,   # card
+                     "above": 4,  # players // Changing this value will affect medium ranks
+                     "else": 1,     # cards
                      }
 
     # Medium = vice-vice
-    MEDIUM_RANKS = {"exists_above": 4,  # players
+    MEDIUM_RANKS = {"exists_above": EXTREME_RANKS["above"],  # players
                     "give": 1,           # card
                     }
 
