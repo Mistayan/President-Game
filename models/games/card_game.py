@@ -10,6 +10,8 @@ import string
 import random
 from typing import Final
 
+import coloredlogs
+
 from models import Card, Deck
 from models.Errors import CheaterDetected, PlayerNotFound
 from models.games import Game
@@ -67,14 +69,21 @@ class CardGame(Game):
         self.required_cards = 0
         self._distribute()
         self.show_players()
+        self.queen_of_heart_starts()
 
     def _distribute(self):
-        """ Usual method of distribution """
+        """ Usual method of distribution : distribute all cards amongst players """
         self.__logger.info(f"distributing cards")
         for i, card in enumerate(self.deck.cards):
             player_index = i % len(self.players)
-            self.players[player_index].add_to_hand(card)  # Give card to player
+            self.players[player_index].add_to_hand(card)  # 'Give' card to player
+            # NEVER GIVE UP THE CARD FROM DECK, to ensure cards given by players are from this game
             self.__logger.debug(f"Gave {card} to player {self.players[player_index]}")
+
+    @property
+    def run_condition(self):
+        return self.count_still_alive > 1 or \
+            GameRules.LOSER_CAN_PLAY and self.count_still_alive >= 1
 
     @property
     def count_still_alive(self) -> int:
@@ -127,17 +136,15 @@ class CardGame(Game):
 
     @property
     def next_player(self):
-        condition = self.count_still_alive > 1 or \
-                    GameRules.LOSER_CAN_PLAY and self.count_still_alive >= 1
-        if self.count_still_alive == 1 and not condition:
-            self._reset_played_status()  # patch from the deeps
-        while condition:
-            for index, player in enumerate(self.players):
-                if index == self.last_playing_player_index:
-                    self._skip_players = False
-                # Skip until player can play or is the last standing
-                if not self._skip_players:
-                    if player.is_active:
+        self.__logger.debug("########## NEXT INIT ##########")
+        while self.run_condition:
+            self.__logger.debug("########## CONDITION LOOP ##########")
+            for _ in range(2):
+                for index, player in enumerate(self.players):
+                    if index == self.last_playing_player_index:
+                        self._skip_players = False
+                    # Skip until player can play or is the last standing
+                    if player.is_active and not self._skip_players:
                         yield index, player
             return -1, None
 
@@ -199,13 +206,12 @@ class CardGame(Game):
         for player in self.players:
             player.set_played(False)
             player.set_fold(False)
-            player.__buffer = []
 
     def increment_round(self) -> None:
         """ Increment round, reset required values """
         self._round += 1
-        self.__logger.info(' '.join(["#" * 15, f"Round {self._round}", "#" * 15]))
-        self._reset_fold_status()
+        print(' '.join(["#" * 15, f"Round {self._round}", "#" * 15]))
+        self._reset_players_status()
         self.required_cards = 0  # reset required cards, so the first player chooses
         self._free_pile()  # make sure the pile is empty. (if not, appends to play and free)
         self._round > 1 and self.show_players()  # display players on new round if round > 1
@@ -245,7 +251,7 @@ class CardGame(Game):
         print("".join(["#" * 15, "GAME DONE", "#" * 15]))
         self.show_winners()
         self.save_results(self.game_name)
-        self._run = self.ask_yesno("Another Game") if override_test and self.skip_inputs else False
+        self._run = override_test and self.skip_inputs or self.ask_yesno("Another Game")
 
         if self._run:  # reset most values
             self._initialize_game()
@@ -257,18 +263,19 @@ class CardGame(Game):
         while _run !
         A classic game loop
         """
-        while self.count_still_alive:
+        while self.run_condition:
             self.increment_round()  # set new round... (many things happens here)
-            self._skip_players = self.pile == []  # If pile is empty, find player that open round
+            # If pile is empty, find player that open round, else find next player
+            self._skip_players = self.pile == [] or self._skip_players
             while not self.everyone_folded:
                 self._play_round()
                 if GameRules.PLAYING_BEST_CARD_END_ROUND and self.best_card_played:
                     break
-            # Check if players still playing game:
-            if self.count_still_alive <= 1:  # If not,
-                for player in self.players:
-                    self.set_win(player, False)  # set remaining player to loser
-                self._run = False
+                # Check if players still playing game:
+                if not self.run_condition:
+                    for player in self.players:
+                        self.set_win(player, False)  # set remaining player to loser
+                    self._run = False
 
     def _play_round(self):
         """
@@ -277,8 +284,7 @@ class CardGame(Game):
         Next player choose N cards to play. if N == 0, N = player's choice
         If no player able to play or someone played a closing rule, round is over
         """
-        self.count_still_alive > 1 or \
-        GameRules.LOSER_CAN_PLAY and self.count_still_alive >= 1
+
         self._reset_played_status()  # Everyone played, reset this status
         for index, player in self.next_player:
             if not player:  # No one left standing
