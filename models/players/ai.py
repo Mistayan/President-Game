@@ -30,7 +30,7 @@ class AI(Player):
         self.got_revolution_in_hand = False
 
     def set_rank(self, rank_pointer):
-        self.__logger.debug(f"I have been assigned {rank_pointer}")
+        self.__logger.info(f"I have been assigned {rank_pointer}")
         super(AI, self).set_rank(rank_pointer)
 
     def _play_cli(self, n_cards_to_play=0, override=None, action='play') -> list[Card]:
