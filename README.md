@@ -43,19 +43,72 @@ Attention, la carte la plus forte est le `2`, puis l'as, puis le `R`, `D`, `V`, 
 
 ## Rush 2
 
+### Décomposition du problème
+
+ Le jeu du président est un __jeu__ | __de cartes__ avec certaines __regles__.<br>
+ Nous requérons de pouvoir sauvegarder nos données de jeu --> __DB__
+
 ```mermaid
 classDiagram
-    Deck *-- Card
-    conf *-- CardGame
+    Database *-- Game
+    Game <|-- CardGame
+    GameRules *-- CardGame
     CardGame *-- Deck
+    Deck *-- Card
+    class Game{
+        Meta: ABC
+        +[Player] players
+        +[Database] __db
+        +register_player()
+        +save_results()
+    }
+    class CardGame{
+        +Deck
+        +start()
+    }
+    class Database{
+        +update()
+    }
+    class Deck{
+        +[Card] cards
+        +shuffle()
+    }
+    class Card{
+        +number
+        +color
+    }
+```
+
+## Le jeu du président
+Comme annoncé, le jeu du __President__ et un __jeu de cartes__ <br>
+Il possède des __regles supplémentaires__ par rapport à un jeu de cartes classique <br>
+Ce jeu possède aussi son propre __système de classement des joueurs__, chaque rang ayant des 
+__avantages__ donnés en nombre de cartes, à échanger lors de la prochaine partie <br>
+Un joueur peut jouer un __jeu de cartes__ ou le jeu du __Président__.
+ Le __jeu__ accepte de recevoir des cartes de la part des joueurs --> __do_play()__<br>
+Il peut forcer les joueurs à échanger leurs cartes lors du début d'une __nouvelle partie__
+
+```mermaid
+classDiagram
     CardGame <|-- PresidentGame
-    rules *-- PresidentGame
+    RankingRules *-- PresidentRankings
+    PresidentRules *-- PresidentGame
+    PresidentRankings *-- PresidentGame
     PresidentGame *-- Player
     Player <|-- AIPlayer
     Player <|-- HumanPlayer
+    
+    class CardGame{
+        +queen_of_heart_start()
+        +start()
+        +show_players()
+        +winners()
+    }
     class PresidentGame{
-        +[Player] players
-        +distribute_cards()
+        start() --> super()
+        winners() --> super()
+        +do_exchanges()
+        +do_play()
     }
     class Player{
         +String name
@@ -64,9 +117,9 @@ classDiagram
         +remove_from_hand()
         +play()
     }
-    class Deck{
-        +[Card] cards
-        +shuffle()
+    class PresidentRankings{
+        +rank_name
+        +advantage()
     }
     class AIPlayer{
         +play()
@@ -74,13 +127,7 @@ classDiagram
     class HumanPlayer{
         +play()
     }
-    class Card{
-        number
-        color
-    }
-    
 ```
-
 ## Rush 3
 
 Implémenter une petite interface pour représenter les cartes au sein
@@ -88,6 +135,30 @@ de la console et permettre au joueur de choisir les cartes à jouer.
 
 Il est possible de sélectionner plusieurs cartes dès lors qu'elles ont la même valeur.
 
+```mermaid
+classDiagram
+    class CardGame{
+    (or any dependent)
+    +prompt()
+    +send()
+    +receive()
+    }
+    class Cli{
+        Interface StdIO
+        +prompt()
+        +display()
+        +send()
+        +receive()
+    }
+    class Player{
+        +init_interface()
+        +send()
+        +receive()
+    }
+    Cli <--> Player
+    Cli <--> CardGame
+
+```
 Une vérification doit être mise en place pour voir si le choix de l'utilisateur est correct.
 
 ## Rush 4
@@ -97,13 +168,14 @@ Faire communiquer l'interface d'un joueur au jeu
 
 ```mermaid
 classDiagram
-    Player --> TK
+    Player <--> TK
     TK <--> PresidentGame
     class TK {
-    + Interface
-    
-    + get_cards_from_player()
-    + send_cards_to_game()
+    Interface Visuelle
+    +prompt()
+    +display()
+    +send()
+    +receive()
     }
     
 ```

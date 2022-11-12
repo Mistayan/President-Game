@@ -5,7 +5,7 @@ import names
 
 from models import Card
 from rules import PresidentRules
-from .player import Player
+from models.players.player import Player
 
 
 class AI(Player):
@@ -33,7 +33,7 @@ class AI(Player):
         self.__logger.debug(f"I have been assigned {rank_pointer}")
         super(AI, self).set_rank(rank_pointer)
 
-    def play_cli(self, n_cards_to_play=0, override=None, action='play') -> list[Card]:
+    def _play_cli(self, n_cards_to_play=0, override=None, action='play') -> list[Card]:
         """The actual calculation method don't take into account the fact that you can break pairs
         :param n_cards_to_play: if 0, choose on its own, otherwise plays this number of cards
         :param override: Override should not be used, since the AI make decisions on its own
@@ -53,11 +53,11 @@ class AI(Player):
         if (action == "give" and n_cards_to_play == 1 and not play) \
                 or self.first and not play:
             play = self.calc_best_card(n_cards_to_play, split=True)
-        return super().play_cli(n_cards_to_play, play or 'F')
+        return super()._play_cli(n_cards_to_play, play or 'F')
 
     def play_tk(self, n_cards_to_play=0) -> list[Card]:
         """ Graphical or CLI does not matter for AI ... Only datas"""
-        return self.play_cli()
+        return self._play_cli()
 
     def ask_n_cards_to_play(self) -> int:
         """ pick how many cards would be wisest to be played"""

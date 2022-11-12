@@ -9,48 +9,34 @@ import logging
 from typing import Final
 
 from models.Errors import CheaterDetected
-from models.player import Player
+from models.players.player import Player
+from rules import PresidentRules
 
 
 class PresidentRank:
-    __possible_rank: Final = ["President", "Vice-President",  # positive advantages
-                              "Neutre",  # Neutral advantages
-                              "Vice-Troufion", "Troufion"]  # negative advantages
+    __possible_rank: Final = [rank_name for rank_name in PresidentRules.RANKINGS]
+    __advantages: Final = [adv for rn, adv in PresidentRules.RANKINGS.items()]
 
-    __advantages: Final = [2, 1, 0, -1, -2]
-    players = []  # Classes Instances shared attribute
-
-    def __init__(self, n, player, players: list[Player]):
+    def __init__(self, n, player, nb_players: int):
         """ Ranks classifications for President Game """
         self.logger = logging.getLogger(__class__.__name__)
-        self.players = players if not self.players else self.players
-        _max = len(self.players)
-        self.logger.info(f"nb_players : {_max}, currently requested rank: {n}")
-        if _max < 3 or _max > 6:
+        self.nb_players = nb_players
+        self.logger.info(f"nb_players : {nb_players}, currently requested rank: {n}")
+        if nb_players < 3 or nb_players > 6:
             raise CheaterDetected()
 
-        # 'Neutre' can only be a valid state whenever there is an odd number of players
-        # Or when there is 6 players
-        neutral = (_max % 2 or _max == 6) and n in {2, 3, 4}
-        # President is always the first player
-        president = n == 1
-        # Vice-president  and Vice-troufion only exists if _max > 3
-        vice_president = _max > 3 and n == 2
-        vice_troufion = _max > 3 and n == _max - 1
-        # troufion is the last player:
-        troufion = n == _max
+        # Vice-president and Vice-troufion Ranks exists ?
+        vice_exists = nb_players > PresidentRules.MEDIUM_RANKS["exists_above"]
 
-        if neutral:
-            self.rank_name = self.__possible_rank[2]
-        if president or vice_president:
+        # President is always the first player, vice-president is always second
+        if n == 1 or vice_exists and n == 2:
             self.rank_name = self.__possible_rank[n - 1]
-        if vice_troufion or troufion:
-            self.rank_name = self.__possible_rank[::-1][_max - n]
-        try:
-            self.rank_name
-        except AttributeError:  # Attribute not set means no possible rank found
-            self.rank_name = "CHEATER"
-            raise CheaterDetected("No such Rank")
+        # Troufion is always the last player, vice-troufion is always second last
+        elif n == nb_players or vice_exists and n == nb_players - 1:
+            self.rank_name = self.__possible_rank[::-1][nb_players - n]
+        # Anyone else is supposed to be neutral
+        else:
+            self.rank_name = self.__possible_rank[2]
         player.set_rank(self)
 
     @property
@@ -62,8 +48,11 @@ class PresidentRank:
         """
         index = self.__possible_rank.index(self.rank_name)
         self.logger.debug(f"index: {index} -> advantage of {self.__advantages[index]}")
-        return self.__advantages[index] // 2 if len(self.players) <= 3 \
-            else self.__advantages[index]
+        adv = self.__advantages[index]
+        if not adv:  # president / troufion -> adv = None
+            rnk = PresidentRules.EXTREME_RANKS
+            adv = rnk["give"] if self.nb_players > rnk["above"] else rnk["else"]
+        return adv
 
     def __str__(self):
         return self.rank_name

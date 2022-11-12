@@ -91,3 +91,6 @@ class Card:
 
     def __repr__(self):
         return self.__str__()
+
+    def same_as(self, card):
+        return self is card
