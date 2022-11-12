@@ -80,6 +80,16 @@ class CardGame(Game):
             # NEVER GIVE UP THE CARD FROM DECK, to ensure cards given by players are from this game
             self.__logger.debug(f"Gave {card} to player {self.players[player_index]}")
 
+    def check_if_played_last(self, player):
+        result = False
+        if self.pile and player.last_played:
+            if len(self.pile) >= len(player.last_played):
+                result = [card.same_as(self.pile[-(i+1)])
+                          for i, card in enumerate(player.last_played[::-1])
+                          ].count(True) == len(player.last_played)
+
+        return result
+
     @property
     def run_condition(self):
         return self.count_still_alive > 1 or \
