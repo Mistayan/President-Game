@@ -231,6 +231,7 @@ class CardGame(Game):
         """
         if not self._run:
             self._initialize_game()
+            self.queen_of_heart_starts()  # ONLY FIRST GAME If Rule is True, set next_player
             print(flush=True)
             not override_test and input("press Enter to start the game")
         while self._run:
@@ -240,7 +241,6 @@ class CardGame(Game):
                 not (override_test and self.skip_inputs) else None
             if self._run:
                 self._initialize_game()
-
 
     def _run_loop(self) -> None:
         """
@@ -263,7 +263,6 @@ class CardGame(Game):
         play while everyone is not folded or some rule stops the round
         whenever run_condition become False, every player remaining LOSE the game.
         """
-        self.queen_of_heart_starts()  # If Rule is True, set next_player
         while self.run_condition:
             self.next_turn()  # set new round... (many things happens here)
             # If pile is empty, find player that open round, else find next player
@@ -389,7 +388,10 @@ class CardGame(Game):
         """
         self.__logger.info(f"{player} tries to play {cards}")
         [self.add_to_pile(card) for card in cards]
-        if not self.best_card_played and GameRules.PLAYING_BEST_CARD_END_ROUND:
+        player.set_played()
+        if self.best_card_played and GameRules.PLAYING_BEST_CARD_END_ROUND:
+            self.next_player_index = index
+        else:
             # player played, next player should not be current player
             self.next_player_index = (index + 1) % len(self.players)
         return self.set_win(player)
