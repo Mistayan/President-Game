@@ -249,7 +249,7 @@ class Player(ABC):
                 .upper() if not override else override.upper()
             # Check fold status
             if not (_in and _in[0] == 'F'):
-                cards_to_play = self._play_cards(n_cards_to_play=n_cards_to_play, override=_in)
+                cards_to_play = self._play_cards(n_cards_to_play=n_cards_to_play, wanted_card=_in)
             else:
                 self.set_fold()  # True by default
         elif not override:
