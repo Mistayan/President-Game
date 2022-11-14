@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from rules import GameRules
 
 
@@ -23,17 +25,19 @@ class Card:
 
     def __eq__(self, other):
         """ test card's numbers equity (see __ne__ for value & color comparison) """
-        if not other or not self:
+        if not other:
             raise ValueError("Cannot compare to Empty Element")
         self_value = GameRules.VALUES.index(self.number)
-        if isinstance(other, Card):
-            other_value = GameRules.VALUES.index(other.number)
-        else:
-            other_value = GameRules.VALUES.index(other)
+        other_value = GameRules.VALUES.index(other.number) if isinstance(other, Card) else \
+            GameRules.VALUES.index(other)
         return self_value == other_value
 
     def __ne__(self, other):
-        """ Ensure cards are different even if __eq__ is True"""
+        """ Ensure cards have different number and color"""
+        if not other:
+            raise ValueError("Cannot compare to Empty Element")
+        if not isinstance(other, type(self)):
+            raise ValueError("Cards.__ne__ requires Cards to compare")
         self_color = list(GameRules.COLORS).index(self.color)
         other_color = list(GameRules.COLORS).index(other.color)
         return not self == other and not self_color == other_color
@@ -79,6 +83,7 @@ class Card:
         return self_i <= other_i
 
     def unicode_safe(self):
+        """ Whenever you require unicode safe strings, use this method """
         return f"{self.number} of {GameRules.COLORS[self.color]}"
 
     def __str__(self):
@@ -87,5 +92,6 @@ class Card:
     def __repr__(self):
         return self.__str__()
 
-    def same_as(self, card):
+    def same_as(self, card: Card):
+        """ compare addresses in memory to assert the cards are strictly the same"""
         return self is card
