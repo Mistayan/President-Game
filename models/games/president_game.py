@@ -68,6 +68,21 @@ class PresidentGame(CardGame):
     def revolution(self):
         return self._revolution
 
+    @property
+    def skip_next_player_rule_apply(self):
+        """
+        This rule apply if current player's play matches cards on the pile and rule is True.
+        :return: True if rule applies.
+        """
+        if not PresidentRules.USE_TA_GUEULE or len(self.pile) <= self.required_cards:
+            return False
+        pile_comp = self.pile[(self.required_cards * 2)::-1]
+        game, player = pile_comp[:self.required_cards], pile_comp[self.required_cards:]
+        self._logger.debug(f"{self.players[self.last_playing_player_index]}"
+                           f" plays: {player}... comparing to {game}")
+        return [game[i] == player[i]
+                for i in range(self.required_cards)].count(True) == self.required_cards
+
     def set_revolution(self):
         """ VARIANCE OF THE GAME RULES
         REVOLUTION is a rule that allows players to play 4 times the same card
