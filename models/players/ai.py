@@ -1,5 +1,6 @@
 import logging
 from collections import Counter
+from pprint import pprint
 
 import names
 
@@ -10,11 +11,11 @@ from models.players.player import Player
 
 class AI(Player):
 
-    def __init__(self, name=None, game=None):
+    def __init__(self, name=None, game_pointer=None):
         """
         Instance of an AI player
         keep most of Player's logics to validate input and transaction mechanics
-        :param game: CardGame Instance
+        :param game_pointer: CardGame (or child) Instance
         :param name: leave blank to generate random name
         """
         self.fold_counter = 0
@@ -24,7 +25,7 @@ class AI(Player):
         self.__logger = logging.getLogger(self.name)
         self._is_human = False
         self.first = False
-        self.game = game
+        self.game = game_pointer
         self.counter = Counter()
         self.__buffer = []
         self.got_revolution_in_hand = False
@@ -39,19 +40,19 @@ class AI(Player):
         :param override: Override should not be used, since the AI make decisions on its own
         :param action: action to play (play, give, ...)
         :return: Cards to play
-        (they should always be valid, taking into considerations the game pile)
+        (they should always be valid, taking into considerations the game_pointer pile)
         """
 
         self.counter = Counter([card.number for card in self.hand])  # actualize counter
+        self.got_revolution_in_hand = self.all_of_combo(4).total() > 0
         play = None
         if n_cards_to_play == 0:  # No previous player, choose n_cards
             self.first = True
             n_cards_to_play = self.ask_n_cards_to_play()
-        if n_cards_to_play <= self.max_combo and action == "play":
+        if action == "play" and n_cards_to_play <= self.max_combo:
             self.__logger.debug(f"Estimating my hand : {self.hand}\tAgainst : {self.game.pile}")
             play = self.calc_best_card(n_cards_to_play)
-        if (action == "give" and n_cards_to_play == 1 and not play) \
-                or self.first and not play:
+        if action == "give" or not play:
             play = self.calc_best_card(n_cards_to_play, split=True)
         return super()._play_cli(n_cards_to_play, play or 'F')
 
@@ -100,7 +101,7 @@ class AI(Player):
         if total_possible_cards:
             result = total_power / (self.game.revolution + 1)
             result /= (total_combo_pairs + 1)
-            result /= total_possible_cards
+            result *= total_possible_cards
             result /= self.counter.total()
         else:
             result = 0.042
@@ -115,22 +116,26 @@ class AI(Player):
         self.__logger.info(f"i'm going to play {combo} cards")
         return combo
 
-    def calc_best_card(self, nb_cards, split=False):
+    def calc_best_card(self, nb_cards, split=False, action='play', rec_level=1):
         if self.game.check_if_played_last(self):
             self.__logger.info(f"played last, not raising myself")
             return 'F'
-        _local_counter = Counter(self.counter.items())
+        _local_counter = self.counter.items()
         if self.got_revolution_in_hand:
             _local_counter = _local_counter.__reversed__()
-        for k, v in _local_counter:
+        card = None
+        for card, qty in _local_counter:
             # the card can be played no matter of the pile if first to play
-            # OR if value OK according to game's pile and revolution status
-            if v == nb_cards and self.game.card_can_be_played(k):
-                self.__logger.debug(f"my interest goes to {k} (no splits)")
-                return k
-            # otherwise, play a card from a plit combo.
-            elif split and nb_cards in (v - 1, v - 2) and self.game.card_can_be_played(k):
-                self.__logger.debug(f"my interest goes to {k} *** splits ***")
-                return k
-        if split:
-            return self.calc_best_card(nb_cards, split=not split)
+            # OR if value OK according to game_pointer's pile and rules
+            if self.game.card_can_be_played(card):
+                if qty == nb_cards:
+                    self.__logger.debug(f"my interest goes to {card} (no splits)")
+                    break
+                # otherwise, play a card from a split combo.
+                if split or action == 'give' and {qty - 1, qty - 2} == nb_cards:
+                    self.__logger.debug(f"my interest goes to {card} *** splits ***")
+                    break
+            card = None
+        card and self.__logger.info(f"Trying: {card.__repr__()}")
+        return card or \
+            rec_level and self.calc_best_card(nb_cards, split=not split, rec_level=rec_level-1)
