@@ -203,20 +203,20 @@ class Player(ABC):
                 answer = True
         return answer
 
-    def _play_cards(self, n_cards_to_play: int, wanted_card: str) -> list[Card]:
+    def _play_cards(self, n_cards_to_play: int, wanted: str) -> list[Card]:
         """
         Ensure there are enough of designated card in player's hand.
         Remove 1 card at a time from hand and place it in result (temporary)
         If a card is not found in player's hand, restore cards to player
         :param n_cards_to_play: number of cards
-        :param wanted_card: card to play
+        :param wanted: card to play (str) or 'F' to Fold
         :return: [card, ...] if there is enough of designated card in hand
                  [] Otherwise
         """
         if self.is_active:
             # Validate that player has n times this card in hand
             for i in range(n_cards_to_play):
-                card = self.validate_input(wanted_card)  # transforms wanted_card to Card
+                card = self.find_in_hand(wanted)  # transforms wanted to Card N times
                 if card:
                     self.__buffer.append(self.remove_from_hand(card))
             if len(self.__buffer) != n_cards_to_play:  # Not enough of designated card in hand...
@@ -249,7 +249,7 @@ class Player(ABC):
                 .upper() if not override else override.upper()
             # Check fold status
             if not (_in and _in[0] == 'F'):
-                cards_to_play = self._play_cards(n_cards_to_play=n_cards_to_play, override=_in)
+                cards_to_play = self._play_cards(n_cards_to_play=n_cards_to_play, wanted=_in)
             else:
                 self.set_fold()  # True by default
         elif not override:
@@ -260,9 +260,9 @@ class Player(ABC):
             self.set_fold()  # True by default
         return cards_to_play
 
-    def validate_input(self, _in: str) -> Card | None:
+    def find_in_hand(self, _in: str) -> Card | None:
         if _in and not isinstance(_in, str):
-            return self.validate_input(str(_in))
+            return self.find_in_hand(str(_in))
 
         _card = None
         if _in == "FOLD" or (_in and _in[0] == 'F'):
