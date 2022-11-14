@@ -33,10 +33,12 @@ class Game(ABC):
         self._run = False
         self.__db: Database = None
         self.__save = save
+        self.__init_done = False
         self.__register_players(nb_players, nb_ai, *players_names)
 
     def _init_db(self):
         self.__db = Database(self.game_name or __class__.__name__)
+        self.__init_done = True
 
     def __register_players(self, number_of_players, number_of_ai, *players_names):
         if number_of_players:
@@ -151,12 +153,12 @@ class Game(ABC):
     def _initialize_game(self):
         """ Reset loser queue """
         self.__game_log.info(' '.join(["#" * 15, "PREPARING NEW GAME", "#" * 15]))
-        self.__save and self._init_db()
+        self.__save and not self.__init_done and self._init_db()
         self.losers = []
 
     @abstractmethod
     def start(self, override_test=False):
-        self._init_db()
+        pass
 
     @abstractmethod
     def player_lost(self, player):
