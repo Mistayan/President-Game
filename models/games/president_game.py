@@ -23,6 +23,7 @@ class PresidentGame(CardGame):
         super(PresidentGame, self)._initialize_game()
         if PresidentRules.NEW_GAME_RESET_REVOLUTION:
             self._revolution = False
+        self._winners and self.do_exchanges()
 
     def do_exchanges(self) -> None:
         """ On start of a new game, after the previous one,
