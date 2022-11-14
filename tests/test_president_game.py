@@ -1,8 +1,9 @@
 import unittest
+from collections import Counter
 
 from models import PresidentGame, Card
 from models.Errors import CheaterDetected
-from rules import GameRules
+from rules import GameRules, PresidentRules
 
 
 class InvalidCard(Exception):
@@ -11,25 +12,45 @@ class InvalidCard(Exception):
 
 
 class TestPresidentGame(unittest.TestCase):
+    PresidentRules.EXTREME_RANKS = {"give": 2,  # card
+                                    "above": 4,
+                                    # players // Changing this value will affect medium ranks
+                                    "else": 1,  # cards
+                                    }
+
+    # Medium = vice-vice
+    PresidentRules.MEDIUM_RANKS = {"exists_above": PresidentRules.EXTREME_RANKS["above"],
+                                   # players
+                                   "give": 1,  # card
+                                   }
+
+    # Rankings names and their rewards
+    PresidentRules.RANKINGS = {"President": None,  # To be defined on each game, if players leave
+                               "Vice-President": PresidentRules.MEDIUM_RANKS["give"],
+                               "Neutre": 0,
+                               "Vice-Troufion": PresidentRules.MEDIUM_RANKS["give"],
+                               "Troufion": None,  # To be defined on each game, if players leave
+                               }
 
     def test_winner_ladder_no_neutrals(self):
-        game = PresidentGame(nb_players=0, nb_ai=4, nb_games=True, save=True)
-        game.start(override_test=True)
-
-        print(game._winners)
+        """ 4 players default should be President, neutre, neutre, Troufion """
+        game = PresidentGame(nb_players=0, nb_ai=4, nb_games=1, save=True)
+        game._initialize_game()
+        game._play_game()
         ladder = game.winners()
-        # scanning for "round -> rank"
         print(ladder)
+        # scanning for "round -> rank"
         self.assertRegex(str(ladder), "Pres")
-        self.assertRegex(str(ladder), "Vice-P")
-        self.assertRegex(str(ladder), "Vice-T")
+        self.assertNotRegex(str(ladder), "Vice-P")
+        self.assertNotRegex(str(ladder), "Vice-T")
         self.assertRegex(str(ladder), "Trouf")
-        self.assertNotRegex(str(ladder), "Neut")
+        self.assertRegex(str(ladder), "Neut")
 
     def test_winner_ladder_two_neutrals(self):
         game = PresidentGame(nb_players=0, nb_ai=6, nb_games=True, save=True)
-        game.start(override_test=True)
-        ladder = [winner for winner in game.winners()]
+        game._initialize_game()
+        game._play_game()
+        ladder = game.winners()
         # scanning for "round -> rank"
         self.assertRegex(str(ladder), "Pres")
         self.assertRegex(str(ladder), "Vice-P")
@@ -57,16 +78,26 @@ class TestPresidentGame(unittest.TestCase):
     def test_two_games_3_AIs_one_exchange(self):
         # the simple fact that it runs until the end is a proof in itself
         game = PresidentGame(nb_players=0, nb_ai=3, nb_games=2, save=False)
-        GameRules.LOSER_CAN_PLAY = True
-        game.start(override_test=True)
+        game._initialize_game()
+        game._play_game()
         total = 0
-        players_save = game.players.copy()
         for pile in game.plays:
             total += len(pile)
         for player in game.players:
             total += len(player.hand)
         self.assertEqual(total, 52)  # Ensure no cards disappeared from the game
-        print(players_save)
+        game.winners()
+        game._initialize_game()
+        players_before = [Counter(player.hand_as_numbers) for player in game.players]
+        game.do_exchanges()
+        players_after = [Counter(player.hand_as_numbers) for player in game.players]
+        for i, p in enumerate(game.players):
+            if p.rank.advantage:
+                self.assertNotEqual(players_before[i], players_after[i],
+                                      "after exchanges, players should not have the same hand")
+            else:
+                self.assertEqual(players_before[i], players_after[i],
+                                "Neutres should not have given cards")
 
     def test_trigger_CheaterDetected_Error(self):
         self.assertRaises(CheaterDetected)
