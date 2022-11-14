@@ -214,12 +214,12 @@ class CardGame(Game):
         Another way to ensure player is the one that has put cards on top of pile
         next_player_index does not behave exactly the same in some circumstances
         """
-        result = False
         if self.pile and player.last_played and len(self.pile) >= len(player.last_played):
-            result = [not self.pile[-i] != card
-                      for i, card in enumerate(player.last_played[::-1])
-                      ].count(True) == len(player.last_played)
-        return result
+            self.__logger.debug(f"{self.pile} VS {player.last_played}")
+            return [self.pile[-(i+1)] == card
+                    for i, card in enumerate(player.last_played[::-1])
+                    ].count(True) == len(player.last_played)
+        return False
 
     def start(self, override_test=False) -> None:
         """
@@ -236,11 +236,11 @@ class CardGame(Game):
             not override_test and input("press Enter to start the game")
         while self._run:
             self._run_loop()
-            super(CardGame, self)._reset_winner()  # then reset winners for new game
             self._run = self.ask_yesno("Another Game") if \
                 not (override_test and self.skip_inputs) else None
             if self._run:
                 self._initialize_game()
+                super(CardGame, self)._reset_winner()  # then reset winners for new game
 
     def _run_loop(self) -> None:
         """
