@@ -58,7 +58,6 @@ class CardGame(Game):
         self._distribute()
         [player.sort_hand() for player in self.players]
         self.show_players()
-        self.queen_of_heart_starts()
 
     def _distribute(self):
         """ Usual method of distribution : distribute all cards amongst players """
@@ -239,10 +238,9 @@ class CardGame(Game):
             super(CardGame, self)._reset_winner()  # then reset winners for new game
             self._run = self.ask_yesno("Another Game") if \
                 not (override_test and self.skip_inputs) else None
-            if self._run:  # reset most values
+            if self._run:
                 self._initialize_game()
-                if override_test:
-                    self.skip_inputs -= 1
+
 
     def _run_loop(self) -> None:
         """
@@ -252,7 +250,6 @@ class CardGame(Game):
         disable players win status.
         """
         self._play_game()
-        # Reset players hands
         print("".join(["#" * 15, "GAME DONE", "#" * 15]))
         self.show_winners()
         self.save_results(self.game_name)
@@ -266,6 +263,7 @@ class CardGame(Game):
         play while everyone is not folded or some rule stops the round
         whenever run_condition become False, every player remaining LOSE the game.
         """
+        self.queen_of_heart_starts()  # If Rule is True, set next_player
         while self.run_condition:
             self.next_turn()  # set new round... (many things happens here)
             # If pile is empty, find player that open round, else find next player
