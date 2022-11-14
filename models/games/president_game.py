@@ -34,9 +34,9 @@ class PresidentGame(CardGame):
             player = player_info[0]
             adv = player.rank.advantage
             give_to = self._winners[i][0]
-            sentence = f"{player} gives {'his best ' if adv < 0 else ''}" \
-                       f"{'no' if not adv else abs(adv)}" \
-                       f" cards {'to ' + str(give_to) if adv else ''}"
+            sentence = f"{player}: {player.rank.rank_name} gives" \
+                       f" {'his best ' if adv < 0 else 'no' if not adv else abs(adv)} cards" \
+                       f" {'to ' + str(give_to) if adv else ''}"
             print(sentence)
             for _ in range(abs(adv)):  # give cards according to adv.
                 # If neutral, do not trigger
@@ -58,7 +58,7 @@ class PresidentGame(CardGame):
             if player.rank.rank_name == "Troufion":
                 self.last_playing_player_index = self.get_player_index(player)
         if adv > 0:  # Otherwise choose card to give
-            result = player.play(1)
+            result = player.choose_card_to_give()
             if result:
                 card = result[0]
                 player.add_to_hand(card)
