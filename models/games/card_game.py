@@ -29,7 +29,7 @@ class CardGame(Game):
         self.__logger: Final = logging.getLogger(__class__.__name__)
         self.__logger.debug(self._super_shared_private)
         self.skip_inputs = nb_games if nb_games >= 1 else False
-        self.last_playing_player_index: int = 0
+        self.next_player_index: int = 0
         self.plays: list[list[Card]]  # For AI training sets
         self.VALUES = GameRules.VALUES
         self._pile: list[Card] = []
@@ -47,7 +47,7 @@ class CardGame(Game):
         super(CardGame, self)._initialize_game()
         self._free_pile()
         self.plays = []
-        self.last_playing_player_index = 0
+        self.next_player_index = 0
         self.VALUES = GameRules.VALUES
         self.deck.shuffle()
         self._turn = 0
@@ -126,16 +126,22 @@ class CardGame(Game):
     @property
     def next_player(self):
         self.__logger.debug("########## NEXT INIT ##########")
-        while self.run_condition:
-            self.__logger.debug("########## CONDITION LOOP ##########")
-            for _ in range(2):
+        while not self.everyone_folded:
+            self._skip_players = True
+            while not self.everyone_played:
+                self.__logger.debug("########## CONDITION LOOP ##########")
                 for index, player in enumerate(self.players):
-                    if index == self.last_playing_player_index:
+                    if index == self.next_player_index:
                         self._skip_players = False
                     # Skip until player can play or is the last standing
-                    if player.is_active and not self._skip_players:
-                        yield index, player
-            return -1, None
+                    if not self._skip_players:
+                        if player.is_active:
+                            yield index, player
+                        player.set_played()  # set_played, no matter what player did (patch)
+            self.__logger.debug("########## EVERYONE PLAYED ##########")
+            yield -1, None  # Do not reset generator, wait for game to change players status
+        self.__logger.debug("########## EVERYONE FOLDED ##########")
+        return -1, None  # Reset generator since everyone folded.
 
     def add_to_pile(self, card: Card) -> None:
         """ add a given card to the current pile, therefore visible to everyone """
@@ -207,7 +213,7 @@ class CardGame(Game):
     def check_if_played_last(self, player):
         """
         Another way to ensure player is the one that has put cards on top of pile
-        last_playing_player_index dos not behave exactly the same in some circumstances
+        next_player_index does not behave exactly the same in some circumstances
         """
         result = False
         if self.pile and player.last_played and len(self.pile) >= len(player.last_played):
@@ -289,9 +295,9 @@ class CardGame(Game):
                 break
             cards = self.player_loop(player)
             cards and self._do_play(index, player, cards)  # If player returned cards, confirm play
-            player.set_played()  # No matter what player did, consider he played
             # If player has no more cards, WIN (or lose, depending on rules)
-
+            if not cards:
+                self.next_player_index = index  # Last player to fold should always start next
             if GameRules.PLAYING_BEST_CARD_END_ROUND and self.best_card_played:
                 print("#" * 15, "TERMINATING Round, Best Card Value Played !", "#" * 15)
                 break
@@ -347,7 +353,7 @@ class CardGame(Game):
                 for card in player.hand:
                     if card.number == "Q" and card.color == "♡":
                         print(f"{player} got Q♡ : starting the game, ")
-                        self.last_playing_player_index, self._skip_players = i, True
+                        self.next_player_index = i
                         return i
 
     def player_lost(self, player):
@@ -380,14 +386,14 @@ class CardGame(Game):
         """ Log the play attempt,
             add player's cards to pile
             sets current player to next round's starting player (if no one plays after)
-            Now he played, instruct to skip this player once, on next_player
             If the player has no more cards after he played, he wins (or lose depending on rules)
             :return: True if player won/lost; False otherwise
         """
         self.__logger.info(f"{player} tries to play {cards}")
         [self.add_to_pile(card) for card in cards]
-        self.last_playing_player_index, self._skip_players = index, True
-        player.set_played()
+        if not self.best_card_played and GameRules.PLAYING_BEST_CARD_END_ROUND:
+            # player played, next player should not be current player
+            self.next_player_index = (index + 1) % len(self.players)
         return self.set_win(player)
 
     def _reset_fold_status(self) -> None:
