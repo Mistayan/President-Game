@@ -75,7 +75,7 @@ class TestPresidentGame(unittest.TestCase):
         game._play_game()
         self.assertIsNotNone(game.winners())
 
-    def test_two_games_3_AIs_one_exchange(self):
+    def test_one_game_with_exchange___3_AIs(self):
         # the simple fact that it runs until the end is a proof in itself
         game = PresidentGame(nb_players=0, nb_ai=3, nb_games=2, save=False)
         game._initialize_game()
@@ -93,11 +93,12 @@ class TestPresidentGame(unittest.TestCase):
         players_after = [Counter(player.hand_as_numbers) for player in game.players]
         for i, p in enumerate(game.players):
             if p.rank.advantage:
+                # This may fail in some rare cases where a player gives back the card he received
                 self.assertNotEqual(players_before[i], players_after[i],
-                                      "after exchanges, players should not have the same hand")
+                                    "after exchanges, players should not have the same hand")
             else:
                 self.assertEqual(players_before[i], players_after[i],
-                                "Neutres should not have given cards")
+                                 "Neutres should not have given cards")
 
     def test_trigger_CheaterDetected_Error(self):
         self.assertRaises(CheaterDetected)
