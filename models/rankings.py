@@ -15,13 +15,13 @@ from rules import PresidentRules
 
 class PresidentRank:
     __possible_rank: Final = [rank_name for rank_name in PresidentRules.RANKINGS]
-    __advantages: Final = [adv for rn, adv in PresidentRules.RANKINGS.items()]
+    __advantages: Final = [PresidentRules.RANKINGS[rank] for rank in __possible_rank]
 
-    def __init__(self, n, player, nb_players: int):
+    def __init__(self, n, player: Player, nb_players: int):
         """ Ranks classifications for President Game """
         self.logger = logging.getLogger(__class__.__name__)
         self.nb_players = nb_players
-        self.logger.info(f"nb_players : {nb_players}, currently requested rank: {n}")
+        self.logger.debug(f"nb_players : {nb_players}, currently requested rank: {n}")
         if nb_players < 3 or nb_players > 6:
             raise CheaterDetected()
 
@@ -42,16 +42,17 @@ class PresidentRank:
     @property
     def advantage(self) -> int:
         """
+        advantages are re-evaluated on each game, so if a player disconnect, it works just fine.
         - 3 players -> 1 card to give for President / Troufion
-        - 4+ players : 2 cards for President / Troufion and 1 card for Vice-...
+        - 4+ players -> 2 cards for President / Troufion and 1 card for Vice-...
+        ^^^^^^^^^^^^^ May vary depending on rules sets
         :return: the current rank's advantage as number_of_cards: int
         """
-        index = self.__possible_rank.index(self.rank_name)
-        self.logger.debug(f"index: {index} -> advantage of {self.__advantages[index]}")
-        adv = self.__advantages[index]
-        if not adv:  # president / troufion -> adv = None
+        adv = PresidentRules.RANKINGS.get(self.rank_name)
+        if adv is None:  # president / troufion -> adv = None
             rnk = PresidentRules.EXTREME_RANKS
             adv = rnk["give"] if self.nb_players > rnk["above"] else rnk["else"]
+            adv = - adv if self.rank_name == self.__possible_rank[-1] else adv
         return adv
 
     def __str__(self):
