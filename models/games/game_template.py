@@ -6,8 +6,10 @@ IDE: PyCharm
 Creation-date: 11/10/22
 """
 import logging
+import random
+import string
 from abc import abstractmethod, ABC
-from typing import Any
+from typing import Any, Final
 
 from models.Errors import CheaterDetected
 from models.db import Database
@@ -15,22 +17,26 @@ from models.players import Player, Human, AI
 
 
 class Game(ABC):
+    # Instances Shared attributes
+    # Will only be generated on first run of an instance, while GameManager runs
+    _super_shared_private: Final = ''.join(random.choices(string.hexdigits, k=100))
 
     @abstractmethod
     def __init__(self, nb_players=3, nb_ai=0, *players_names, save=True):
         self.__game_log = logging.getLogger(__class__.__name__)
         self.players: list[Player] = []
+        self.game_name = "IMPOSSIBLE GAME"
         self._winners = []
         self.losers: list[Player.__class__, int, Any] = []
         self.plays: list[list] = []
         self._turn = 0
         self._run = False
         self.__db: Database = None
-        save and self._init_db(__class__.__name__)
+        self.__save = save
         self.__register_players(nb_players, nb_ai, *players_names)
 
-    def _init_db(self, name=None):
-        self.__db = Database(name or __class__.__name__)
+    def _init_db(self):
+        self.__db = Database(self.game_name or __class__.__name__)
 
     def __register_players(self, number_of_players, number_of_ai, *players_names):
         if number_of_players:
@@ -50,6 +56,9 @@ class Game(ABC):
                 json_pile.append(card.unicode_safe())
             json_piles.append(json_pile)
         return json_piles
+
+    def set_game_name(self, name):
+        self.game_name = name  # Override name
 
     def __winners_unicode_safe(self, winners):
         json_winners = []
@@ -110,7 +119,8 @@ class Game(ABC):
         ONLY IF : player hasn't won, and has no more cards:
         append [Player, Round, Last_Card] to winners/losers
         :param player: the player to check validity as a winner
-        :param win: Set player status to winner (True) or looser (False
+        :param win: Set player status to winner (True) or looser (False)
+        :return: True if player won/lost, False otherwise
         """
         if (len(player.hand) and win) or player.won:
             return False
@@ -141,11 +151,12 @@ class Game(ABC):
     def _initialize_game(self):
         """ Reset loser queue """
         self.__game_log.info(' '.join(["#" * 15, "PREPARING NEW GAME", "#" * 15]))
+        self.__save and self._init_db()
         self.losers = []
 
     @abstractmethod
     def start(self, override_test=False):
-        pass
+        self._init_db()
 
     @abstractmethod
     def player_lost(self, player):

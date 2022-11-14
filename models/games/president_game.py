@@ -14,11 +14,9 @@ class PresidentGame(CardGame):
         self._logger: Final = logging.getLogger(__class__.__name__)
         if 3 < nb_players + nb_ai > 6:
             raise ValueError(f"Invalid Total Number of Players to create PresidentGame. 3-6")
-        self._pile = []  # Pre-instantiating pile to avoid null/abstract pointer
-        self.players = []
         super().__init__(nb_players, nb_ai, *players_names, nb_games=nb_games, save=save)
-        self.game_name = __class__.__name__  # Override name
-        self._revolution = False
+        super().set_game_name(__class__.__name__)  # Override CardGame assignation
+        self._revolution = False  # on first game, always False
 
     def _initialize_game(self):
         """ PresidentGame's inits on top of CardGame's (reset most values, distribute) """
@@ -36,9 +34,9 @@ class PresidentGame(CardGame):
             player = player_info[0]
             adv = player.rank.advantage
             give_to = self._winners[i][0]
-            sentence = f"{player} gives {'his best ' if adv < 0 else ''}" \
-                       f"{'no' if not adv else abs(adv)}" \
-                       f" cards {'to ' + str(give_to) if adv else ''}"
+            sentence = f"{player}: {player.rank.rank_name} gives" \
+                       f" {'his best ' if adv < 0 else 'no' if not adv else abs(adv)} cards" \
+                       f" {'to ' + str(give_to) if adv else ''}"
             print(sentence)
             for _ in range(abs(adv)):  # give cards according to adv.
                 # If neutral, do not trigger
@@ -60,7 +58,7 @@ class PresidentGame(CardGame):
             if player.rank.rank_name == "Troufion":
                 self.last_playing_player_index = self.get_player_index(player)
         if adv > 0:  # Otherwise choose card to give
-            result = player.play(1)
+            result = player.choose_card_to_give()
             if result:
                 card = result[0]
                 player.add_to_hand(card)
@@ -69,6 +67,21 @@ class PresidentGame(CardGame):
     @property
     def revolution(self):
         return self._revolution
+
+    @property
+    def skip_next_player_rule_apply(self):
+        """
+        This rule apply if current player's play matches cards on the pile and rule is True.
+        :return: True if rule applies.
+        """
+        if not PresidentRules.USE_TA_GUEULE or len(self.pile) <= self.required_cards:
+            return False
+        pile_comp = self.pile[(self.required_cards * 2)::-1]
+        game, player = pile_comp[:self.required_cards], pile_comp[self.required_cards:]
+        self._logger.debug(f"{self.players[self.last_playing_player_index]}"
+                           f" plays: {player}... comparing to {game}")
+        return [game[i] == player[i]
+                for i in range(self.required_cards)].count(True) == self.required_cards
 
     def set_revolution(self):
         """ VARIANCE OF THE GAME RULES
@@ -103,14 +116,36 @@ class PresidentGame(CardGame):
 
     def card_can_be_played(self, card):
         """ Returns True if the card can be played according to pile and rules """
-        return not self.pile or (self.pile[-1] <= card and not self._revolution
-                                 or self.pile[-1] >= card and self._revolution)
+        return len(self.pile) == 0 or card <= self.pile[-1] and self._revolution \
+            or super().card_can_be_played(card)  # resolve by importance
 
     def _do_play(self, index, player, cards) -> bool:
-        self.set_revolution() if len(cards) == 4 else None  # REVOLUTION ?
-        return super()._do_play(index, player, cards)
+        """
+        Handle PresidentGame variances in rules sets.
+        <u>Revolution :</u> invert cards power.
+        <u>Ta_Gueule :</u>
+        - The next player that should've been able to play cannot play (acts like he played)
+        - Has no effect if the player is the last standing.
+        """
+        super()._do_play(index, player, cards)
+        len(cards) == 4 and self.set_revolution()  # if PresidentRules.USE_REVOLUTION
+        if self.skip_next_player_rule_apply:
+            for i, p in self.next_player:
+                if not p:
+                    break  # Nothing happens
+                print(''.join(["#"*20, f"applying TG to {p}", "#"*20]))
+                p.set_played()
+                break
 
-    def _run_loop(self, override=None, override_test=False) -> None:
-        super(PresidentGame, self)._run_loop(override, override_test)
-        if self._run:
+        return True  # If nothing has been raised so far, all went good
+
+    def _run_loop(self) -> None:
+        """
+        In PresidentGame, if there are winners from a previous game, players  must exchange cards
+        :param override:
+        :param override_test:
+        :return:
+        """
+        if self._run and self._winners:
             self.do_exchanges()  # Do exchanges
+        super(PresidentGame, self)._run_loop()

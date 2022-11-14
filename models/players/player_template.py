@@ -98,7 +98,8 @@ class Player(ABC):
 
     def set_win(self, value: bool = True) -> None:
         """ set _won to given value"""
-        self._logger.info(f"{self} {'have won' if not len(self.hand) else 'have Lost'}")
+        value and self._logger.info(f"{self} {'have won' if not len(self.hand) else 'have Lost'}")
+        not value and self._logger.warning(f"{self} winner status have been reset")
         self._won = value
 
     def set_rank(self, rank_pointer) -> None:
@@ -168,15 +169,27 @@ class Player(ABC):
         return self._is_human
 
     @property
+    def hand_as_numbers(self):
+        return [card.number for card in self.hand]
+
+    @property
     def max_combo(self):
         """
         :return: the maximum amount of cards a player can play at once
         """
         if self.hand:
-            k, v = Counter([card.number for card in self.hand]).most_common(1)[0]
+            k, v = Counter(self.hand_as_numbers).most_common(1)[0]
         else:
             v = 0
         return v
+
+    def all_of_combo(self, combo) -> Counter:
+        """
+        :param combo: wanted N combo cards from hand
+        :return: combos that match wanted count
+        """
+        return Counter((card, count) for card, count in Counter(self.hand_as_numbers).items()
+                       if count == combo)
 
     def ask_fold(self, override: bool = False) -> bool:
         """ Return True for Yes, False for No.
@@ -236,7 +249,7 @@ class Player(ABC):
                 .upper() if not override else override.upper()
             # Check fold status
             if not (_in and _in[0] == 'F'):
-                cards_to_play = self._play_cards(n_cards_to_play, _in)
+                cards_to_play = self._play_cards(n_cards_to_play=n_cards_to_play, override=_in)
             else:
                 self.set_fold()  # True by default
         elif not override:
@@ -267,10 +280,11 @@ class Player(ABC):
          """
         card = None
         if self.rank:
-            if self.rank.advantage < 0:  # Give best card
+            adv = self.rank.advantage  # Evaluate only once
+            if adv < 0:  # Give best card
                 card = self.hand[-1]
-            if self.rank.advantage > 0:  # Choose card to give
-                card = self._play_cli(1)
+            if adv > 0:  # Choose card to give
+                card = self._play_cli(n_cards_to_play=1, action='give')
         return card
 
     def play(self, required_cards):
@@ -283,4 +297,4 @@ class Player(ABC):
               else "You are the first to play.")
         if safety:
             input("Press Enter to play (this is to avoid other players in cli to see your hand)")
-        return self._play_cli(required_cards)
+        return self._play_cli(n_cards_to_play=required_cards)
