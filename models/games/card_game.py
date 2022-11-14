@@ -6,11 +6,7 @@ IDE: PyCharm
 Creation-date: 11/10/22
 """
 import logging
-import string
-import random
 from typing import Final
-
-import coloredlogs
 
 from models import Card, Deck
 from models.Errors import CheaterDetected, PlayerNotFound
@@ -49,17 +45,18 @@ class CardGame(Game):
         show players and their card count
         """
         super(CardGame, self)._initialize_game()
-        self._pile = []
+        self._free_pile()
         self.plays = []
         self.last_playing_player_index = 0
         self.VALUES = GameRules.VALUES
         self.deck.shuffle()
-        self._round = 0
+        self._turn = 0
         self._run = True
         for player in self.players:
             player.reset()
         self.required_cards = 0
         self._distribute()
+        [player.sort_hand() for player in self.players]
         self.show_players()
         self.queen_of_heart_starts()
 
@@ -72,20 +69,10 @@ class CardGame(Game):
             # NEVER GIVE UP THE CARD FROM DECK, to ensure cards given by players are from this game
             self.__logger.debug(f"Gave {card} to player {self.players[player_index]}")
 
-    def check_if_played_last(self, player):
-        result = False
-        if self.pile and player.last_played:
-            if len(self.pile) >= len(player.last_played):
-                result = [card.same_as(self.pile[-(i+1)])
-                          for i, card in enumerate(player.last_played[::-1])
-                          ].count(True) == len(player.last_played)
-
-        return result
-
     @property
     def run_condition(self):
-        return self.count_still_alive > 1 or \
-            GameRules.LOSER_CAN_PLAY and self.count_still_alive >= 1
+        return GameRules.LOSER_CAN_PLAY and self.count_still_alive >= 1 \
+            or self.count_still_alive > 1
 
     @property
     def count_still_alive(self) -> int:
