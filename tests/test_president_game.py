@@ -10,7 +10,7 @@ class InvalidCard(Exception):
         raise Exception(msg)
 
 
-class TestGameExercice3(unittest.TestCase):
+class TestPresidentGame(unittest.TestCase):
 
     def test_winner_ladder_no_neutrals(self):
         game = PresidentGame(nb_players=0, nb_ai=4, nb_games=True, save=True)

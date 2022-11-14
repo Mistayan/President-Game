@@ -7,21 +7,21 @@ Creation-date: 11/01/22
 """
 import unittest
 
-import tests
+from tests import *
 
 
 class TestAll(unittest.TestCase):
 
     def test_1(self):
-        TestCardsExercice1()
-        TestDeckExercice1()
+        TestCards()
+        TestDeck()
 
     def test_2(self):
         TestPlayers()
         TestGame()
 
     def test_3(self):
-        TestGameExercice3()
+        TestPresidentGame()
 
 
 if __name__ == '__main__':
