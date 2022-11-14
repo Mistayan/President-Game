@@ -116,8 +116,8 @@ class PresidentGame(CardGame):
 
     def card_can_be_played(self, card):
         """ Returns True if the card can be played according to pile and rules """
-        return not self.pile or (self.pile[-1] <= card and not self._revolution
-                                 or self.pile[-1] >= card and self._revolution)
+        return len(self.pile) == 0 or card <= self.pile[-1] and self._revolution \
+            or super().card_can_be_played(card)  # resolve by importance
 
     def _do_play(self, index, player, cards) -> bool:
         """
