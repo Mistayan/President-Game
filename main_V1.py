@@ -1,5 +1,3 @@
-from typing import Final
-
 import names
 
 from models.games import PresidentGame
