@@ -1,6 +1,9 @@
 from __future__ import annotations
+
 import logging
+
 from models.card import Card
+from rules import GameRules
 from .player_template import Player
 
 
@@ -9,7 +12,15 @@ class Human(Player):
     def __init__(self, name=None, game=None):
         super(Human, self).__init__(name, game)
         self._is_human = True
-        self.__logger = logging.getLogger(self.name)
+        self.__logger = logging.getLogger(__class__.__name__)
+        self.__token = None
+
+    def set_token(self, val):
+        self.__token = val
+
+    @property
+    def token(self):
+        return self.__token
 
     def ask_n_cards_to_play(self) -> int:
         """ HUMAN ONLY
@@ -32,5 +43,34 @@ class Human(Player):
             print(f"Your hand :\n{self.hand}", flush=True)
         return super(Human, self)._play_cli(n_cards_to_play, override, action=action)
 
-    def play_tk(self, n_cards_to_play=0) -> list[Card]:
-        pass
+    def to_json(self) -> dict:
+        return {
+            'name': self.name,
+            'hand_n': self.hand_as_numbers,
+            'hand_c': self.hand_as_colors,
+            'played': self.played,
+            'folded': self.folded,
+            'finished': self.won,
+            'last_played': [_ for _ in self.last_played],
+            'action_required': self.action_required
+        }
+
+    def update(self, _json: dict):
+        self.__update_hand(_json)
+        self.__update_status(_json)
+
+    def __update_hand(self, _json: dict):
+        assert len(_json["hand_n"]) == len(_json["hand_c"])
+        cards = []
+        for i, color in enumerate(_json["hand_c"]):
+            for unsafe, safe in GameRules.COLORS.items():
+                if safe == color:
+                    cards.append(Card(_json["hand_n"][i], unsafe))
+        self.hand = cards
+
+    def __update_status(self, _json: dict):
+        self.set_played(_json.get("played"))
+        self.set_fold(_json.get("folded"))
+        self.set_win(_json.get("finished"))
+        self.action_required = _json.get("action_required")
+
