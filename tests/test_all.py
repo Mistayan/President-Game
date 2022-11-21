@@ -5,9 +5,14 @@ Project: President-Game
 IDE: PyCharm
 Creation-date: 11/01/22
 """
+import logging
 import unittest
 
-from tests import *
+import coloredlogs
+
+from tests import TestGame, TestCards, TestDeck, TestPlayers, TestPresidentGame
+
+coloredlogs.set_level(logging.DEBUG)
 
 
 class TestAll(unittest.TestCase):
