@@ -1,15 +1,15 @@
+import json
 import logging
 from typing import Final
 
-from models.games.card_game import CardGame
-
 from models import Card
+from models.games.card_game import CardGame
 from models.rankings import PresidentRank
 from rules import PresidentRules
 
 
 class PresidentGame(CardGame):
-    def __init__(self, nb_players=3, nb_ai=0, *players_names, nb_games: int = 0, save=True):
+    def __init__(self, nb_players=0, nb_ai=3, *players_names, nb_games: int = 0, save=True):
         """ Instantiate a CardGame with President rules and functionalities """
         self._logger: Final = logging.getLogger(__class__.__name__)
         if 3 < nb_players + nb_ai > 6:
@@ -44,7 +44,7 @@ class PresidentGame(CardGame):
                 card = None
                 while not card:
                     card = self.player_choose_card_to_give(player)
-                self.player_give_card_to(player, card, give_to)
+                self.player_give_to(player, card, give_to)
 
     def player_choose_card_to_give(self, player) -> Card:
         """
@@ -57,9 +57,9 @@ class PresidentGame(CardGame):
         if adv < 0:  # Give best card if negative advantage
             card = player.hand[-1]
             if player.rank.rank_name == "Troufion":
-                self.last_playing_player_index = self.get_player_index(player)
+                self.next_player_index = self.get_player_index(player)
         if adv > 0:  # Otherwise choose card to give
-            result = player.choose_card_to_give()
+            result = player.choose_cards_to_give()
             if result:
                 card = result[0]
                 player.add_to_hand(card)
@@ -79,7 +79,7 @@ class PresidentGame(CardGame):
             return False
         pile_comp = self.pile[(self.required_cards * 2)::-1]
         game, player = pile_comp[:self.required_cards], pile_comp[self.required_cards:]
-        self._logger.debug(f"{self.players[self.last_playing_player_index]}"
+        self._logger.debug(f"{self.players[self.next_player_index]}"
                            f" plays: {player}... comparing to {game}")
         return [game[i] == player[i]
                 for i in range(self.required_cards)].count(True) == self.required_cards
@@ -134,7 +134,7 @@ class PresidentGame(CardGame):
             for i, p in self.next_player:
                 if not p:
                     break  # Nothing happens
-                print(''.join(["#"*20, f"applying TG to {p}", "#"*20]))
+                print(''.join(["#" * 20, f"applying TG to {p}", "#" * 20]))
                 p.set_played()
                 break
 
@@ -150,3 +150,13 @@ class PresidentGame(CardGame):
         if self._run and self._winners:
             self.do_exchanges()  # Do exchanges
         super(PresidentGame, self)._run_loop()
+
+    def to_json(self) -> dict:
+        su: dict = super(PresidentGame, self).to_json()
+        update = {
+            "revolution": self.revolution,
+            "president_rules": PresidentRules(len(self.players)).__repr__(),
+        }
+        su.update(update)
+        self._logger.debug(f"Updating json with my rules: {json.dumps(update)}")
+        return su

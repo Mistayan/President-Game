@@ -6,6 +6,7 @@ IDE: PyCharm
 Creation-date: 11/10/22
 """
 from __future__ import annotations
+
 import logging
 from abc import abstractmethod, ABC
 from collections import Counter
@@ -18,12 +19,9 @@ from rules import GameRules
 
 
 class Player(ABC):
-    """
-    WARNING !!!
-    Any value you put below this line,  outside __init__
-    might be shared amongst different instances !!!
-    """
-
+    # WARNING !!!
+    # Any value you put below this line,  outside __init__
+    # might be shared amongst different instances !!!
     _is_human: bool
 
     @abstractmethod
@@ -40,10 +38,10 @@ class Player(ABC):
         self._won = False
         self._played_turn = False
         self._folded = False
+        self.action_required = False  # Required for Interface -> Game actions to happen
         self.rank = None
         self.hand = []
         self.last_played: list[Card] = []
-        self._logger.info(f"{self} joined the game")
 
     @abstractmethod
     def _play_cli(self, n_cards_to_play=0, override: str = None, action='play') -> list[Card]:
@@ -71,11 +69,6 @@ class Player(ABC):
         return [_ for _ in player_game if _]  # Simple filtering as fail-safe
 
     @abstractmethod
-    def play_tk(self, n_cards_to_play=0) -> list[Card]:
-
-        ...  # Pass, C style :D
-
-    @abstractmethod
     def ask_n_cards_to_play(self) -> int:
         """ Implement logic to ask_fold the number of cards to play to player"""
         ...
@@ -89,6 +82,7 @@ class Player(ABC):
         self._won = False
         self._played_turn = False
         self._folded = False
+        self.action_required = False
         self.hand = []
         self.__buffer = []
         self.last_played = []
@@ -171,6 +165,10 @@ class Player(ABC):
     @property
     def hand_as_numbers(self):
         return [card.number for card in self.hand]
+
+    @property
+    def hand_as_colors(self):
+        return [self.game.card.color for card in self.hand]
 
     @property
     def max_combo(self):
@@ -274,7 +272,7 @@ class Player(ABC):
                     break
         return _card
 
-    def choose_card_to_give(self) -> Card:
+    def choose_cards_to_give(self) -> Card:
         """ PresidentGame ONLY
         According to President logic,
          """
