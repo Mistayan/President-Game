@@ -7,12 +7,12 @@ Creation-date: 11/01/22
 """
 import logging
 import unittest
+from asyncio import Task
 
 import coloredlogs
 
+from models import PresidentGame
 from tests import TestGame, TestCards, TestDeck, TestPlayers, TestPresidentGame
-
-coloredlogs.set_level(logging.DEBUG)
 
 
 class TestAll(unittest.TestCase):
@@ -30,4 +30,5 @@ class TestAll(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    coloredlogs.set_level(logging.DEBUG)
     unittest.main()

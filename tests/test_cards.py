@@ -5,7 +5,10 @@ Project: President-Game
 IDE: PyCharm
 Creation-date: 11/10/22
 """
+import logging
 import unittest
+
+import coloredlogs
 
 from models import Card
 
@@ -41,3 +44,7 @@ class TestCards(unittest.TestCase):
         self.assertIsNot(ace_of_hearts, ace_of_hearts2)
         self.assertIsNot(ace_of_hearts, two_of_hearts)
 
+
+if __name__ == '__main__':
+    coloredlogs.set_level(logging.DEBUG)
+    unittest.main()

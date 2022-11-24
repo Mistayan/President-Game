@@ -1,6 +1,8 @@
+import logging
 import unittest
 
-from models.card import Card
+import coloredlogs
+
 from models.deck import Deck
 
 
@@ -16,10 +18,10 @@ class TestDeck(unittest.TestCase):
         self.assertEqual(deck_1.cards, deck_2.cards,
                          'A new deck should not be automatically shuffled')
         deck_2.shuffle()
-        self.assertNotEqual(deck_1.cards, deck_2.cards, 'Shuffling a deck '
-                                                        'randomizes the '
+        self.assertNotEqual(deck_1.cards, deck_2.cards, 'Shuffling a deck randomizes the '
                                                         'cards order')
 
 
 if __name__ == '__main__':
+    coloredlogs.set_level(logging.DEBUG)
     unittest.main()
