@@ -20,7 +20,6 @@ class CheaterDetected(BaseException):
         raise self
 
 
-
 class PlayerNotFound(BaseException):
 
     def __init__(self, e):
