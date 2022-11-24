@@ -7,6 +7,7 @@ Creation-date: 11/19/22
 Imported from : https://www.freecodecamp.org/news/python-decorators-explained-with-examples/
 """
 import json
+import socket
 import tracemalloc
 from abc import ABC
 from functools import wraps
@@ -84,3 +85,36 @@ def measure_performance(func):
         tracemalloc.stop()
 
     return wrapper
+
+
+class GameFinder:
+    """
+    A class that allow us to find running game and interfaces servers
+    to create a new server, use availabilities,
+    to join a server, use running servers
+    """
+
+    def __init__(self, *args):
+        self.availabilities = []
+        self.running_servers = []
+        self.__scan_port_availability()
+
+    def __scan_port_availability(self, target="localhost"):
+        try:
+            # scan ports
+            for port in range(5001, 5012):
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                socket.setdefaulttimeout(0.1)
+
+                # returns an error indicator
+                result = s.connect_ex((target, port))
+                if result == 0:
+                    self.running_servers.append((target, port))
+                else:
+                    self.availabilities.append((target, port))
+                s.close()
+
+        except socket.gaierror:
+            print("\n Hostname Could Not Be Resolved !!!!")
+        except socket.error:
+            print("\n Server not responding !!!!")
