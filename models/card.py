@@ -84,7 +84,7 @@ class Card:
 
     def unicode_safe(self):
         """ Whenever you require unicode safe strings, use this method """
-        return f"{self.number} of {GameRules.COLORS[self.color]}"
+        return f"{self.number},{GameRules.COLORS[self.color]}"
 
     def __str__(self):
         return f"{self.number}{self.color}"
@@ -95,3 +95,9 @@ class Card:
     def same_as(self, card: Card):
         """ compare addresses in memory to assert the cards are strictly the same"""
         return self is card
+
+    @staticmethod
+    def from_unisafe(unisafe):
+        for k, v in GameRules.COLORS.items():
+            if v == unisafe:
+                return k
