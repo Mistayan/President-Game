@@ -17,11 +17,9 @@ class Deck:
         """
         Generate a Deck with 52 cards. (4 colors, 13 values)
         """
-        self.cards = []
-        logger.info(f"Generating Deck")
-        for color in GameRules.COLORS:
-            for value in GameRules.VALUES:
-                self.cards.append(Card(value, color))
+        logger.info(f"Generating Deck of {self.__number_of_cards} cards.")
+        self.cards = [Card(value, color)
+                      for color in GameRules.COLORS for value in GameRules.VALUES]
 
     def shuffle(self) -> Deck:
         """Not the most optimized shuffle"""
