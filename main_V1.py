@@ -2,7 +2,6 @@ import names
 
 from models.games import PresidentGame
 
-
 if __name__ == '__main__':
     # INIT
     game = PresidentGame(nb_players=1, nb_ai=3)
