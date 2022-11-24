@@ -40,14 +40,49 @@ class Game(Server, ABC, SerializableObject):
         self.__db: Database = None
         self.__game_daemon: Thread = None
         self.__save = save
-        self.__init_done = False
         self.__register_players(nb_players, nb_ai, *players_names)
 
+    @abstractmethod
+    def _initialize_game(self):
+        """
+        Reset loser queue, then remove disconnected players for next game.
+        Then add as many awaiting players as possible to game (no ranks)
+        If player count is too high, remove last registered players until limit reached
+
+        """
+        self.losers = []
+        self.disconnected_players = []
+        # as long as we can, add players for next game
+        while self.awaiting_players and len(self.players) < self.players_limit:
+            self.players.append(self.awaiting_players.pop())
+        # Check players count before starting, remove extra players before starting.
+        while len(self.players) > self.players_limit:
+            for player in self.players[::-1]:
+                self.awaiting_players.append(self.players.pop(self.players.index(player)))
+        self.__game_log.info(' '.join(["#" * 15, "PREPARING NEW GAME", "#" * 15]))
+        self._init_db()
+
+    @abstractmethod
+    def start(self, override_test=False):
+        # super(Game, self).__init__(self.game_name)
+        pass
+
+    @abstractmethod
+    def player_give_to(self, player: Player, give: Any, to: Any):
+        """ In almost every game, Someone can give something to someone/something else"""
+        pass
+
+    @abstractmethod
+    def player_lost(self, player):
+        pass
+
     def _init_db(self):
-        self.__db = Database(self.game_name or __class__.__name__)
-        self.__init_done = True
+        if self.__save and not self.__db:
+            self.__db = Database(self.game_name or __class__.__name__)
 
     def __register_players(self, number_of_players, number_of_ai, *players_names):
+        """ Every game need to register players before they are able to play"""
+        self.logger.info("registering base players")
         if number_of_players:
             for name in players_names:  # Named players
                 self.register(Human(name=str(name)))
@@ -59,10 +94,10 @@ class Game(Server, ABC, SerializableObject):
     def __plays_to_unicode_safe(self):
         """ if there are uni unsafe strings,"""
         json_piles = []
-        for pile in self.plays:
+        for matchs in self.plays:
             json_pile = []
-            for card in pile:
-                json_pile.append(card.unicode_safe())
+            for play in matchs:
+                json_pile.append(play.unicode_safe())
             json_piles.append(json_pile)
         return json_piles
 
@@ -150,19 +185,19 @@ class Game(Server, ABC, SerializableObject):
             self.losers = []  # Once over, erase loser queue for next calls
 
         rank_gen = [{"player": player_infos[0].name,
-                         "rank": i + 1,
-                         "round": player_infos[1],
-                         "last_play": player_infos[2]
-                         } for i, player_infos in enumerate(self._winners)]
+                     "rank": i + 1,
+                     "round": player_infos[1],
+                     "last_play": player_infos[2]
+                     } for i, player_infos in enumerate(self._winners)]
         return rank_gen
 
     def _reset_winner(self):
         self._winners = []
 
     def show_winners(self):
-        print("".join(["#" * 15, "WINNERS", "#" * 15]))
+        self.send_all("".join(["#" * 15, "WINNERS", "#" * 15]))
         for winner in self.winners():
-            print(winner)
+            self.send_all(winner)
 
     def set_win(self, player, win=True) -> bool:
         """
@@ -196,6 +231,16 @@ class Game(Server, ABC, SerializableObject):
 
         self.losers.append([player, self._turn, last_played])
         player.set_win()  # It just means that a player cannot play anymore for current game
+
+    def get_player_from(self, player: Player | str, _from) -> Human | AI:
+        for test in _from:
+            if isinstance(test, Player) and test == player:
+                return test
+
+    def get_player(self, player: Player | str) -> Human | AI:
+        return self.get_player_from(player, self.players)
+
+    # ###################### SERVER IMPLEMENTATIONS TO GAME  #######################
 
     @abstractmethod
     def init_server(self, name):
@@ -270,6 +315,55 @@ class Game(Server, ABC, SerializableObject):
     def receive(self, msg: dict):
         """ Received a message, apply it to the game if valid """
         pass
+    #     super(Game, self).receive(msg)
+    #     self.__game_log.info(f"Receiving : {msg}...")
+    #     try:
+    #         if msg["message"] in ("Connect", "Disconnect", "Start"):
+    #             return self.__apply_message(msg)
+    #         else:
+    #             for player in self.players:
+    #                 if player == msg["player"] or msg["player"] == "all":
+    #                     if msg["message"] in ("give", "play"):
+    #                         msg.setdefault("player", player)
+    #                         return self.__apply_message_to_player(msg, player)
+    #     except Exception:
+    #         self.__game_log.error(f"{msg['player']} -> {msg['message']} : Failed")
+    #         raise
+    #
+    # def __apply_message_to_player(self, msg, player):
+    #     """
+    #
+    #     :param msg:
+    #     :param player:
+    #     :return:
+    #     """
+    #     print(msg, player)
+    #     match msg["message"]:
+    #         case "Play":
+    #             self.logger.info("received Play Message")
+    #             pass
+    #         case "Give":
+    #             self.logger.info("received Give Message")
+    #             pass
+    #         case _:
+    #             self.logger.info(f"received Unknown Message: {msg}")
+    #             raise
+    #     pass
+    #
+    # def __apply_message(self, msg):
+    #     match msg["message"]:
+    #         case "Connect":
+    #             self.logger.info("received Connect Message")
+    #             return self.register(Human(msg["player"], self))
+    #             pass
+    #         case "Disconnect":
+    #             self.logger.info("received Disconnect Message")
+    #             return self.unregister(msg["player"])
+    #             pass
+    #         case _:
+    #             self.logger.info("received Unknown Message: ", msg)
+    #             raise
+    #     pass
 
     @abstractmethod
     def to_json(self) -> dict:
