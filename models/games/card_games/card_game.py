@@ -521,7 +521,7 @@ class CardGame(Game):
                     for card in player.hand:
                         if card.number == num and card.color == color:
                             self.logger.debug(f"found {card} in player's hand")
-                            player.plays.append(card)
+                            self.player_give_to(player, card, player.plays)
                             break
             if player.folded or player.plays:
                 player.action_required = False  # Game's async-loops self-synchronise with this
