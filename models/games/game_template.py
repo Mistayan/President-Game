@@ -232,12 +232,13 @@ class Game(Server, ABC, SerializableObject):
         self.losers.append([player, self._turn, last_played])
         player.set_win()  # It just means that a player cannot play anymore for current game
 
-    def get_player_from(self, player: Player | str, _from) -> Human | AI:
+    @staticmethod
+    def get_player_from(player: Player | str, _from: list[Player]) -> Player:
         for test in _from:
             if isinstance(test, Player) and test == player:
                 return test
 
-    def get_player(self, player: Player | str) -> Human | AI:
+    def get_player(self, player: Player | str) -> Player | Human | AI:
         return self.get_player_from(player, self.players)
 
     # ###################### SERVER IMPLEMENTATIONS TO GAME  #######################
