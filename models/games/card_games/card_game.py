@@ -305,7 +305,11 @@ class CardGame(Game):
                 break
             self.send_all(' '.join(["#" * 15, f" {player}'s TURN ", "#" * 15]))
             cards = self.player_loop(player)
-            cards and self._do_play(index, player, cards)  # If player returned cards, confirm play
+            # If player returned cards, confirm play
+            if cards and not self._do_play(index, player, cards):
+                player.set_played()
+                self.__logger.critical(f"{cards} are miss-played."
+                                       f" Player keep his cards and skip turn")
             # If player has no more cards, WIN (or lose, depending on rules)
             if not cards:
                 self.next_player_index = index  # Last player to fold should always start next
