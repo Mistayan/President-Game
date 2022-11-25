@@ -29,7 +29,7 @@ class Database:
         self.__logger = logging.getLogger(__class__.__name__)
         self.__name: Final = f"results"
         self.__file = self.__new_save()
-        with open(self.__file, 'w') as fp:
+        with open(self.__file, 'w') as fp:  # with handle errors on its own.
             json.dump(self.__data, fp)
         try:
             self.__fp = self.__renew_fp()
@@ -38,15 +38,23 @@ class Database:
             self.__data = []
 
     def update(self, datas: dict):
-        self.__logger.info(f"adding {datas} to DB")
+        """
+        append datas to self then save to DB
+        :param datas: datas to save
+        :return: None
+        """
         self.__data.append(datas)
         self.__save()
 
     def __save(self):
         self.__logger.debug(f"saving {self.__data}")
         self.__renew_fp()
-        json.dump(self.__data, self.__fp)
-        self.__fp.close()
+        try:
+            json.dump(self.__data, self.__fp)
+        except IOError:
+            self.__logger.critical("Could not save to DB")
+        finally:
+            self.__fp.close()
 
     def __renew_fp(self) -> IO:
         if self.__fp:
@@ -56,11 +64,10 @@ class Database:
         return self.__fp
 
     def __new_save(self):
-        save = f"./{self.__dir}/{self.__name}.json"
-        if os.path.exists(save):
-            for save in (f"./{self.__dir}/{self.__name}-{i}.json" for i in range(99999)):
-                if not os.path.exists(save):
-                    break
+        save = None
+        for save in (f"./{self.__dir}/{self.__name}-{i}.json" for i in range(99999)):
+            if not os.path.exists(save):
+                break
         return save
 
     def __init_dirs(self):
