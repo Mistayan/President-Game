@@ -160,9 +160,10 @@ class PresidentGame(CardGame):
 
     def to_json(self) -> dict:
         su: dict = super(PresidentGame, self).to_json()
-        update = {
-            "revolution": self.revolution,
-            "president_rules": PresidentRules(len(self.players)).__repr__(),
-        }
+        update = {"revolution": self.revolution}
+        if not self._run:
+            update.setdefault("president_rules",
+                              PresidentRules(len(self.players)).__repr__())
+
         su.update(update)
         return su
