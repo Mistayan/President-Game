@@ -125,18 +125,20 @@ class Game(Server, ABC, SerializableObject):
             return to_save
         self.__db.update(to_save)
 
-    def register(self, player: Player | str) -> Player:
+    def register(self, player: Player | str, token: str = None) -> Player:
         """ Every game need to register players before they are able to play """
         if not isinstance(player, (AI, Player, str)):
             raise ValueError(f"{player} not a Player")
         # Player already 'in-game'
-        if self.get_player(player):
-            return self.get_player(player)
+        p = self.get_player(player)
+        if p and token == p.token:
+            return p
 
         # Player Re-Connect
-        if player in self.disconnected_players and self._run:
+        p = self.get_disonnected(player)
+        if p and self._run:
             self.logger.debug(f"Re-Connecting {player}")
-            p = self.disconnected_players.pop(self.disconnected_players.index(player))
+            p = self.disconnected_players.pop(self.disconnected_players.index(p))
             self.players.append(p)
             return p
 
@@ -408,7 +410,7 @@ class Game(Server, ABC, SerializableObject):
         :return: "MSG", status_code, player_as_json
         """
         p: Human = self.get_player(pname) or \
-                   self.get_disonnected(pname) or self.get_awaiting(pname)
+            self.get_disonnected(pname) or self.get_awaiting(pname)
         content = None
         if not p:
             status = 404
