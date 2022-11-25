@@ -456,8 +456,9 @@ class CardGame(Game):
         update = {
             "pile": [(card.number, GameRules.COLORS[card.color]) for card in self.pile],
             "required_cards": self.required_cards,
-            "game_rules": GameRules().__repr__()
         }
+        if not self._run:
+            update.setdefault("game_rules", GameRules().__repr__())
         su.update(update)
         return su
 
