@@ -110,9 +110,14 @@ class Player(SerializableObject, ABC):
         self._folded = value
 
     def set_played(self, value=True) -> None:
-        """ set played to given value (True by default)"""
+        """
+        set played to given value (True by default)
+         if played, his action is no longer required
+        """
         value and self._logger.info(f"{self} played")
         self._played_turn = value
+        if self.played:
+            self.action_required = False
 
     def add_to_hand(self, card: Card) -> None:
         """ add the given Card to player's hand"""
