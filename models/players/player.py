@@ -58,7 +58,7 @@ class Human(Player):
             'played': self.played,
             'folded': self.folded,
             'finished': self.won,
-            'last_played': [_ for _ in self.last_played],
+            'last_played': [_.unicode_safe() for _ in self.last_played],
             'messages': self.messages,
             'action_required': self.action_required
         }
@@ -77,7 +77,6 @@ class Human(Player):
         self.hand = cards
 
     def __update_status(self, _json: dict):
-        self.__logger.warning(_json)
         self.action_required = _json.get("action_required")
         self.set_played(_json.get("played"))
         self.set_fold(_json.get("folded"))
@@ -88,4 +87,3 @@ class Human(Player):
                     print(info['content'])
                 else:
                     print(info)
-
