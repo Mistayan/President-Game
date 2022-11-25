@@ -287,6 +287,8 @@ class Player(SerializableObject, ABC):
         """ PresidentGame ONLY
         According to President logic,
          """
+        self.action_required = True
+
         card = None
         if self.rank:
             adv = self.rank.advantage  # Evaluate only once
