@@ -30,6 +30,8 @@ class Interface(Server):
     GIVE_REQUIRED = 23
 
     def __init__(self, player: Human):
+        if not isinstance(player, Human):
+            raise TypeError("Interface's players MUST be Humans.")
         super().__init__("Player_Interface")
         self.__token = None
         self.__msg_buffer = None
@@ -37,8 +39,6 @@ class Interface(Server):
         self.logger = logging.getLogger(__class__.__name__)
         self.__game = None
         self.__player: Human = player
-
-        # another way to establish a property; bad practice ;)
 
     @property
     def action_required(self):
