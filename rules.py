@@ -13,6 +13,7 @@ from typing import Final
 
 class GameRules:
     # a basic card game can hold from 1 to 20 players
+    TICK_SPEED = 0.1  # expressed in seconds lower values means more loops runs in a second.
     MAX_PLAYERS = 20
     MIN_PLAYERS = 1
 
