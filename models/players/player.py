@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import secrets
 
-from models.card import Card
+from models.games.card_games.card import Card
 from rules import GameRules
 from .player_template import Player
 

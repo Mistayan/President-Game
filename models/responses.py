@@ -11,7 +11,6 @@ from typing import Final
 
 from models import root_logger
 from models.utils import SerializableClass
-from rules import GameRules
 
 
 class Message(SerializableClass):

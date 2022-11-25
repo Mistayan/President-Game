@@ -15,7 +15,8 @@ from typing import Final
 
 import names
 
-from models.card import Card
+from models.games.card_games.card import Card
+from models.games.plays import GamePlay
 from models.utils import SerializableObject
 from rules import GameRules
 

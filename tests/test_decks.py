@@ -3,7 +3,7 @@ import unittest
 
 import coloredlogs
 
-from models.deck import Deck
+from models.games.card_games.deck import Deck
 
 
 class TestDeck(unittest.TestCase):

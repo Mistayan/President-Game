@@ -8,7 +8,7 @@ Creation-date: 11/01/22
 import logging
 from typing import Final
 
-from models.Errors import CheaterDetected
+from models.games.Errors import CheaterDetected
 from models.players.player import Player
 from rules import PresidentRules
 

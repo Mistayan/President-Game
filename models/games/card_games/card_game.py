@@ -12,12 +12,13 @@ from typing import Final
 
 from flask import request, make_response
 
-from models.games import Game
-from models import Card, Deck
-from models.Errors import CheaterDetected, PlayerNotFound
-from models.players.player import Player, Human
+from models.games.Errors import CheaterDetected, PlayerNotFound
+from models.players import Player, Human
 from models.responses import Question, Message, Play, Give
 from rules import GameRules
+from .card import Card
+from .deck import Deck
+from ..game_template import Game
 
 
 class CardGame(Game):

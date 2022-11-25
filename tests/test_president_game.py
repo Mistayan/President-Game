@@ -5,7 +5,7 @@ from collections import Counter
 import coloredlogs
 
 from models import PresidentGame, Card
-from models.Errors import CheaterDetected
+from models.games.Errors import CheaterDetected
 from rules import GameRules, PresidentRules
 
 

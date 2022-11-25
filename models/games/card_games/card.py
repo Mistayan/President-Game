@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from models.games.plays import GamePlay
 from rules import GameRules
 
 
-class Card:
+class Card(GamePlay):
 
     def __init__(self, number, color):
         """

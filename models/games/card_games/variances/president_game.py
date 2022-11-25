@@ -1,10 +1,8 @@
-import json
 import logging
 from typing import Final
 
-from models import Card
-from models.games.card_game import CardGame
-from models.rankings import PresidentRank
+from models.games.card_games import Card, CardGame
+from models.games.card_games.variances.president_rankings import PresidentRank
 from rules import PresidentRules
 
 

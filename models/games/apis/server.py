@@ -10,7 +10,7 @@ import os
 import random
 import string
 from abc import ABC, abstractmethod
-from typing import Final, Any
+from typing import Final
 
 # import CORS as CORS
 # import Migrate as Migrate
@@ -18,7 +18,6 @@ from flask import Flask
 
 from models import root_logger
 from models.games.apis import db, apis_conf  # , ma
-from models.utils import SerializableClass
 
 
 class Server(Flask, ABC):

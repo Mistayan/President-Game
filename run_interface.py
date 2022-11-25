@@ -9,8 +9,8 @@ import logging
 
 import coloredlogs
 
-from models import Human
-from models.players.interfaces import Interface
+from models.players import Human
+from models.interfaces import Interface
 
 if __name__ == '__main__':
     coloredlogs.set_level(logging.INFO)

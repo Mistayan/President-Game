@@ -7,11 +7,10 @@ Creation-date: 11/01/22
 """
 import logging
 import unittest
-from asyncio import Task
-
+import tracemalloc
 import coloredlogs
 
-from models import PresidentGame
+import models.games.apis.apis_conf
 from tests import TestGame, TestCards, TestDeck, TestPlayers, TestPresidentGame
 
 

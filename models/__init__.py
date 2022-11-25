@@ -1,6 +1,5 @@
 # sub_modules MUST be in MRO order !!!
 from .conf import root_logger
-from .card import Card
-from .deck import Deck
-from .games import CardGame, PresidentGame
-from .players import Human, AI
+from .games.card_games import Card, Deck, CardGame, PresidentGame
+from .players.ai import AI
+from .players.player import Human

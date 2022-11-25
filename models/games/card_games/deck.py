@@ -4,7 +4,7 @@ import logging
 import random
 from typing import Final
 
-from models import Card
+from models.games.card_games import Card
 from rules import GameRules
 
 logger = logging.getLogger(__name__)

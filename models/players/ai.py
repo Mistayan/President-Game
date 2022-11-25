@@ -1,12 +1,11 @@
 import logging
 from collections import Counter
-from pprint import pprint
 
 import names
 
-from models import Card
-from rules import PresidentRules
+from models.games.card_games.card import Card
 from models.players.player import Player
+from rules import PresidentRules
 
 
 class AI(Player):

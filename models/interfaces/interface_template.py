@@ -11,7 +11,7 @@ from json import JSONDecodeError
 
 import requests
 
-from models import Human
+from models.players.player import Human
 from models.games.apis.server import Server
 from models.responses import *  # over 5 modules, and less than 20% unused, it's permitted
 from models.utils import ValidateBuffer, GameFinder

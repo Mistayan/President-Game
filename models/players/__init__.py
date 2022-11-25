@@ -7,6 +7,7 @@ Creation-date: 11/10/22
 """
 
 # sub_modules MUST be in MRO order !!!
-from .player_template import Player
-from .player import Human
-from .ai import AI
+
+from models.players.ai import AI
+from models.players.player import Human
+from models.players.player_template import Player

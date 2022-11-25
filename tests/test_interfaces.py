@@ -6,14 +6,13 @@ IDE: PyCharm
 Creation-date: 11/17/22
 """
 import logging
-import subprocess
 import time
 import unittest
 
 import coloredlogs
 
 from models import Human
-from models.players.interfaces import Interface
+from models.interfaces import Interface
 
 
 class TestInterfaces(unittest.TestCase):

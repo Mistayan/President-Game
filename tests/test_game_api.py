@@ -10,6 +10,9 @@ import logging
 import coloredlogs
 import requests
 
+"""
+Server must be running 
+"""
 if __name__ == '__main__':
     coloredlogs.set_level(logging.DEBUG)
     res = requests.post(url="http://127.0.0.1:5001/Connect/Mistayan",
