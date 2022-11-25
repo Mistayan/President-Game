@@ -137,4 +137,5 @@ class AI(Player):
             card = None
         card and self.__logger.info(f"Trying: {card.__repr__()}")
         return card or \
-            rec_level and self.calc_best_card(nb_cards, split=not split, rec_level=rec_level-1)
+               rec_level and self.calc_best_card(nb_cards, split=not split,
+                                                 rec_level=rec_level - 1)
