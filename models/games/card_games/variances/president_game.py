@@ -47,6 +47,8 @@ class PresidentGame(CardGame):
                 while not card:
                     card = self.player_choose_card_to_give(player)
                 self.player_give_to(player, card, give_to)
+            # No more card to give
+            player.action_required = False  # Actions not required anymore
 
     def player_choose_card_to_give(self, player) -> Card:
         """
