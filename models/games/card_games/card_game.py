@@ -366,7 +366,6 @@ class CardGame(Game):
             elif not player.folded:  # Fail-safe for unexpected behaviour...
                 self.send_player(player, f"Not enough {cards[0].number} in hand" if cards
                                  else f"No card{'s' if len(cards) > 1 else ''} played")
-                not cards and not player.folded and self.ask_yesno(player, "Fold")
         self.send_all(f"{player} played {cards}" if cards else f"{player} Folded.")
         return cards
 
