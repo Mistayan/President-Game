@@ -46,7 +46,7 @@ class Player(SerializableObject, ABC):
         self.action_required = False  # Required for Interface -> Game actions to happen
         self.rank = None
         self.hand = []
-        self.last_played: list[Card] = []
+        self.last_played: list[GamePlay] = []
 
     @abstractmethod
     def _play_cli(self, n_cards_to_play=0, override: str = None, action='play') -> list[Card]:
