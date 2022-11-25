@@ -57,6 +57,9 @@ classDiagram
     GameRules *-- CardGame
     CardGame *-- Deck
     Deck *-- Card
+    Game *-- Player
+    Player <|-- AIPlayer
+    Player <|-- HumanPlayer
     class Game{
         Meta: ABC
         +[Player] players
@@ -71,6 +74,20 @@ classDiagram
     class Database{
         +update()
     }
+    class Player{
+        +String name
+        +[Card] hand
+        +add_to_hand()
+        +remove_from_hand()
+        +play()
+    }
+        class AIPlayer{
+        +play()
+    }
+    class HumanPlayer{
+        +play()
+    }
+
     class Deck{
         +[Card] cards
         +shuffle()
@@ -97,9 +114,6 @@ classDiagram
     RankingRules *-- PresidentRankings
     PresidentRules *-- PresidentGame
     PresidentRankings *-- PresidentGame
-    PresidentGame *-- Player
-    Player <|-- AIPlayer
-    Player <|-- HumanPlayer
     
     class CardGame{
         +queen_of_heart_start()
@@ -113,23 +127,11 @@ classDiagram
         +do_exchanges()
         +do_play()
     }
-    class Player{
-        +String name
-        +[Card] hand
-        +add_to_hand()
-        +remove_from_hand()
-        +play()
-    }
     class PresidentRankings{
         +rank_name
         +advantage()
     }
-    class AIPlayer{
-        +play()
-    }
-    class HumanPlayer{
-        +play()
-    }
+
     
 ```
 
