@@ -29,7 +29,7 @@ class MessageError(Exception):
 
 
 class RequiredName:
-    REQUIRED = '<player>'
+    REQUIRED = '<player>'  # on change, edit game's routes methods to accept the same param
 
 
 class Restricted(RequiredName):
