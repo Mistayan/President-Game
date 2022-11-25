@@ -360,7 +360,7 @@ class CardGame(Game):
                         player.add_to_hand(card)
             elif not player.folded:  # Fail-safe for unexpected behaviour...
                 self.send_player(player, f"Not enough {cards[0].number} in hand" if cards
-                else f"No card{'s' if len(cards) > 1 else ''} played")
+                                 else f"No card{'s' if len(cards) > 1 else ''} played")
                 not cards and not player.folded and self.ask_yesno(player, "Fold")
         self.send_all(f"{player} played {cards}" if cards else f"{player} Folded.")
         return cards
@@ -467,11 +467,11 @@ class CardGame(Game):
             answer = None
             self.__logger.warning(f"{method}({msg})")
             self.wait_player_action(player)
-            self.logger.info(f"waiting. for {player}\r", sep="")
+            self.logger.info(f"waiting. for {player}\r")
             while answer is None:
                 time.sleep(GameRules.TICK_SPEED)
                 if self._last_message_received:
-                    answer = self._last_message_received.get(method.__name__)
+                    answer = self._last_message_received.get(player.plays)  # TODO change to answer
             self.__logger.warning("Done Waiting.")
             return answer
         elif method is None:
@@ -480,12 +480,9 @@ class CardGame(Game):
     def wait_player_action(self, player):
         self.__logger.info(f"awaiting {player} to play")
         timeout = Message.timeout
-        while player.action_required:
-            timeout % 5.0 and self.logger.debug(f"{timeout:.0f} seconds remaining: {player}")
+        while player.action_required and timeout > 0:
             time.sleep(GameRules.TICK_SPEED)
             timeout -= GameRules.TICK_SPEED
-            if timeout <= 0:
-                break
         return player.plays
 
     def init_server(self, name):
