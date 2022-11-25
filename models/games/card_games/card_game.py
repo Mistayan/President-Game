@@ -472,6 +472,7 @@ class CardGame(Game):
         if method is input:
             request = Question().request
             request.setdefault("question", msg)
+            player.action_required = True
             player.messages.append(request)
             answer = None
             self.__logger.warning(f"{method}({msg})")
