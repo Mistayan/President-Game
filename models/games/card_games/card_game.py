@@ -418,7 +418,11 @@ class CardGame(Game):
             :return: True if player won/lost; False otherwise
         """
         self.__logger.info(f"{player} tries to play {cards}")
+        # Check that every card given can be played
+        if not [self.card_can_be_played(card) for card in cards].count(True) == len(cards):
+            return False
         [self.add_to_pile(card) for card in cards]
+        player.last_played = cards
         player.set_played()
         if self.best_card_played and GameRules.PLAYING_BEST_CARD_END_ROUND:
             self.next_player_index = index
