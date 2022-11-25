@@ -395,12 +395,13 @@ class Game(Server, ABC, SerializableObject):
         :param pname: player to get infos from
         :return: "MSG", status_code, game_as_json
         """
+        self.logger.debug(self.to_json())
         return self.to_json()
 
-    def get_disonnected(self, player: Player | str) -> Human:
+    def get_disonnected(self, player: Player | str) -> Player and Human:
         return self.get_player_from(player, self.disconnected_players)
 
-    def get_awaiting(self, player: Player | str) -> Human:
+    def get_awaiting(self, player: Player | str) -> Player and Human:
         return self.get_player_from(player, self.awaiting_players)
 
     def player_infos(self, pname):
