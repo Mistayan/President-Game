@@ -31,8 +31,8 @@ class Game(Server, ABC, SerializableObject):
         self.players_limit = 100  # Arbitrary Value
         self.__game_log = logging.getLogger(__class__.__name__)
         self.players: list[Player.__class__] = []
-        self._winners: list[Player.__class__, int, Any] = []
-        self.losers: list[Player.__class__, int, Any] = []
+        self._winners: list[Player.__class__, int, GamePlay] = []
+        self.losers: list[Player.__class__, int, GamePlay] = []
         self.disconnected_players: list[Player] = []  # players logged out while game started
         self.awaiting_players: list[Player] = []  # players that registered after game started
         self.plays: list[list] = []
