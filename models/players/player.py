@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import secrets
 
 from models.card import Card
 from rules import GameRules
@@ -14,9 +15,11 @@ class Human(Player):
         self._is_human = True
         self.__logger = logging.getLogger(__class__.__name__)
         self.__token = None
+        self.messages: list[dict] = []
 
-    def set_token(self, val):
-        self.__token = val
+    def renew_token(self):
+        self.__token = secrets.token_hex(100)
+        self.__logger.debug(f"Updated token to {self.__token}")
 
     @property
     def token(self):
@@ -26,6 +29,7 @@ class Human(Player):
         """ HUMAN ONLY
         :return: self's pick between 1 and his maximum combo
         """
+        self.__logger.info("Choose N card")
         _max = self.max_combo
         n = _max if _max <= 1 else 0
         while not n > 0 or n > _max:
@@ -41,6 +45,9 @@ class Human(Player):
     def _play_cli(self, n_cards_to_play=0, override=None, action='play') -> list[Card]:
         if not override:
             print(f"Your hand :\n{self.hand}", flush=True)
+            n_cards_to_play and print(f"you must {action} "
+                                      f" {'a card' if n_cards_to_play == 1 else n_cards_to_play} "
+                                      f"{'' if n_cards_to_play == 1 else 'cards'}")
         return super(Human, self)._play_cli(n_cards_to_play, override, action=action)
 
     def to_json(self) -> dict:
@@ -52,10 +59,11 @@ class Human(Player):
             'folded': self.folded,
             'finished': self.won,
             'last_played': [_ for _ in self.last_played],
+            'messages': self.messages,
             'action_required': self.action_required
         }
 
-    def update(self, _json: dict):
+    def from_json(self, _json: dict):
         self.__update_hand(_json)
         self.__update_status(_json)
 
@@ -69,8 +77,15 @@ class Human(Player):
         self.hand = cards
 
     def __update_status(self, _json: dict):
+        self.__logger.warning(_json)
+        self.action_required = _json.get("action_required")
         self.set_played(_json.get("played"))
         self.set_fold(_json.get("folded"))
         self.set_win(_json.get("finished"))
-        self.action_required = _json.get("action_required")
+        if _json.get("messages"):
+            for info in _json.get('messages'):
+                if isinstance(info, dict) and info.get('message') == "Info":
+                    print(info['content'])
+                else:
+                    print(info)
 
