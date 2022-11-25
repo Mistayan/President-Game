@@ -308,6 +308,8 @@ class CardGame(Game):
             # If player has no more cards, WIN (or lose, depending on rules)
             if not cards:
                 self.next_player_index = index  # Last player to fold should always start next
+            else:
+                player.plays = []
             if GameRules.PLAYING_BEST_CARD_END_ROUND and self.best_card_played:
                 self.send_all(' '.join(["#" * 15,
                                         "TERMINATING Round, Best Card Value Played !",
@@ -336,7 +338,6 @@ class CardGame(Game):
                 input("Press Enter to play (this is to avoid other players to see your hand)")
 
         while player.is_active:
-            player.action_required = True
             self.send_player(player, f"Last played card : (most recent on the right)\n{self.pile}"
                              if self.pile else "You are the first to play.")
 
@@ -360,7 +361,7 @@ class CardGame(Game):
             elif not player.folded:  # Fail-safe for unexpected behaviour...
                 self.send_player(player, f"Not enough {cards[0].number} in hand" if cards
                 else f"No card{'s' if len(cards) > 1 else ''} played")
-                not cards and not player.folded and self.ask_yesno()
+                not cards and not player.folded and self.ask_yesno(player, "Fold")
         self.send_all(f"{player} played {cards}" if cards else f"{player} Folded.")
         return cards
 
@@ -460,15 +461,17 @@ class CardGame(Game):
             self.logger.info("offline.")
             return method and method(msg) or print(msg)
         if method is input:
-            request = Question.request
+            request = Question().request
             request.setdefault("question", msg)
             player.messages.append(request)
             answer = None
             self.__logger.warning(f"{method}({msg})")
+            self.wait_player_action(player)
+            self.logger.info(f"waiting. for {player}\r", sep="")
             while answer is None:
-                time.sleep(0.3)
-                print("waiting.\r", sep="")
-                answer = self._last_message_received.get(method.__name__)
+                time.sleep(GameRules.TICK_SPEED)
+                if self._last_message_received:
+                    answer = self._last_message_received.get(method.__name__)
             self.__logger.warning("Done Waiting.")
             return answer
         elif method is None:
@@ -477,10 +480,12 @@ class CardGame(Game):
     def wait_player_action(self, player):
         self.__logger.info(f"awaiting {player} to play")
         timeout = Message.timeout
-        while (not player.plays or not player.folded) and timeout > 0:
-            self.logger.warning(timeout)
-            time.sleep(1)
-            timeout -= 1
+        while player.action_required:
+            timeout % 5.0 and self.logger.debug(f"{timeout:.0f} seconds remaining: {player}")
+            time.sleep(GameRules.TICK_SPEED)
+            timeout -= GameRules.TICK_SPEED
+            if timeout <= 0:
+                break
         return player.plays
 
     def init_server(self, name):
@@ -505,10 +510,14 @@ class CardGame(Game):
                 for play in plays:
                     num, color = play.split(',')
                     color = Card.from_unisafe(color)
+                    self.logger.debug(f"{num} / {color}")
                     for card in player.hand:
                         if card.number == num and card.color == color:
+                            self.logger.debug(f"found {card} in player's hand")
                             player.plays.append(card)
                             break
+            if player.folded or player.plays:
+                player.action_required = False  # Game's async-loops self-synchronise with this
             return make_response('OK', 200)
 
         @self.route(f"/{Give.request['message']}/{Give.REQUIRED}", methods=Give.methods)
