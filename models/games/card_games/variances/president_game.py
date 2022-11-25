@@ -125,11 +125,16 @@ class PresidentGame(CardGame):
     def _do_play(self, index, player, cards) -> bool:
         """
         Handle PresidentGame variances in rules sets.
+        Check if cards are the same power before calling super()._do_play
         <u>Revolution :</u> invert cards power.
         <u>Ta_Gueule :</u>
         - The next player that should've been able to play cannot play (acts like he played)
         - Has no effect if the player is the last standing.
+        :returns: True if play is a success, false on any error encountered
         """
+        if cards and 1 < len(cards) == [cards[i - 1] == cards[i] for i in
+                                        range(1, len(cards))].count(True):
+            return False
         super()._do_play(index, player, cards)
         len(cards) == 4 and self.set_revolution()  # if PresidentRules.USE_REVOLUTION
         if self.skip_next_player_rule_apply:
