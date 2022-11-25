@@ -379,8 +379,8 @@ class Game(Server, ABC, SerializableObject):
             "players": [(p.name, len(p.hand)) for p in self.players],
             # players in-game, waiting to reconnect
             "disconnected": [[p.name, len(p.hand)] for p in self.disconnected_players],
-            "winners": [[p.name, t, lp] for p, t, lp in self._winners],
-            "losers": [[p.name, t, lp] for p, t, lp in self.losers],
+            "winners": [[p.name, turn, [card.unicode_safe()]] for p, turn, card in self._winners],
+            "losers": [[p.name, turn, [card.unicode_safe()]] for p, turn, card in self.losers],
             "plays": [[c.number for c in pile] for pile in self.plays],
             # players that registered after game started
             "awaiting": [p.name for p in self.awaiting_players],
