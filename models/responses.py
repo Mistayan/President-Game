@@ -34,11 +34,10 @@ class RequiredName:
 
 
 class Restricted(RequiredName):
-    HEADER = {"token": None, "player": None}
-    ROUTES = ("Play/<player>/<plays>", "Give/<player>/<plays>",
-              "Connect/<player>", "Disconnect/<player>",
-              "Start/<player>",
-              "Update/<target>")
+    headers = {"token": None, "player": None}
+    # ROUTES = ("Play", "Give",
+    #           "Connect", "Disconnect",
+    #           "Start", "Update")
 
 
 class GET(Message):
@@ -59,14 +58,14 @@ class Disconnect(POST, Restricted):
 
 class Play(POST, Restricted):
     request: dict = {'message': "Play", 'plays': []}
-    POSSIBLE_VALUES = GameRules.VALUES
-    POSSIBLE_COLORS = GameRules.COLORS
+    # POSSIBLE_VALUES = GameRules.VALUES
+    # POSSIBLE_COLORS = GameRules.COLORS
 
 
 class Give(POST, Restricted):
     request: dict = {'message': "Give", 'plays': []}
-    POSSIBLE_VALUES = GameRules.VALUES
-    POSSIBLE_COLORS = GameRules.COLORS
+    # POSSIBLE_VALUES = GameRules.VALUES
+    # POSSIBLE_COLORS = GameRules.COLORS
 
 
 class Start(POST, Restricted):
@@ -76,7 +75,7 @@ class Start(POST, Restricted):
 class Update(GET, Restricted):
     # auto-restricted for player update, not for Game
     request: dict = {'message': "Update", 'content': ''}
-    POSSIBLE_VALUES = ("Game", "Player")
+    # POSSIBLE_VALUES = ("Game", "Player")
 
 
 class Question(GET, Restricted):

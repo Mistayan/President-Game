@@ -100,7 +100,7 @@ class Interface(Server):
         response = requests.request(
             method=message_method,
             url=f"{self._PROTOCOL}://{target}/{message.request['message']}/{self.__player.name}",
-            headers=message.HEADER,
+            headers=message.headers,
             cert=None,  # yet...
             json=message.to_json(),
         )
