@@ -8,6 +8,7 @@ Creation-date: 11/10/22
 from __future__ import annotations
 
 import logging
+import time
 from abc import abstractmethod, ABC
 from collections import Counter
 from typing import Final
@@ -15,10 +16,11 @@ from typing import Final
 import names
 
 from models.card import Card
+from models.utils import SerializableObject
 from rules import GameRules
 
 
-class Player(ABC):
+class Player(SerializableObject, ABC):
     # WARNING !!!
     # Any value you put below this line,  outside __init__
     # might be shared amongst different instances !!!
@@ -31,6 +33,8 @@ class Player(ABC):
          Player has a name, a hand holding cards,
          can fold (stop playing for current round) receive a card or remove a card from his hand
         """
+        super().__init__()
+        self.plays = []
         self._logger: Final = logging.getLogger(__class__.__name__)
         self.game = game
         self.__buffer = []
@@ -58,15 +62,16 @@ class Player(ABC):
         :param action: the action to be played (play, give, ...)
         """
         if not n_cards_to_play:
+            self._logger.info(f"Choose N card to {action}")
             n_cards_to_play = self.ask_n_cards_to_play()
-        print(f"you must {action} {'a' if n_cards_to_play == 1 else n_cards_to_play} "
-              f"{'card' if n_cards_to_play == 1 else 'cards'}")
-        player_game = self.choose_cards_to_play(n_cards_to_play, override)[::]
+        player_game = self.choose_cards_to_play(n_cards_to_play, override)
+        self._logger.debug(f"{player_game}")
         if player_game and len(player_game) == n_cards_to_play:
             self.__buffer = []
-        else:
+        elif not self.folded:
+            self._logger.debug("not enough cards in hand")
             [self.add_to_hand(card) for card in self.__buffer]
-        return [_ for _ in player_game if _]  # Simple filtering as fail-safe
+        return player_game
 
     @abstractmethod
     def ask_n_cards_to_play(self) -> int:
@@ -93,7 +98,6 @@ class Player(ABC):
     def set_win(self, value: bool = True) -> None:
         """ set _won to given value"""
         value and self._logger.info(f"{self} {'have won' if not len(self.hand) else 'have Lost'}")
-        not value and self._logger.warning(f"{self} winner status have been reset")
         self._won = value
 
     def set_rank(self, rank_pointer) -> None:
@@ -114,8 +118,8 @@ class Player(ABC):
         """ add the given Card to player's hand"""
         if not isinstance(card, Card):
             raise ValueError("card must be an instance of Card.")
-        self._logger.debug(f"{self} received {card}\n{self.hand}")
         self.hand.append(card)
+        self._logger.debug(f"{self} received {card}")
         self.sort_hand()  # Replicating real life's behaviour
 
     def remove_from_hand(self, card: Card) -> Card | None:
@@ -168,7 +172,7 @@ class Player(ABC):
 
     @property
     def hand_as_colors(self):
-        return [self.game.card.color for card in self.hand]
+        return [GameRules.COLORS[card.color] for card in self.hand]
 
     @property
     def max_combo(self):
@@ -240,9 +244,10 @@ class Player(ABC):
         Otherwise, player choose a card number from his hand and give N times this card.
         """
         cards_to_play = []
+        self._logger.info(f"Choose cards x {n_cards_to_play} : {not override}")
+        self._logger.debug(f"must play {n_cards_to_play}; my max is {self.max_combo}")
         if n_cards_to_play <= self.max_combo:
-            _in = input(f"{n_cards_to_play} combo required: (your max : {self.max_combo})\n"
-                        f"[2-9 JQKA] or 'F' to fold"
+            _in = input(f"[2-9 JQKA] or 'F' to fold"
                         f"{'(you will not be able to play current round)' if GameRules.WAIT_NEXT_ROUND_IF_FOLD else ''}\n") \
                 .upper() if not override else override.upper()
             # Check fold status
@@ -287,12 +292,25 @@ class Player(ABC):
 
     def play(self, required_cards):
         """ allows player to play according to his interface preferences """
-        safety = self.is_human and self.game.count_humans > 1
-        if safety:
-            print("\n" * 10)
-        print(' '.join(["#" * 15, f" {self}'s TURN ", "#" * 15]), flush=True)
-        print(f"Last played card : (most recent on the right)\n{self.game.pile}" if self.game.pile
-              else "You are the first to play.")
-        if safety:
-            input("Press Enter to play (this is to avoid other players in cli to see your hand)")
-        return self._play_cli(n_cards_to_play=required_cards)
+        self._logger.info(f"{self} playing")
+        if not self.game or not self.is_human:  # local side
+            return self._play_cli(n_cards_to_play=required_cards)
+        elif self.is_human and self.game:  # server side
+            return self.wait_response()
+
+    def __eq__(self, other: Player | str) -> bool:
+        ret = False
+        if isinstance(other, str):
+            ret = self.name == other
+        elif isinstance(other, Player):
+            ret = self.name == other.name
+        return ret
+
+    def wait_response(self):
+        timeout_counter = 10
+        while self.plays is None:
+            time.sleep(0.3)
+            timeout_counter -= 1
+        if timeout_counter <= 0:
+            return []
+        return self.plays
