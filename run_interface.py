@@ -9,15 +9,15 @@ import logging
 
 import coloredlogs
 
-from models.players import Human
 from models.interfaces import Interface
+from models.players import Human
 
 if __name__ == '__main__':
     coloredlogs.set_level(logging.INFO)
     with Interface(Human(input("Player Name ?"))) as interface:  # With, auto-disconnect on exit
         interface.menu()  # Connect or exit
         try:
-            while interface.update().status_code == 200:  # As long as we are connected, with no errors
+            while interface.update:  # As long as we are connected, with no errors
                 if interface.action_required is True:
                     interface.request_player_action()
                 elif interface.game_dict['running'] is False:
