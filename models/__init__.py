@@ -1,4 +1,4 @@
 # sub_modules MUST be in MRO order !!!
 from .conf import root_logger
-from .games import CardGame, PresidentGame
+from .games import CardGame, PresidentGame, Card
 from .players import Player, AI, Human
