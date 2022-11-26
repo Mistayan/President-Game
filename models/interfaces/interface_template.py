@@ -6,13 +6,21 @@ IDE: PyCharm
 Creation-date: 11/10/22
 """
 import functools
+import io
 import logging
+import os
+import time
 from json import JSONDecodeError
+from subprocess import Popen
 
+import colorama
+import coloredlogs
 import requests
+from requests import Response
 
-from models.players.player import Human
+from models.conf import BASEDIR
 from models.games.apis.server import Server
+from models.players.player import Human
 from models.responses import *  # over 5 modules, and less than 20% unused, it's permitted
 from models.utils import ValidateBuffer, GameFinder
 
@@ -39,6 +47,7 @@ class Interface(Server):
         self.logger = logging.getLogger(__class__.__name__)
         self.__game = None
         self.__player: Human = player
+        self.__banner()
 
     @property
     def action_required(self):
@@ -238,6 +247,47 @@ class Interface(Server):
     def __aenter__(self):
         # Prevision for asynchronous processes (allow faster requests and processing)
         return self
+
+    def __banner(self):
+        import PIL.Image
+        ascii_map = ["@", "#", "$", "%", "?", "!", "*", "+", ":", ",", ".", ".", "."]
+        BANNER_WIDTH = 75
+        MAX_LINES = 25
+
+        def pixel_to_ascii(img):
+            pixels = img.getdata()
+            ascii_str = ""
+            ascii_map.reverse()
+            for pixel in pixels:
+                ascii_str += ascii_map[(pixel // (255 // len(ascii_map))) % len(ascii_map)]
+            return ascii_str
+
+        def resize(img):
+            return img.resize((BANNER_WIDTH, MAX_LINES))
+
+        try:
+            self.logger.info("Preparing Interface ... ")
+            req = requests.get(
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTzA-OJMj_asPXQM-1TAlC3"
+                "_yn03sPkArzvMd5qglLom5-nzyOr09596kof0xauehvc31M&usqp=CAU",
+                stream=True)
+            self.logger.info(f"self assigning : {req.status_code}")
+            image_bytes = io.BytesIO(req.content)
+            self.logger.info("Transposing ...")
+            image = PIL.Image.open(image_bytes)
+            self.logger.info(f"Transforming ...")
+            image = image.convert(mode="L")  # GreyScales
+            self.logger.info(f"Resizing ...")
+            image = resize(image)
+            self.logger.info(f"Manipulating ...")
+            banner = pixel_to_ascii(image)
+            self.logger.info(f"Printing ...")
+            prev = 0
+            for line in range(0, MAX_LINES):
+                print(banner[prev:line * BANNER_WIDTH])
+                prev = line * BANNER_WIDTH
+        except Exception as e:
+            self.logger.critical(e)
 
     def __exit__(self, _type, value, traceback):
         self.disconnect()

@@ -330,7 +330,7 @@ class CardGame(Game):
             - The game double-checks with its own rules if the given card(s) are stronger or weaker
                 - If cards ok, set player's status to 'played'
                 - If cards not ok, give player his cards back
-            - (miss-click failsafe) If player did not play, ask_fold to fold or play again
+            - (miss-click failsafe) If player did not play, ask_yes_no to fold or play again
         :param player: current_player to play
         :return: cards the player played ; [] otherwise
         """
@@ -516,7 +516,7 @@ class CardGame(Game):
             else:
                 for play in plays:
                     num, color = play.split(',')
-                    color = Card.from_unisafe(color)
+                    color = Card.from_unicode(color)
                     self.logger.debug(f"{num} / {color}")
                     for card in player.hand:
                         if card.number == num and card.color == color:
