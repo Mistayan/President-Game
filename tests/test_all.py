@@ -7,10 +7,9 @@ Creation-date: 11/01/22
 """
 import logging
 import unittest
-import tracemalloc
+
 import coloredlogs
 
-import models.games.apis.apis_conf
 from tests import TestGame, TestCards, TestDeck, TestPlayers, TestPresidentGame
 
 
