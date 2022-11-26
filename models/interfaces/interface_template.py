@@ -315,6 +315,8 @@ class Interface(Server):
 
     def __exit__(self, _type, value, traceback):
         self.disconnect()
+        if self.local_process:
+            self.local_process.terminate()
         self.logger.critical(_type)
         self.logger.critical(value)
         self.logger.critical(traceback)
