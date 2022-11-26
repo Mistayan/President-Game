@@ -7,11 +7,9 @@ Creation-date: 11/26/22
 """
 import os
 import sys
-
 from subprocess import Popen
 
 from setuptools import setup
-
 
 if __name__ == '__main__':
     BASEDIR = os.path.abspath(os.getcwd())
