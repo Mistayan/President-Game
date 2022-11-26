@@ -25,7 +25,7 @@ class MessageError(Exception):
 
     def __init__(self, msg):
         root_logger.critical(f"{msg}")
-        raise
+        # Non blocking Error ?
 
 
 class RequiredName:
