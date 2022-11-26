@@ -114,7 +114,7 @@ class Game(Server, ABC, SerializableObject):
             json_winners.append(ww)
         return json_winners
 
-    def save_results(self, name) -> (dict | None):
+    def save_results(self, name) -> dict:
         to_save = {
             "game": name,
             "players": [player.name for player in self.players],
@@ -126,7 +126,7 @@ class Game(Server, ABC, SerializableObject):
             return to_save
         self.__db.update(to_save)
 
-    def register(self, player: Player | str, token: str = None) -> Player:
+    def register(self, player: Player or str, token: str = None) -> Player:
         """ Every game need to register players before they are able to play """
         if not isinstance(player, (AI, Player, str)):
             raise ValueError(f"{player} not a Player")
@@ -164,7 +164,7 @@ class Game(Server, ABC, SerializableObject):
         p.set_game(self)  # important to remind: self is a reference to last sub_class in MRO
         return p
 
-    def unregister(self, player: Player | str) -> None:
+    def unregister(self, player: Player or str) -> None:
         """ Every game needs to register players before they are able to play"""
         if not isinstance(player, (Human, str)):
             raise ValueError(f"Unclear player type Not Allowed.")
@@ -236,12 +236,12 @@ class Game(Server, ABC, SerializableObject):
         player.set_win()  # It just means that a player cannot play anymore for current game
 
     @staticmethod
-    def get_player_from(player: Player | str, _from: list[Player]) -> Player:
+    def get_player_from(player: Player or str, _from: list[Player]) -> Player:
         for test in _from:
             if isinstance(test, Player) and test == player:
                 return test
 
-    def get_player(self, player: Player | str) -> Player | Human | AI:
+    def get_player(self, player: Player or str) -> Player or Human or AI:
         return self.get_player_from(player, self.players)
 
     # ###################### SERVER IMPLEMENTATIONS TO GAME  #######################
@@ -398,10 +398,10 @@ class Game(Server, ABC, SerializableObject):
         self.logger.debug(self.to_json())
         return self.to_json()
 
-    def get_disonnected(self, player: Player | str) -> Player and Human:
+    def get_disonnected(self, player: Player or str) -> Player and Human:
         return self.get_player_from(player, self.disconnected_players)
 
-    def get_awaiting(self, player: Player | str) -> Player and Human:
+    def get_awaiting(self, player: Player or str) -> Player and Human:
         return self.get_player_from(player, self.awaiting_players)
 
     def player_infos(self, pname):

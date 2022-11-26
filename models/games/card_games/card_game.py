@@ -181,7 +181,7 @@ class CardGame(Game):
         for player in self.players:
             self.send_all(f"{player} : {len(player.hand)} Cards")
 
-    def player_give_to(self, player: Player, give: Card | list[Card], to):
+    def player_give_to(self, player: Player, give: Card or list[Card], to):
         """
         What it does is in the name
         :param player: the player that will give a card
