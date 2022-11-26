@@ -29,7 +29,6 @@ class Human(Player):
         """ HUMAN ONLY
         :return: self's pick between 1 and his maximum combo
         """
-        self.__logger.info("Choose N card")
         _max = self.max_combo
         n = _max if _max <= 1 else 0
         while not n > 0 or n > _max:
