@@ -83,3 +83,7 @@ class Question(GET, Restricted):
 
 class Answer(POST, Restricted):
     request: dict = {'message': "Question", 'content': ''}
+
+
+class AnomalyDetected(POST, Restricted):
+    request: dict = {'message': 'Report', 'anomaly': dict}
