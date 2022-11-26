@@ -2,8 +2,8 @@ import logging
 from typing import Final
 
 from models.games.card_games import Card, CardGame
-from models.games.card_games.variances.president_rankings import PresidentRank
-from rules import PresidentRules
+from .president_rankings import PresidentRank
+from .president_rules import PresidentRules
 
 
 class PresidentGame(CardGame):

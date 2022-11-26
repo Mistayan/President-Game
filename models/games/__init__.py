@@ -7,5 +7,5 @@ Creation-date: 11/10/22
 """
 
 # sub_modules MUST be in MRO order !!!
-from .card_games.variances.president_game import CardGame, PresidentGame
+from models.games.card_games.variances.president.president_game import CardGame, PresidentGame
 from .game_template import Game
