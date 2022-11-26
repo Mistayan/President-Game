@@ -110,7 +110,7 @@ class Game(Server, ABC, SerializableObject):
         for winner in winners:
             ww = winner.copy()
             if winner['last_play']:
-                ww["last_play"] = winner["last_play"].unicode_safe() or None
+                ww["last_play"] = winner["last_play"] or None
             json_winners.append(ww)
         return json_winners
 
