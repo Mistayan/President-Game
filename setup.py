@@ -15,18 +15,21 @@ from setuptools import setup
 
 if __name__ == '__main__':
     BASEDIR = os.path.abspath(os.getcwd())
-    if not os.path.exists(os.path.join(BASEDIR, "venv")):
-        print("Checking for new pip version... it is required to have last version for security.")
-        check_pip = Popen("python -m pip install --upgrade pip".split()).communicate()
+    venv_py = "venv/Scripts/python"
+    if not os.path.exists(os.path.join(BASEDIR, venv_py)):
         print("Creating venv")
         init = Popen("python -m venv venv".split()).communicate()
-        print("Applying requirements")
-        install = Popen("./venv/Scripts/python ./venv/Scripts/activate_this && "
-                     "./venv/Scripts/pip install -r requirements.txt".split()).communicate()
+        print("Checking for new pip && wheel version... last security version.")
+        check_pip = Popen(f"{venv_py} pip install --upgrade pip".split()).communicate()
+        check_wheel = Popen(f"{venv_py} pip install --upgrade wheel".split()).communicate()
         if not os.path.exists(os.path.join(BASEDIR, "venv")):
             raise EnvironmentError("You must setup a virtual environment to use this method.\n"
                                    ">>> python venv venv\n>>> activate\n"
                                    ">>>pip install -r requirements.txt")
+    if os.path.exists(os.path.join(BASEDIR, "venv")):
+        print("Applying requirements")
+        install = Popen(f"{venv_py} install -r requirements.txt".split()).communicate()
+
     # argparse.ArgumentParser(
     #     prog="setup.py",
     #     exit_on_error=True,
@@ -36,7 +39,7 @@ if __name__ == '__main__':
     if sys.argv and len(sys.argv) == 2 and sys.argv[1] in ('install', 'build'):
         setup(
             name='Game-Servers-Generator',
-            version='1.0',
+            version='0.42.0',
             description="""For now, this is a simple Card Game with variance President Game.""",
             author='Mistayan',
             url='https://github.com/Mistayan/President-Game',
