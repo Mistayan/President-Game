@@ -199,15 +199,13 @@ class Player(SerializableObject, ABC):
         return Counter((card, count) for card, count in Counter(self.hand_as_numbers).items()
                        if count == combo)
 
-    def ask_fold(self, override: bool = False) -> bool:
+    def ask_yes_no(self, question: str, override: bool = False) -> bool:
         """ Return True for Yes, False for No.
                  False by default"""
-
         answer = override
         if not answer:
-            _in = input(f"{self}, fold ?[Y]es / [N]o ?>").lower()
+            _in = input(f"{self}, {question} ?>").lower()
             if _in and _in[0] == "y":
-                self.set_fold()
                 answer = True
         return answer
 
