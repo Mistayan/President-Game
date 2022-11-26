@@ -18,6 +18,7 @@ from flask import Flask
 
 from models import root_logger
 from models.games.apis import db, apis_conf  # , ma
+from models.games.apis.apis_conf import SERVER_HOST, SERVER_PORT
 
 
 class Server(Flask, ABC):
@@ -41,6 +42,7 @@ class Server(Flask, ABC):
     @abstractmethod
     def __init__(self, import_name: str, *args):
         super().__init__(import_name)
+        self.local_process = None
         self.logger = logging.getLogger(__class__.__name__)
         self.name = import_name
         self.status = self.OFFLINE
@@ -80,14 +82,14 @@ class Server(Flask, ABC):
             pass
         # self.__cors = CORS(self.__app, resources={r"/*": {"origins": "*"}})
 
-    def run_server(self, port: int):
+    def run_server(self, port: int = 0):
         """ Emulate server running to accept connexions """
         self.status = self.STARTING
         try:
             self.status = self.PROCESSING
             ...
             self.status = self.SERVER_RUNNING
-            self.run("localhost", port)
+            self.run(SERVER_HOST, port or SERVER_PORT)
 
         except KeyboardInterrupt:
             self.status = self.OFFLINE
