@@ -1,14 +1,12 @@
+import logging
 import unittest
 from collections import Counter
 
+import coloredlogs
+
 from models import PresidentGame, Card
-from models.Errors import CheaterDetected
+from models.games.Errors import CheaterDetected
 from rules import GameRules, PresidentRules
-
-
-class InvalidCard(Exception):
-    def __init__(self, msg=""):
-        raise Exception(msg)
 
 
 class TestPresidentGame(unittest.TestCase):
@@ -76,6 +74,7 @@ class TestPresidentGame(unittest.TestCase):
         self.assertIsNotNone(game.winners())
 
     def test_one_game_with_exchange___3_AIs(self):
+        """ Test may fail because AI is dumb... or given bad instructions by game """
         # the simple fact that it runs until the end is a proof in itself
         game = PresidentGame(nb_players=0, nb_ai=3, nb_games=2, save=False)
         game._initialize_game()
@@ -137,3 +136,8 @@ class TestPresidentGame(unittest.TestCase):
                 self.assertFalse(player_index == i)
             p and p.set_played()
             game._skip_players = True  # optional ?
+
+
+if __name__ == '__main__':
+    coloredlogs.set_level(logging.DEBUG)
+    unittest.main()

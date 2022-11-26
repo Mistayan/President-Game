@@ -1,9 +1,6 @@
-from typing import Final
-
 import names
 
 from models.games import PresidentGame
-
 
 if __name__ == '__main__':
     # INIT

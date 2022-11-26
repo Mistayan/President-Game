@@ -1,4 +1,7 @@
+import logging
 import unittest
+
+import coloredlogs
 
 from models.games import PresidentGame
 from models.players.player import Player
@@ -7,6 +10,7 @@ from models.players.player import Player
 class TestGame(unittest.TestCase):
     def test_default_game_has_three_players(self):
         game = PresidentGame(nb_games=True, save=False)
+        print(len(game.players))
         self.assertTrue(len(game.players) == 3)
 
     def test_game_launch_distributes_cards(self):
@@ -23,6 +27,7 @@ class TestGame(unittest.TestCase):
     def test_game_human_or_ai(self):
         """ verifies that AI are not humans """
         game = PresidentGame(nb_players=1, nb_ai=2, nb_games=True, save=False)
+        # human, ai_1, ai_2 = (game.players[i] for i, player in enumerate(game.players))
         human = game.players[0]
         ai_1 = game.players[1]
         ai_2 = game.players[2]
@@ -44,7 +49,7 @@ class TestGame(unittest.TestCase):
         ori_len_1 = len(p1_copy)
         ori_len_2 = len(p2_copy)
         card = player_1.hand[0]
-        game.player_give_card_to(player=player_1, give=card, to=player_2)
+        game.player_give_to(player=player_1, give=card, to=player_2)
 
         # Ensure both players hands changes
         self.assertNotEqual(ori_len_1, len(player_1.hand))
@@ -55,4 +60,5 @@ class TestGame(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    coloredlogs.set_level(logging.DEBUG)
     unittest.main()

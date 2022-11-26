@@ -5,9 +5,12 @@ Project: President-Game
 IDE: PyCharm
 Creation-date: 11/01/22
 """
+import logging
 import unittest
 
-from tests import *
+import coloredlogs
+
+from tests import TestGame, TestCards, TestDeck, TestPlayers, TestPresidentGame
 
 
 class TestAll(unittest.TestCase):
@@ -25,4 +28,5 @@ class TestAll(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    coloredlogs.set_level(logging.DEBUG)
     unittest.main()

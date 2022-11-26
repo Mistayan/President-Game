@@ -6,5 +6,5 @@ IDE: PyCharm
 Creation-date: 11/10/22
 """
 
-if __name__ == '__main__':
-    pass
+# sub_modules MUST be in MRO order !!!
+from .interface_template import Interface

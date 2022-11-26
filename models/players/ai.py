@@ -1,12 +1,11 @@
 import logging
 from collections import Counter
-from pprint import pprint
 
 import names
 
-from models import Card
-from rules import PresidentRules
+from models.games.card_games.card import Card
 from models.players.player import Player
+from rules import PresidentRules
 
 
 class AI(Player):
@@ -44,7 +43,7 @@ class AI(Player):
         """
 
         self.counter = Counter([card.number for card in self.hand])  # actualize counter
-        self.got_revolution_in_hand = self.all_of_combo(4).total() > 0
+        self.got_revolution_in_hand = len(self.all_of_combo(4)) > 0
         play = None
         if n_cards_to_play == 0:  # No previous player, choose n_cards
             self.first = True
@@ -82,7 +81,7 @@ class AI(Player):
         total = 0
         for number, count in self.counter.items():
             total += count / (self.game.VALUES.index(number) + 1)
-        mean = total / counter.total()
+        mean = total / len(counter)
         self.__logger.debug(f"interest over playing revolution : {mean}")
         return mean
 
@@ -102,7 +101,7 @@ class AI(Player):
             result = total_power / (self.game.revolution + 1)
             result /= (total_combo_pairs + 1)
             result *= total_possible_cards
-            result /= self.counter.total()
+            result /= len(self.counter)
         else:
             result = 0.042
 
@@ -138,4 +137,5 @@ class AI(Player):
             card = None
         card and self.__logger.info(f"Trying: {card.__repr__()}")
         return card or \
-            rec_level and self.calc_best_card(nb_cards, split=not split, rec_level=rec_level-1)
+               rec_level and self.calc_best_card(nb_cards, split=not split,
+                                                 rec_level=rec_level - 1)

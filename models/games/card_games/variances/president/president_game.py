@@ -1,20 +1,22 @@
 import logging
 from typing import Final
 
-from models.games.card_game import CardGame
-
-from models import Card
-from models.rankings import PresidentRank
+from models.games.card_games import Card, CardGame
 from rules import PresidentRules
+from .president_rankings import PresidentRank
 
 
 class PresidentGame(CardGame):
-    def __init__(self, nb_players=3, nb_ai=0, *players_names, nb_games: int = 0, save=True):
+    def __init__(self, nb_players=0, nb_ai=3, *players_names, nb_games: int = 0, save=True):
         """ Instantiate a CardGame with President rules and functionalities """
+        self.players_limit = PresidentRules.MAX_PLAYERS  # Arbitrary Value
+        if PresidentRules.MIN_PLAYERS < nb_players + nb_ai > PresidentRules.MAX_PLAYERS:
+            raise ValueError(f"Invalid Total Number of Players to create PresidentGame.")
+        super(PresidentGame, self).__init__(nb_players, nb_ai, *players_names, nb_games=nb_games,
+                                            save=save)
         self._logger: Final = logging.getLogger(__class__.__name__)
-        if 3 < nb_players + nb_ai > 6:
-            raise ValueError(f"Invalid Total Number of Players to create PresidentGame. 3-6")
-        super().__init__(nb_players, nb_ai, *players_names, nb_games=nb_games, save=save)
+        self._logger.debug("instantiating PresidentGame")
+
         super().set_game_name(__class__.__name__)  # Override CardGame assignation
         self._revolution = False  # on first game, always False
 
@@ -38,13 +40,15 @@ class PresidentGame(CardGame):
             sentence = f"{player}: {player.rank.rank_name} gives" \
                        f" {'his best ' if adv < 0 else 'no' if not adv else abs(adv)} cards" \
                        f" {'to ' + str(give_to) if adv else ''}"
-            print(sentence)
+            self.send_all(sentence)
             for _ in range(abs(adv)):  # give cards according to adv.
                 # If neutral, do not trigger
                 card = None
                 while not card:
                     card = self.player_choose_card_to_give(player)
-                self.player_give_card_to(player, card, give_to)
+                self.player_give_to(player, card, give_to)
+            # No more card to give
+            player.action_required = False  # Actions not required anymore
 
     def player_choose_card_to_give(self, player) -> Card:
         """
@@ -57,9 +61,9 @@ class PresidentGame(CardGame):
         if adv < 0:  # Give best card if negative advantage
             card = player.hand[-1]
             if player.rank.rank_name == "Troufion":
-                self.last_playing_player_index = self.get_player_index(player)
+                self.next_player_index = self.get_player_index(player)
         if adv > 0:  # Otherwise choose card to give
-            result = player.choose_card_to_give()
+            result = player.choose_cards_to_give()
             if result:
                 card = result[0]
                 player.add_to_hand(card)
@@ -79,7 +83,7 @@ class PresidentGame(CardGame):
             return False
         pile_comp = self.pile[(self.required_cards * 2)::-1]
         game, player = pile_comp[:self.required_cards], pile_comp[self.required_cards:]
-        self._logger.debug(f"{self.players[self.last_playing_player_index]}"
+        self._logger.debug(f"{self.players[self.next_player_index]}"
                            f" plays: {player}... comparing to {game}")
         return [game[i] == player[i]
                 for i in range(self.required_cards)].count(True) == self.required_cards
@@ -98,9 +102,9 @@ class PresidentGame(CardGame):
             return
         self._revolution, self.VALUES = not self._revolution, self.VALUES[::-1]
 
-        print("#" * 50)
-        print(" ".join(["#" * 15, f"!!! REVOLUTION !!!", "#" * 15]))
-        print("#" * 50)
+        self.send_all("#" * 50)
+        self.send_all(" ".join(["#" * 15, f"!!! REVOLUTION !!!", "#" * 15]))
+        self.send_all("#" * 50)
 
     def winners(self) -> list[dict]:
         """ get super ranking then append PresidentGame rankings
@@ -118,23 +122,28 @@ class PresidentGame(CardGame):
     def card_can_be_played(self, card):
         """ Returns True if the card can be played according to pile and rules """
         return len(self.pile) == 0 or card <= self.pile[-1] and self._revolution \
-            or super().card_can_be_played(card)  # resolve by importance
+               or super().card_can_be_played(card)  # resolve by importance
 
     def _do_play(self, index, player, cards) -> bool:
         """
         Handle PresidentGame variances in rules sets.
+        Check if cards are the same power before calling super()._do_play
         <u>Revolution :</u> invert cards power.
         <u>Ta_Gueule :</u>
         - The next player that should've been able to play cannot play (acts like he played)
         - Has no effect if the player is the last standing.
+        :returns: True if play is a success, false on any error encountered
         """
+        if cards and 1 < len(cards) == [cards[i - 1] == cards[i] for i in
+                                        range(1, len(cards))].count(True):
+            return False
         super()._do_play(index, player, cards)
         len(cards) == 4 and self.set_revolution()  # if PresidentRules.USE_REVOLUTION
         if self.skip_next_player_rule_apply:
-            for i, p in self.next_player:
+            for _, p in self.next_player:
                 if not p:
                     break  # Nothing happens
-                print(''.join(["#"*20, f"applying TG to {p}", "#"*20]))
+                self.send_all(''.join(["#" * 20, f"applying TG to {p}", "#" * 20]))
                 p.set_played()
                 break
 
@@ -150,3 +159,13 @@ class PresidentGame(CardGame):
         if self._run and self._winners:
             self.do_exchanges()  # Do exchanges
         super(PresidentGame, self)._run_loop()
+
+    def to_json(self) -> dict:
+        su: dict = super(PresidentGame, self).to_json()
+        update = {"revolution": self.revolution}
+        if not self._run:
+            update.setdefault("president_rules",
+                              PresidentRules(len(self.players)).__repr__())
+
+        su.update(update)
+        return su

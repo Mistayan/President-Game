@@ -1,5 +1,7 @@
 # Le jeu du président
 
+[[_TOC_]]
+
 Le président (aussi appelé le troufion) est un jeu de cartes rapide et amusant, au cours duquel la
 hiérarchie des joueurs changera à chaque manche.
 Le vainqueur d'une manche devient le président, alors que le perdant est proclamé troufion.
@@ -45,8 +47,8 @@ Attention, la carte la plus forte est le `2`, puis l'as, puis le `R`, `D`, `V`, 
 
 ### Décomposition du problème
 
- Le jeu du président est un __jeu__ | __de cartes__ avec certaines __regles__.<br>
- Nous requérons de pouvoir sauvegarder nos données de jeu --> __DB__
+Le jeu du président est un __jeu__ | __de cartes__ avec certaines __regles__.<br>
+Nous requérons de pouvoir sauvegarder nos données de jeu --> __DB__
 
 ```mermaid
 classDiagram
@@ -55,6 +57,9 @@ classDiagram
     GameRules *-- CardGame
     CardGame *-- Deck
     Deck *-- Card
+    Game *-- Player
+    Player <|-- AIPlayer
+    Player <|-- HumanPlayer
     class Game{
         Meta: ABC
         +[Player] players
@@ -69,6 +74,20 @@ classDiagram
     class Database{
         +update()
     }
+    class Player{
+        +String name
+        +[Card] hand
+        +add_to_hand()
+        +remove_from_hand()
+        +play()
+    }
+        class AIPlayer{
+        +play()
+    }
+    class HumanPlayer{
+        +play()
+    }
+
     class Deck{
         +[Card] cards
         +shuffle()
@@ -80,12 +99,13 @@ classDiagram
 ```
 
 ## Le jeu du président
+
 Comme annoncé, le jeu du __President__ et un __jeu de cartes__ <br>
 Il possède des __regles supplémentaires__ par rapport à un jeu de cartes classique <br>
-Ce jeu possède aussi son propre __système de classement des joueurs__, chaque rang ayant des 
+Ce jeu possède aussi son propre __système de classement des joueurs__, chaque rang ayant des
 __avantages__ donnés en nombre de cartes, à échanger lors de la prochaine partie <br>
 Un joueur peut jouer un __jeu de cartes__ ou le jeu du __Président__.
- Le __jeu__ accepte de recevoir des cartes de la part des joueurs --> __do_play()__<br>
+Le __jeu__ accepte de recevoir des cartes de la part des joueurs --> __do_play()__<br>
 Il peut forcer les joueurs à échanger leurs cartes lors du début d'une __nouvelle partie__
 
 ```mermaid
@@ -94,9 +114,6 @@ classDiagram
     RankingRules *-- PresidentRankings
     PresidentRules *-- PresidentGame
     PresidentRankings *-- PresidentGame
-    PresidentGame *-- Player
-    Player <|-- AIPlayer
-    Player <|-- HumanPlayer
     
     class CardGame{
         +queen_of_heart_start()
@@ -110,24 +127,14 @@ classDiagram
         +do_exchanges()
         +do_play()
     }
-    class Player{
-        +String name
-        +[Card] hand
-        +add_to_hand()
-        +remove_from_hand()
-        +play()
-    }
     class PresidentRankings{
         +rank_name
         +advantage()
     }
-    class AIPlayer{
-        +play()
-    }
-    class HumanPlayer{
-        +play()
-    }
+
+    
 ```
+
 ## Rush 3
 
 Implémenter une petite interface pour représenter les cartes au sein
@@ -137,28 +144,82 @@ Il est possible de sélectionner plusieurs cartes dès lors qu'elles ont la mêm
 
 ```mermaid
 classDiagram
-    class CardGame{
-    (or any dependent)
-    +prompt()
-    +send()
-    +receive()
-    }
     class Cli{
-        Interface StdIO
-        +prompt()
-        +display()
+    StdIO (print / input)
+    }
+    class Game{
+    (or any dependent)
+       +send_player()
+    }
+    class Server{
+    +receive()
+    +send_all()
+    }
+    class Interface{
         +send()
-        +receive()
+        +update()
+        +connect()
+        +disconnect()
+        +start()
+    }
+    class Response{
     }
     class Player{
-        +init_interface()
-        +send()
-        +receive()
+        +play()
     }
     Cli <--> Player
-    Cli <--> CardGame
+    Cli <--> Game
+    Interface *-- Cli
+    Server *-- Game
+    Response *-- Server
+    Server *-- Interface
 
 ```
+
+### Table temporelle :
+
+```mermaid
+sequenceDiagram
+    participant Human
+    Human->>Interface: Run()
+    Interface->>Human: Pseudo ?
+    Human->>Interface: Pseudo
+    Interface->>Human: what to do ?
+    Human->>Interface: Connect
+    Interface->>Game: Connect(<player>, <token: on_reconnect>)
+    Game->>Game: internal verifications :<br>header valid<br>player registered ?<br>token valid ? ...
+    Game->>Interface: JWT(<player>, <token>) | 403
+    Interface->>Game: Update(<player>, <game>)
+    Game->>Interface: <player>, <game>
+    Interface->>Human: Connected
+    loop think
+        Human->>Human: Choose game and options
+    end
+    Human->>Interface: Apply options
+    Interface->>Human: valid options
+    Note right of Human: options: work in progress
+    Human->>Interface: Start
+    Interface->>Game: Start <player><token><options>
+    Game->>Game: if 200:<br>distribute,<br>start game
+    Game->>Interface: 200 | 403
+    
+    loop GAME LOOP]<br>[while game_running or Human ONLINE
+        Interface->>Game: Update
+        Game->>Interface: Update
+        Interface->>Interface: Update player and game status
+        Interface->>Human: send_print(game_infos) 
+        
+        loop action required]<br>[While not 200]<br>[TIMEOUT: 30s
+            Interface->>Human: <br>if action_required : play()
+            Interface-->>Human: print hand
+            Human-->>Interface: choose cards
+            Interface->>Game: Play(<player><token><cards>)
+            Game->>Game: token and cards valid -> change player status<br>Update
+            Game->>Interface: 200 | 401 | 403            
+        end
+    end
+```
+
 Une vérification doit être mise en place pour voir si le choix de l'utilisateur est correct.
 
 ## Rush 4
@@ -223,4 +284,43 @@ classDiagram
 >
 > Modifier rules.py pour adapter les regles du jeu
 >
-> python main.py  
+> python main.py
+
+# TODO schema mermaid de sécurité timeline
+
+# TODO
+
+```python
+
+@self.route(f"/{Play.request['message']}/{Play.REQUIRED}",
+            methods=(Play.request['methods']))
+
+
+def play(player, plays):
+    player: Human = self.get_player(player)
+    if not player.is_human:
+        raise CheaterDetected("An AI cannot use this method...")
+```
+
+```python
+
+class Play(Restricted):
+    REQUIRED = "<player>/<plays>"
+    request: dict = {'methods': ("POST",), 'message': "Play", 'plays': []}
+    POSSIBLE_VALUES = GameRules.VALUES
+    POSSIBLE_COLORS = GameRules.COLORS
+    response: dict = {'token': None, 'player': None, "play": []}
+```
+
+# TODO
+
+```shell
+pylint $(git ls-files '*.py')
+>>> Your code has been rated at 7.73/10 (previous run: 7.73/10, +0.00) # 21/11/2022 20-38-00
+>>> Your code has been rated at 7.82/10 (previous run: 7.56/10, +0.26) # 21/11/2022 21-37-00
+
+pylint ./models
+>>> Your code has been rated at 7.83/10 (previous run: 7.83/10, +0.00) # 21/11/2022 21-38-00
+
+pylint ./tests
+```

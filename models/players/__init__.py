@@ -6,6 +6,8 @@ IDE: PyCharm
 Creation-date: 11/10/22
 """
 
-from .player_template import Player
-from .player import Human
+# sub_modules MUST be in MRO order !!!
+
 from .ai import AI
+from .player import Human
+from .player_template import Player

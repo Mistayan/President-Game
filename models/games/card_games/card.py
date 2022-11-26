@@ -1,27 +1,31 @@
 from __future__ import annotations
 
+from models.games.plays import GamePlay
 from rules import GameRules
 
 
-class Card:
+class Card(GamePlay):
 
-    def __init__(self, number, color):
+    def __init__(self, *args, **kwargs):
         """
         Instantiate a Card for a Deck
         :param number: the strength of the card
         :param color: the color of the card
         """
-        self.validate(number, color)
+        number, color = self.validate(*args, **kwargs)
         self.number = number
         self.color = color
 
     @staticmethod
-    def validate(num, color):
+    def validate(*args, **kwargs):
         """ validate if num and color are valid inputs """
+        assert len(args) == 2 or len(kwargs) == 2
+        num, color = args or kwargs
         if str(num) not in GameRules.VALUES:
             raise ValueError(f"Card number is not in {GameRules.VALUES}")
         if color not in GameRules.COLORS:
             raise ValueError(f"Card color must be in {GameRules.COLORS}")
+        return num, color
 
     def __eq__(self, other):
         """ test card's numbers equity (see __ne__ for value & color comparison) """
@@ -84,7 +88,7 @@ class Card:
 
     def unicode_safe(self):
         """ Whenever you require unicode safe strings, use this method """
-        return f"{self.number} of {GameRules.COLORS[self.color]}"
+        return f"{self.number},{GameRules.COLORS[self.color]}"
 
     def __str__(self):
         return f"{self.number}{self.color}"
@@ -95,3 +99,9 @@ class Card:
     def same_as(self, card: Card):
         """ compare addresses in memory to assert the cards are strictly the same"""
         return self is card
+
+    @staticmethod
+    def from_unicode(unisafe_color):
+        for k, v in GameRules.COLORS.items():
+            if v == unisafe_color:
+                return k
