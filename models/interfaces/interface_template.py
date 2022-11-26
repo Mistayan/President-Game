@@ -106,13 +106,18 @@ class Interface(Server):
         message.request = self._fill_request(message, self.__player, self.__token)
         self.logger.debug(f"{message_method} : {message.request}")
         self.logger.info(f"sending {message.__class__.__name__} request to {target}")
-        response = requests.request(
-            method=message_method,
-            url=f"{self._PROTOCOL}://{target}/{message.request['message']}/{self.__player.name}",
-            headers=message.headers,
-            cert=None,  # yet...
-            json=message.to_json(),
-        )
+        response = self.not_found(target)
+        try:
+            response = requests.request(
+                method=message_method,
+                url=f"{self._PROTOCOL}://{target}/{message.request['message']}/{self.__player.name}",
+                headers=message.headers,
+                cert=None,  # yet...
+                json=message.to_json(),
+            )
+        except ConnectionError:
+            print(f"Server {target} Not responding. {response}")
+
         return response
 
     @ValidateBuffer
