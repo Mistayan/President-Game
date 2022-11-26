@@ -13,7 +13,7 @@ import coloredlogs
 from models.games.card_games import PresidentGame
 
 if __name__ == '__main__':
-    coloredlogs.set_level(logging.DEBUG)
+    coloredlogs.set_level(logging.CRITICAL)
     try:
         with Pool(processes=1, ) as pool:
             pool.apply_async(PresidentGame().run_server(5001))
