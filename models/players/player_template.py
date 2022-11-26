@@ -244,7 +244,7 @@ class Player(SerializableObject, ABC):
 
     def choose_cards_to_play(self, n_cards_to_play, override: str = None) -> list[Card]:
         """ use override to force input from external sources, instead of builtins inputs
-        If max_combo <= n_cards_to_play , cannot play ! (ask_fold to fold by pressing enter)
+        If max_combo <= n_cards_to_play , cannot play ! (ask to fold by pressing enter)
         Otherwise, player choose a card number from his hand and give N times this card.
         """
         cards_to_play = []
