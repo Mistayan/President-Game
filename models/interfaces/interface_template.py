@@ -333,13 +333,29 @@ class Interface(Server):
     def __del__(self):
         self.disconnect()
 
-    def find_game(self):
-        """ Allow interface to find other games running """
+    def find_game(self) -> int:
+        """
+        Allow interface to find other games running
+        :return: either server index selected or -1 in case of error
+        """
         finder = GameFinder()
         self.logger.debug(f"Not running : {finder.availabilities}")
         options = {(s, p): functools.partial(self.connect, s, p)
                    for s, p in finder.running_servers}
-        return self.menu("Choose Game", options)
+        if len(options):
+            return self.menu("Choose Game", options)
+        elif self.__player.ask_yes_no("No game Found. Start a server yourself ? :)"):
+            print("python :", os.path.join(BASEDIR, "venv/Scripts/python"))
+            print("starting background task : ", os.path.join(BASEDIR, "run_server.py"))
+            self.local_process = Popen([
+                os.path.join(BASEDIR, "venv/Scripts/python"),
+                os.path.join(BASEDIR, "run_server.py")
+            ])
+            if coloredlogs.get_level() == logging.DEBUG:
+                self.local_process.communicate()
+            time.sleep(3)  # let time for server to start
+            return self.find_game()
+        return -1
 
     def create_game(self):
         """ Allows player to start a new server locally """
@@ -349,8 +365,8 @@ class Interface(Server):
         pass
 
     def reconnect(self):
-        self.__token = input("token ? >")
         self.find_game()
+        self.__token = input("token ? >")
 
     def init_server(self, name):
         pass
