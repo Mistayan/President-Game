@@ -265,6 +265,7 @@ class Interface(Server):
 
     def __enter__(self):
         # ttysetattr etc goes here before opening and returning the file object
+        print(f"Welcome, {self.__player}")
         return self
 
     def __aenter__(self):
