@@ -127,16 +127,15 @@ class Interface(Server):
         """
         Whenever we receive a message, we are required to apply it
         """
-        msg_test = msg.copy()
-        match self.__msg_buffer["action"]:
-            case "Play":
-                self.__msg_buffer.setdefault("action", self.__player.play(msg['required_cards']))
-            case "Give":
-                self.__msg_buffer.setdefault("action", self.__player.choose_cards_to_give())
-            case "Info":
-                print(self.__msg_buffer["message"])
-            case _:
-                raise MessageError(f"Non of the given message is valid: {self.__msg_buffer}")
+        test = self.__msg_buffer["action"]
+        if test == "Play":  # changed to if/elif for python 3.9 compatibility
+            self.__msg_buffer.setdefault("action", self.__player.play(msg['required_cards']))
+        elif test == "Give":
+            self.__msg_buffer.setdefault("action", self.__player.choose_cards_to_give())
+        elif test == "Info":
+            print(self.__msg_buffer["message"])
+        else:
+            raise MessageError(f"Non of the given message is valid: {self.__msg_buffer}")
         return self.send()
 
     @staticmethod
