@@ -154,6 +154,7 @@ class Interface(Server):
         _request["token"] = token
         return _request
 
+    @property
     def update(self):
         """
         Update game status, then player status.
@@ -218,7 +219,7 @@ class Interface(Server):
         self.logger.debug(f"Updated token to {self.__token}")
 
     @staticmethod
-    def __menu_ask_row(rows):
+    def __select_option_number(rows):
         answer = None
         while answer is None:
             _in = input("select an option... : \r")
