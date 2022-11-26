@@ -6,23 +6,26 @@ from rules import GameRules
 
 class Card(GamePlay):
 
-    def __init__(self, number, color):
+    def __init__(self, *args, **kwargs):
         """
         Instantiate a Card for a Deck
         :param number: the strength of the card
         :param color: the color of the card
         """
-        self.validate(number, color)
+        number, color = self.validate(*args, **kwargs)
         self.number = number
         self.color = color
 
     @staticmethod
-    def validate(num, color):
+    def validate(*args, **kwargs):
         """ validate if num and color are valid inputs """
+        assert len(args) == 2 or len(kwargs) == 2
+        num, color = args or kwargs
         if str(num) not in GameRules.VALUES:
             raise ValueError(f"Card number is not in {GameRules.VALUES}")
         if color not in GameRules.COLORS:
             raise ValueError(f"Card color must be in {GameRules.COLORS}")
+        return num, color
 
     def __eq__(self, other):
         """ test card's numbers equity (see __ne__ for value & color comparison) """
@@ -98,7 +101,7 @@ class Card(GamePlay):
         return self is card
 
     @staticmethod
-    def from_unisafe(unisafe):
+    def from_unicode(unisafe_color):
         for k, v in GameRules.COLORS.items():
-            if v == unisafe:
+            if v == unisafe_color:
                 return k
