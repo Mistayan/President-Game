@@ -17,7 +17,7 @@ from typing import Final
 from flask import Flask
 
 from models import root_logger
-from models.games.apis import db, apis_conf  # , ma
+from models.games.apis import apis_conf  # , ma
 from models.games.apis.apis_conf import SERVER_HOST, SERVER_PORT
 
 
@@ -72,15 +72,16 @@ class Server(Flask, ABC):
     @abstractmethod
     def init_server(self, name):
         # migrate = Migrate()
-        db.init_app(self)
+        # db.init_app(self)
         # bcrypt.init_app(self)
         # ma.init_app(self.__app)
         # migrate.init_app(self.__app, db)
-        try:
-            db.create_all()  # not in use ATM
-        except:
-            pass
+        # try:
+        #     db.create_all()  # not in use ATM
+        # except:
+        #     pass
         # self.__cors = CORS(self.__app, resources={r"/*": {"origins": "*"}})
+        pass
 
     def run_server(self, port: int = 0):
         """ Emulate server running to accept connexions """
