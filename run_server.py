@@ -10,7 +10,7 @@ from multiprocessing import Pool
 
 import coloredlogs
 
-from models.games.card_games import PresidentGame
+from models import PresidentGame
 
 if __name__ == '__main__':
     coloredlogs.set_level(logging.CRITICAL)
