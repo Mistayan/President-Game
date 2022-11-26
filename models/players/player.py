@@ -63,16 +63,16 @@ class Human(Player):
         }
 
     def from_json(self, _json: dict):
-        self.__update_hand(_json)
+        self.__update_hand(_json.get("hand_c"), _json.get("hand_n"))
         self.__update_status(_json)
 
-    def __update_hand(self, _json: dict):
-        assert len(_json["hand_n"]) == len(_json["hand_c"])
+    def __update_hand(self, hand_c: list[str], hand_n: list[int]):
+        assert len(hand_n) == len(hand_c)
         cards = []
-        for i, color in enumerate(_json["hand_c"]):
+        for i, color in enumerate(hand_c):
             for unsafe, safe in GameRules.COLORS.items():
                 if safe == color:
-                    cards.append(Card(_json["hand_n"][i], unsafe))
+                    cards.append(Card(hand_n[i], unsafe))
         self.hand = cards
 
     def __update_status(self, _json: dict):
