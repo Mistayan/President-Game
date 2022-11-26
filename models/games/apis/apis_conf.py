@@ -18,7 +18,7 @@ version = (1, 0, 0)
 SERVER_HOST = '0.0.0.0'  # Allows distant access
 SERVER_PORT = '5001'
 
-BASEDIR = os.path.abspath(os.path.dirname(__file__))
+BASEDIR = os.path.abspath(os.getcwd())
 DB_TYPE = os.environ.get("DATABASE_TYPE", "sqlite")
 DATABASE_NAME = os.environ.get("DATABASE_NAME", "game_db")
 DATABASE_USER = os.environ.get("DATABASE_USER", "user")
