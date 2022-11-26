@@ -247,15 +247,20 @@ class Interface(Server):
                 options.setdefault("Game Options [Game, rules] (WIP)", self.set_game_options)
             else:
                 options.setdefault("Reconnect", self.reconnect)
-
-        while True:
-            print("#" * 20 + f" {name.upper()} " + "#" * 20)
-            for i, option in enumerate(options):
-                print(f"{i + 1} : {option}")
-            choice = self.__menu_ask_row(options)
-            for i, (info, action) in enumerate(options.items()):
-                if i + 1 == choice:
-                    return action()
+        action = -1
+        if len(options):
+            while action == -1:
+                print("#" * 20 + f" {name.upper()} " + "#" * 20)
+                for i, option in enumerate(options):
+                    print(f"{i + 1} : {option}")
+                choice = self.__select_option_number(options)
+                for i, (info, action) in enumerate(options.items()):
+                    if i + 1 == choice:
+                        action = action()
+                        break
+        else:
+            print("No menu to display")
+        return action
 
     def __enter__(self):
         # ttysetattr etc goes here before opening and returning the file object
