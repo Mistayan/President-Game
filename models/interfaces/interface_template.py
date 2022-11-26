@@ -101,8 +101,8 @@ class Interface(Server):
         """
         target = destination or self.__game
         super(Interface, self).send(target, self.__msg_buffer)
-        message = self.__msg_buffer()
-        message_method, *others = message.methods
+        message = self.__msg_buffer()  # Instantiate before filling request
+        message_method, *others = message.methods  # Gather only first element from tuple
         message.request = self._fill_request(message, self.__player, self.__token)
         self.logger.debug(f"{message_method} : {message.request}")
         self.logger.info(f"sending {message.__class__.__name__} request to {target}")
@@ -299,6 +299,9 @@ class Interface(Server):
         self.logger.critical(_type)
         self.logger.critical(value)
         self.logger.critical(traceback)
+        self.__token and print(f"Here is your token to reconnect to server : \n{self.__token}")
+        print(colorama.Style.BRIGHT + colorama.Fore.BLACK + colorama.Back.GREEN,
+              "\tSee you soon :D\t\t" + colorama.Style.RESET_ALL)
 
     def __aexit__(self, exc_type, exc_val, exc_tb):
         self.disconnect()
