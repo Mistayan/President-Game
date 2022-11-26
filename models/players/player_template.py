@@ -204,7 +204,7 @@ class Player(SerializableObject, ABC):
                  False by default"""
         answer = override
         if not answer:
-            _in = input(f"{self}, {question} ?>").lower()
+            _in = input(f"{self}, {question} (y/n) ?>").lower()
             if _in and _in[0] == "y":
                 answer = True
         return answer
