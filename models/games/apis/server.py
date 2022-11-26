@@ -101,7 +101,8 @@ class Server(Flask, ABC):
     @abstractmethod
     def send(self, destination, msg):
         """ check file integrity before you can send """
-        assert msg and destination
+        if not (msg and destination):
+            return
         self.logger.debug(f"Preparing : {msg} for {destination}")
         self._last_message_sent = msg
         pass
