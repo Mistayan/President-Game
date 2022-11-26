@@ -13,13 +13,13 @@ from typing import Any
 
 from flask import request, make_response
 
+from models.players import Player, Human, AI
+from models.responses import Connect, Disconnect, Start, Update
+from models.utils import SerializableObject
 from .Errors import CheaterDetected
 from .apis.server import Server
 from .db import Database
 from .plays import GamePlay
-from models.players import Player, Human, AI
-from models.responses import Connect, Disconnect, Start, Update
-from models.utils import SerializableObject
 
 
 class Game(Server, ABC, SerializableObject):
