@@ -24,4 +24,3 @@ if __name__ == '__main__':
                     interface.menu()
         except KeyboardInterrupt as e:
             print("Shutting down Interface...")
-
