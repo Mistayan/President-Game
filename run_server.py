@@ -16,6 +16,6 @@ if __name__ == '__main__':
     coloredlogs.set_level(logging.CRITICAL)
     try:
         with Pool(processes=1, ) as pool:
-            pool.apply_async(PresidentGame().run_server(5001))
+            pool.apply_async(PresidentGame().run_server())
     except KeyboardInterrupt as e:
         print("Server Shutting down...")
