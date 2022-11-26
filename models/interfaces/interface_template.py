@@ -100,6 +100,8 @@ class Interface(Server):
         Everytime the game wants to send a message, we have to retrieve those by updating
         """
         target = destination or self.__game
+        if not target:
+            return self.not_found(target)
         super(Interface, self).send(target, self.__msg_buffer)
         message = self.__msg_buffer()  # Instantiate before filling request
         message_method, *others = message.methods  # Gather only first element from tuple
@@ -158,10 +160,16 @@ class Interface(Server):
         Update game status, then player status.
         :return response: player_update response (game always succeed, unless server down)
         """
-        assert self.__game
-        response = self.__get_update()
+        if not self.__game:
+            return self.menu()
         try:
-            if response.headers["Content-Type"] == "application/json":
+            response = self.__get_update()
+        except ConnectionError:
+            print("Impossible to connect to designated server... sending back to main menu")
+            self.menu()
+            response = self.not_found(self.__game)
+        try:
+            if response and response.headers["Content-Type"] == "application/json":
                 _json = response.json()
                 self.__serialize_game(_json=_json['game'])
                 if response.status_code == 200:
@@ -191,7 +199,12 @@ class Interface(Server):
 
     def __serialize_player(self, _json):
         self.logger.debug(f"Serializing player from : {type(_json)}  ->  {_json}")
-        self.__player.from_json(_json=_json)
+        try:
+            self.__player.from_json(_json=_json)
+        except MessageError:
+            self.__msg_buffer = AnomalyDetected
+            self.__msg_buffer.request.update("anomaly", **_json)
+            self.send()
 
     def request_player_action(self):
         # self.__msg_buffer = Play or Give or Answer
@@ -336,3 +349,8 @@ class Interface(Server):
 
     def to_json(self):
         pass
+
+    def not_found(self, target):
+        res = Response
+        res.status_code = 404
+        return res
