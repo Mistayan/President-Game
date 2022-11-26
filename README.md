@@ -1,5 +1,11 @@
 # Le jeu du président
 
+### How to use :
+> git clone https://github.com/Mistayan/President-Game.git <Br>
+> cd Prisendt-Game <br>
+> py setup.py <br>
+> venv/Scripts/python run_interface.py <br>
+
 [[_TOC_]]
 
 Le président (aussi appelé le troufion) est un jeu de cartes rapide et amusant, au cours duquel la
