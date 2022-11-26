@@ -76,7 +76,7 @@ class Player(SerializableObject, ABC):
 
     @abstractmethod
     def ask_n_cards_to_play(self) -> int:
-        """ Implement logic to ask_fold the number of cards to play to player"""
+        """ Implement logic to ask the number of cards to play to player"""
         ...
 
     @property
