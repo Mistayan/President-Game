@@ -22,7 +22,7 @@ from .db import Database
 from .plays import GamePlay
 
 
-class Game(Server, ABC, SerializableObject):
+class Game(Server, SerializableObject, ABC):
 
     @abstractmethod
     def __init__(self, nb_players=0, nb_ai=3, *players_names, save=True):
