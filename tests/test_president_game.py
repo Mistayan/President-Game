@@ -66,14 +66,18 @@ class TestPresidentGame(unittest.TestCase):
         GameRules.USE_REVOLUTION = True
         game.set_revolution()
         # After revolution, values should be reversed
-        strongest_after = game.strongest_card
-        self.assertNotEqual(strongest_before, strongest_after)
+        self.assertNotEqual(strongest_before, game.strongest_card)
+
+        game.set_revolution()
+        GameRules.USE_REVOLUTION = False
+        self.assertEqual(strongest_before, game.strongest_card)
 
     def test_one_game_3_AIs_with_ladder(self):
         """ Test that winners() triggers as soon as game is over """
         # the simple fact that it runs until the end is proof
         game = PresidentGame(nb_players=0, nb_ai=3, nb_games=1, save=True)
         game._initialize_game()
+        self.assertRaises(RuntimeWarning, game.winners)
         game._play_game()
         self.assertIsNotNone(game.winners())
 
