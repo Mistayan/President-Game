@@ -190,7 +190,7 @@ class Game(Server, SerializableObject, ABC):
         rank_gen = [{"player": player_infos[0].name,
                      "rank": i + 1,
                      "round": player_infos[1],
-                     "last_play": player_infos[2].unicode_safe()
+                     "last_play": player_infos[2]
                      } for i, player_infos in enumerate(self._winners)]
         return rank_gen
 
