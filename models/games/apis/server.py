@@ -16,12 +16,15 @@ from typing import Final
 # import Migrate as Migrate
 from flask import Flask
 
-from models import root_logger
+from models import ROOT_LOGGER
 from models.games.apis import apis_conf  # , ma
 from models.games.apis.apis_conf import SERVER_HOST, SERVER_PORT
 
 
 class Server(Flask, ABC):
+    """ Base class handling Flask Server
+
+    """
     # Instances Shared attributes
     # Will only be generated on first run of an instance, while GameManager runs
     _super_shared_private: Final = ''.join(random.choices(string.hexdigits, k=100))
@@ -52,7 +55,7 @@ class Server(Flask, ABC):
         self.config.setdefault("APPLICATION_ROOT", "/")
         self.config.setdefault("PREFERRED_URL_SCHEME", "https")
         self.config.setdefault("SERVER_NAME", self.name)
-        self.config.setdefault("DEBUG", root_logger.level == logging.DEBUG)
+        self.config.setdefault("DEBUG", ROOT_LOGGER.level == logging.DEBUG)
         self.config.setdefault("SECRET_KEY", self._SECRET_KEY)
         self.config.setdefault("CORS_HEADER", 'Content-Type')
         self.config.setdefault("SQLALCHEMY_TRACK_MODIFICATIONS", True)
@@ -65,12 +68,13 @@ class Server(Flask, ABC):
             if apis_conf.DB_TYPE != "sqlite" else \
             'sqlite:///' + os.path.join(apis_conf.BASEDIR, self.name))
 
-        self.init_server(import_name)
+        self._init_server(import_name)
         self.app_context().push()
         self.logger.debug("instantiated Server (requires run)")
 
     @abstractmethod
-    def init_server(self, name):
+    def _init_server(self, name):
+        """ base method to initialize various securities to Flask server, before running """
         # migrate = Migrate()
         # db.init_app(self)
         # bcrypt.init_app(self)
@@ -100,29 +104,27 @@ class Server(Flask, ABC):
         #     print(f'nope {e}')
 
     @abstractmethod
-    def send(self, destination, msg):
-        """ check file integrity before you can send """
+    def _send(self, destination, msg):
+        """ check file integrity before you can _send """
         if not (msg and destination):
             return
         self.logger.debug(f"Preparing : {msg} for {destination}")
         self._last_message_sent = msg
-        pass
 
     @abstractmethod
     def receive(self, msg: dict):
+        """ base method to verify content of a received message, before you can process it"""
         assert isinstance(msg, dict) and msg.get("message") \
                and msg.get("player")
         self.logger.info(f"Receiving : {msg}")
         self._last_message_received = msg
-        pass
 
     @abstractmethod
     def to_json(self):
+        """ Serializing method for exchanges between Server and players"""
         # su = super(Server, self).to_json()
-        update = {
+        return {
             'name': self.name,
             'status': self.status,
             'messages': self._messages_to_send,  # messages for everyone
         }
-        # su.update(update)
-        return update
