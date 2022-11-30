@@ -120,15 +120,27 @@ class GameFinder:
     to join a server, use running servers
     """
 
-    def __init__(self, *args):
+    def __init__(self, **kwargs):
         self.availabilities = []
         self.running_servers = []
+        self.target = kwargs.get("target", "localhost")
+
+        # Kwargs parsing
+        range_min, range_max = kwargs.get("range", (0, 0))  # TODO str = 'A'
+        port = kwargs.get("port", 0)
+        if range_min and range_max: 
+            self.range = range(range_min+1, range_max+1)
+        elif port:
+            self.range = (port+1, port+1)
+        else:
+            self.range = (5001, 5012)
+        # Executing according to params
         self.__scan_port_availability()
 
     def __scan_port_availability(self, target="localhost"):
         try:
             # scan ports
-            for port in range(5001, 5012):
+            for port in self.range:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 socket.setdefaulttimeout(0.1)
 
