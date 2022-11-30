@@ -11,7 +11,7 @@ import os
 from types import MappingProxyType
 from typing import Final
 
-import coloredlogs as coloredlogs
+import coloredlogs
 
 version = (1, 0, 0)
 
