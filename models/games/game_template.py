@@ -11,7 +11,7 @@ from abc import abstractmethod, ABC
 from threading import Thread  # required for Background server task
 from typing import Any
 
-from flask import request, make_response
+from flask import request, make_response, Response
 
 from models.players import Player, Human, AI
 from models.responses import Connect, Disconnect, Start, Update
