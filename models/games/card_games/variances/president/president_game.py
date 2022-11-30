@@ -161,6 +161,7 @@ class PresidentGame(CardGame):
         super(PresidentGame, self)._run_loop()
 
     def to_json(self) -> dict:
+        """ Serialize game for communications"""
         su: dict = super(PresidentGame, self).to_json()
         update = {"revolution": self.revolution}
         if not self._run:
