@@ -1,3 +1,11 @@
+# -*- coding: utf-8 -*-
+"""
+Created by: Mistayan
+Project: President-Game
+IDE: PyCharm
+Creation-date: 26/10/22
+Function : Initialize logger, seed and prevail STATIC references
+"""
 from __future__ import annotations
 
 import logging
@@ -10,5 +18,5 @@ import coloredlogs
 coloredlogs.install()
 coloredlogs.set_level(logging.CRITICAL)
 random.SystemRandom().seed("no_AI_allowed")
-root_logger: Final = logging.getLogger("root_logger")
+ROOT_LOGGER: Final = logging.getLogger("ROOT_LOGGER")
 BASEDIR = os.path.abspath(os.getcwd())
