@@ -115,8 +115,9 @@ class PresidentGame(CardGame):
             self._logger.info(f"winner {i + 1}: {winner}")
             for player in self.players:
                 if player.name == winner['player']:
-                    winner.setdefault("grade",
-                                      PresidentRank(i + 1, player, len(self.players)).rank_name)
+                    rank = PresidentRank(i + 1, player, len(self.players))
+                    winner.setdefault("grade", rank)
+                    self.send_all(f"{player} has been assigned {rank}")
         return winners
 
     def card_can_be_played(self, card):
