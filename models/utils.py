@@ -9,23 +9,49 @@ Imported from : https://www.freecodecamp.org/news/python-decorators-explained-wi
 import json
 import socket
 import tracemalloc
-from abc import ABC
+from abc import ABC, abstractmethod
 from functools import wraps
 from time import perf_counter
 
-from models import root_logger
+from models import ROOT_LOGGER
 
 
-class SerializableObject(object):
+class SerializableObject(ABC):
+    """
+    Base abstract class to serialize an object.
 
-    def __init__(self, *arg, **kwargs):
-        pass
+    !!! COMMUNICATION / SECURITY WARNING !!!
+    If an object inherit from this class, please ensure that returned values given by to_json()
+    are filtered to not expose sensitive datas.
+
+    This class method is only supposed to be used for the sake of __PUBLIC messages__
+    (in this project at least)
+    """
+
+    @abstractmethod
+    def __init__(self, *args, **kwargs):
+        """ Just instantiate methods """
+        super().__init__(*args, **kwargs)
 
     def to_json(self):
-        return json.loads(json.dumps(self, default=lambda o: o.__dict__ if not isinstance(o,
-                                                                                          ABC) else o.__repr__(),
-                                     sort_keys=True, indent=4,
-                                     check_circular=True, ensure_ascii=False, allow_nan=True))
+        """
+        Collect any possible values given by to_json() from children and supers
+
+        Override __dict__, to customize what your object should return
+
+       SECURITY WARNING :
+        - This method is used for communications as public messages in this project
+
+        - If object is used for communications, ensure no sensitive data are exposed publicly
+
+        - If subclass is abstract, ensure __repr__() is defined
+        """
+        return json.loads(json.dumps(
+            self,
+            default=lambda o: o.__dict__,
+            sort_keys=True, indent=4,
+            check_circular=True, ensure_ascii=False, allow_nan=True)
+        )
 
 
 class SerializableClass(object):
@@ -38,7 +64,7 @@ class SerializableClass(object):
                         if str(d)[0] != '_' and str(d) not in ("to_json", "ROUTES")]
         public_attributes = [self.__getattribute__(a) for a in public_names]
         _T_dict = {public_names[i]: public_attributes[i] for i in range(len(public_names))}
-        root_logger.debug(_T_dict)
+        ROOT_LOGGER.debug(_T_dict)
         return json.loads(json.dumps(_T_dict))
 
 
@@ -59,10 +85,10 @@ class ValidateBuffer:
             if not (args or kwargs):
                 raise BufferError("Nothing to apply. Empty buffer")
             response = f(*args, **kwargs)
-            self.after and root_logger.debug(f"{self.after}")
+            self.after and ROOT_LOGGER.debug(f"{self.after}")
             return response
 
-        self.before and root_logger.debug(f"{self.before}")
+        self.before and ROOT_LOGGER.debug(f"{self.before}")
         return validate
 
 
