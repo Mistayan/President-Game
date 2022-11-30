@@ -31,7 +31,7 @@ class PresidentRank:
         """ Ranks classifications for President Game """
         self.logger = logging.getLogger(__class__.__name__)
         self.nb_players = nb_players
-        self.logger.debug(f"nb_players : {nb_players}, currently requested rank: {n}")
+        self.logger.debug(f"nb_players : {nb_players}, currently requested game_rank: {game_rank}")
         if nb_players < 3 or nb_players > 6:
             raise CheaterDetected()
 
