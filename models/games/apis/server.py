@@ -19,6 +19,7 @@ from flask import Flask
 from models import ROOT_LOGGER
 from models.games.apis import apis_conf  # , ma
 from models.games.apis.apis_conf import SERVER_HOST, SERVER_PORT
+from models.utils import GameFinder
 
 
 class Server(Flask, ABC):
@@ -90,12 +91,18 @@ class Server(Flask, ABC):
     def run_server(self, port: int = 0):
         """ Emulate server running to accept connexions """
         self.status = self.STARTING
+        host, port = None, None
         try:
             self.status = self.PROCESSING
-            ...
-            self.status = self.SERVER_RUNNING
-            self.run(SERVER_HOST, port or SERVER_PORT)
+            finder = GameFinder(target=apis_conf.SERVER_HOST, port=port)
+            if not finder.availabilities:
+                self.logger.critical("No open ports found. Please free one of those :")
+                self.logger.critical(finder.running_servers)
+                raise ConnectionError()
 
+            host, port = finder.availabilities[0]
+            self.status = self.SERVER_RUNNING
+            self.run(SERVER_HOST, port)
         except KeyboardInterrupt:
             self.status = self.OFFLINE
             self.logger.critical(f"Closing Server {self.name}...")
