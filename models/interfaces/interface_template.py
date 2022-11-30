@@ -29,7 +29,7 @@ class Interface(Server):
     """
     Instantiate basics for Game interfaces
     """
-
+    local_process: Popen
     DISCONNECTED = 8
     CONNECTED = 10
     WAITING_NEW_GAME = 12
@@ -344,14 +344,8 @@ class Interface(Server):
         if len(options):
             return self.menu("Choose Game", options)
         elif self.__player.ask_yes_no("No game Found. Start a server yourself ? :)"):
-            print("python :", os.path.join(BASEDIR, "venv/Scripts/python"))
             print("starting background task : ", os.path.join(BASEDIR, "run_server.py"))
-            self.local_process = Popen([
-                os.path.join(BASEDIR, "venv/Scripts/python"),
-                os.path.join(BASEDIR, "run_server.py")
-            ])
-            if coloredlogs.get_level() == logging.DEBUG:
-                self.local_process.communicate()
+            self.start_GameServer()
             time.sleep(3)  # let time for server to start
             return self.find_game()
         return -1
@@ -377,3 +371,13 @@ class Interface(Server):
         res = Response
         res.status_code = 404
         return res
+
+    def start_GameServer(self, port=5001, exec_path=BASEDIR):
+        self.local_process = Popen([
+            os.path.join(exec_path, "venv/Scripts/python"),
+            os.path.join(exec_path, f"run_server.py"),
+            f"-p {port}",
+        ])
+        if self.__super:
+            print(self.__super)
+            self.local_process.communicate()
