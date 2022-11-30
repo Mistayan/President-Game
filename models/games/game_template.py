@@ -34,7 +34,7 @@ class Game(Server, SerializableObject, ABC):
         self._winners: list[Player.__class__, int, GamePlay] = []
         self.losers: list[Player.__class__, int, GamePlay] = []
         self.disconnected_players: list[Player] = []  # players logged out while game started
-        self.awaiting_players: list[Player] = []  # players that registered after game started
+        self.spectators: list[Player] = []  # players that registered after game started
         self.plays: list[list] = []
         self._turn = 0
         self._run = False
@@ -54,12 +54,12 @@ class Game(Server, SerializableObject, ABC):
         self.losers = []
         self.disconnected_players = []
         # as long as we can, add players for next game
-        while self.awaiting_players and len(self.players) < self.players_limit:
-            self.players.append(self.awaiting_players.pop())
+        while self.spectators and len(self.players) < self.players_limit:
+            self.players.append(self.spectators.pop())
         # Check players count before starting, remove extra players before starting.
         while len(self.players) > self.players_limit:
             for player in self.players[::-1]:
-                self.awaiting_players.append(self.players.pop(self.players.index(player)))
+                self.spectators.append(self.players.pop(self.players.index(player)))
         self.__game_log.info(' '.join(["#" * 15, "PREPARING NEW GAME", "#" * 15]))
         self._init_db()
 
@@ -144,9 +144,9 @@ class Game(Server, SerializableObject, ABC):
             return p
 
         # player register to the game after it started
-        if player in self.awaiting_players and not self._run:
+        if player in self.spectators and not self._run:
             self.logger.debug(f"Done Waiting {player}")
-            p = self.awaiting_players.pop(self.awaiting_players.index(player))
+            p = self.spectators.pop(self.spectators.index(player))
             p.reset()  # Ensure player is set to default when joining the game
         else:  # Player registers for first time (or after being voided)
             self.logger.debug(f"Registering {player}")
@@ -156,7 +156,7 @@ class Game(Server, SerializableObject, ABC):
                                  f"{' with token ' + str(p.token) if p.is_human else ''}")
 
         if self._run is True and p not in self.players:
-            self.awaiting_players.append(p)
+            self.spectators.append(p)
         if self._run is False:
             self.players.append(p)
 
@@ -389,7 +389,7 @@ class Game(Server, SerializableObject, ABC):
             "losers": [[p.name, turn, [card.unicode_safe()]] for p, turn, card in self.losers],
             "plays": [[c.number for c in pile] for pile in self.plays],
             # players that registered after game started
-            "awaiting": [p.name for p in self.awaiting_players],
+            # "spectators": [p.name for p in self.spectators],
         }
 
 
@@ -407,7 +407,7 @@ class Game(Server, SerializableObject, ABC):
         return self.get_player_from(player, self.disconnected_players)
 
     def get_awaiting(self, player: Player or str) -> Player and Human:
-        return self.get_player_from(player, self.awaiting_players)
+        return self.get_player_from(player, self.spectators)
 
     def player_infos(self, pname):
         """
