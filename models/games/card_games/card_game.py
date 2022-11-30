@@ -446,6 +446,7 @@ class CardGame(Game):
         return self.set_win(player)
 
     def _reset_fold_status(self) -> None:
+        """ Reset players fold status for next round """
         self.__logger.debug("Resetting players 'fold' status")
         [p.set_fold(False) for p in self.players]
 
@@ -466,6 +467,7 @@ class CardGame(Game):
         raise PlayerNotFound(player)  # Should only be reached when server is running...
 
     def to_json(self) -> dict:
+        """ Serialize game for communications"""
         su: dict = super(CardGame, self).to_json()
         update = {
             "pile": [(card.number, GameRules.COLORS[card.color]) for card in self.pile],
