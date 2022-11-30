@@ -1,3 +1,11 @@
+# -*- coding: utf-8 -*-
+"""
+Created by: Mistayan
+Project: President-Game
+IDE: PyCharm
+Creation-date: 01/10/22
+"""
+
 import names
 
 from models.games import PresidentGame
