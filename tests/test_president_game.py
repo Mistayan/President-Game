@@ -10,6 +10,7 @@ from rules import GameRules, PresidentRules
 
 
 class TestPresidentGame(unittest.TestCase):
+    """ Test all PresidentGame conditions and methods """
     PresidentRules.EXTREME_RANKS = {"give": 2,  # card
                                     "above": 4,
                                     # players // Changing this value will affect medium ranks
@@ -45,6 +46,7 @@ class TestPresidentGame(unittest.TestCase):
         self.assertRegex(str(ladder), "Neut")
 
     def test_winner_ladder_two_neutrals(self):
+        """ Ensure ladder give ranks as Expected"""
         game = PresidentGame(nb_players=0, nb_ai=6, nb_games=True, save=True)
         game._initialize_game()
         game._play_game()
@@ -58,6 +60,7 @@ class TestPresidentGame(unittest.TestCase):
         self.assertRegex(str(ladder), "Trouf")
 
     def test_revolution(self):
+        """ Ensure revolution happens when requested """
         game = PresidentGame(1, 4, "Mistayan", nb_games=1, save=False)
         strongest_before = game.strongest_card
         GameRules.USE_REVOLUTION = True
@@ -67,6 +70,7 @@ class TestPresidentGame(unittest.TestCase):
         self.assertNotEqual(strongest_before, strongest_after)
 
     def test_one_game_3_AIs_with_ladder(self):
+        """ Test that winners() triggers as soon as game is over """
         # the simple fact that it runs until the end is proof
         game = PresidentGame(nb_players=0, nb_ai=3, nb_games=1, save=True)
         game._initialize_game()
@@ -74,7 +78,9 @@ class TestPresidentGame(unittest.TestCase):
         self.assertIsNotNone(game.winners())
 
     def test_one_game_with_exchange___3_AIs(self):
-        """ Test may fail because AI is dumb... or given bad instructions by game """
+        """ Test may fail because AI is dumb... given bad instructions
+        Ensure exchanges are made properly (AI tested, human is expected to behave almost the same)
+        """
         # the simple fact that it runs until the end is a proof in itself
         game = PresidentGame(nb_players=0, nb_ai=3, nb_games=2, save=False)
         game._initialize_game()
@@ -100,9 +106,13 @@ class TestPresidentGame(unittest.TestCase):
                                  "Neutres should not have given cards")
 
     def test_trigger_CheaterDetected_Error(self):
+        """
+        Ensure Cheaters block the game.
+        In the future, it will have to ensure that this player has been kicked and voided"""
         self.assertRaises(CheaterDetected)
 
     def test_do_play(self):
+        """ assert if a card can be played or not given different circumstances"""
         game = PresidentGame(0, 3, nb_games=1)
         game._initialize_game()
         player = game.players[0]
@@ -115,17 +125,19 @@ class TestPresidentGame(unittest.TestCase):
         self.assertTrue(game._do_play(1, player2, player2.hand))
 
     def test_next_player(self):
-        game = PresidentGame(0, 3)
+        """ test if next player is the one expected """
+        game = PresidentGame(nb_players=0, nb_ai=3)
         GameRules.QUEEN_OF_HEART_STARTS = True
         game._initialize_game()
-        player_index = game.queen_of_heart_starts()
-        i, prev = game.next_player.__next__()
+        # game.set_all_player_folded il se passe quoi ? Corner case :^)
+        player_index = game._queen_of_heart_starts()
+        i, prev = game._next_player.__next__()
         print(i, prev)
         self.assertTrue(player_index == i)
         prev.set_played()
         self.assertTrue(prev.played)
         first = True
-        for i, p in game.next_player:  # ensure looping behavior
+        for i, p in game._next_player:  # ensure looping behavior
             if not p:
                 # returned index should never be a player index if no player left standing
                 self.assertTrue(i not in range(len(game.players)))
