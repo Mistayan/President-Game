@@ -26,7 +26,7 @@ class Game(Server, ABC, SerializableObject):
 
     @abstractmethod
     def __init__(self, nb_players=0, nb_ai=3, *players_names, save=True):
-        super(Game, self).__init__("Game_Server")  # test: init only when start server
+        super().__init__("Game_Server")  # test: init only when start server
 
         self.players_limit = 100  # Arbitrary Value
         self.__game_log = logging.getLogger(__class__.__name__)
@@ -241,20 +241,20 @@ class Game(Server, ABC, SerializableObject):
             if isinstance(test, Player) and test == player:
                 return test
 
-    def get_player(self, player: Player or str) -> Player or Human or AI:
+    def get_player(self, player: Player or str) -> Player:
         return self.get_player_from(player, self.players)
 
     # ###################### SERVER IMPLEMENTATIONS TO GAME  #######################
 
     @abstractmethod
-    def init_server(self, name):
+    def _init_server(self, name):
         """ Children must implement their own routes """
-        super(Game, self).init_server(name)
+        super()._init_server(name)
 
         # ALL ROUTES LISTED BELOW ARE HUMANS INTENDED !!!! ONLY !!!!
 
         @self.route(f"/{Connect.request['message']}/{Connect.REQUIRED}", methods=Connect.methods)
-        def register(player):
+        def register(player) -> Response:
             if not self.get_player(player):
                 player: Human = self.register(player)  # If previously disconnected, log back in
                 if player.is_human:
@@ -266,7 +266,7 @@ class Game(Server, ABC, SerializableObject):
 
         @self.route(f"/{Disconnect.request['message']}/{Disconnect.REQUIRED}",
                     methods=Disconnect.methods)
-        def unregister(player: str):
+        def unregister(player: str) -> Response:
             player: Human = self.get_player(player) or self.get_awaiting(player)
             if player and player.is_human and request.headers["Content-Type"].find("json"):
                 datas = json.loads(request.data)["request"]
@@ -307,13 +307,17 @@ class Game(Server, ABC, SerializableObject):
         if type(msg) is str:
             return self.send_all({'message': "Info", 'content': msg})
 
+        # If playing local, no need to display messages multiple times
         if self.status == self.OFFLINE:
             return print(msg)
+
+        # If playing 'online'', _send messages to every human player active (or observers).
         for player in self.players:
             if player.is_human:
-                self.send(player, msg)
+                self._send(player, msg)
 
-    def send(self, player, msg):
+    def _send(self, player, msg):
+        """ Method is public so players will be able to chat together later on the project. """
         player.messages.append(msg)
 
     def receive(self, msg: dict):
@@ -369,10 +373,12 @@ class Game(Server, ABC, SerializableObject):
     #             raise
     #     pass
 
-    @abstractmethod
     def to_json(self) -> dict:
-        su: dict = super(Game, self).to_json()
-        update = {
+        """
+        Since class is abstract and inherit from SerializableObject,
+         __dict__ won't be used, we have to use repr as a dict...
+        """
+        return {
             "game": self.game_name,
             "running": self._run,
             "turn": self._turn,
@@ -385,8 +391,7 @@ class Game(Server, ABC, SerializableObject):
             # players that registered after game started
             "awaiting": [p.name for p in self.awaiting_players],
         }
-        su.update(update)
-        return su
+
 
     @property
     def game_infos(self) -> (str, int, dict):
