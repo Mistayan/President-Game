@@ -1,3 +1,11 @@
+# -*- coding: utf-8 -*-
+"""
+Created by: Mistayan
+Project: President-Game
+IDE: PyCharm
+Creation-date: 01/10/22
+"""
+
 from __future__ import annotations
 
 from models.games.plays import GamePlay
@@ -5,6 +13,7 @@ from rules import GameRules
 
 
 class Card(GamePlay):
+    """ CardGame's Play Type"""
 
     def __init__(self, *args, **kwargs):
         """
@@ -47,6 +56,7 @@ class Card(GamePlay):
         return not self == other and not self_color == other_color
 
     def __gt__(self, other):
+        """ Compare values of cards """
         if not other or not self:
             raise ValueError("Cannot compare to Empty Element")
         self_i = GameRules.VALUES.index(self.number)
@@ -57,6 +67,7 @@ class Card(GamePlay):
         return self_i > other_value
 
     def __ge__(self, other):
+        """ Compare values of cards """
         if not other or not self:
             raise ValueError("Cannot compare to Empty Element")
         self_i = GameRules.VALUES.index(self.number)
@@ -67,6 +78,7 @@ class Card(GamePlay):
         return self_i >= other_i
 
     def __lt__(self, other):
+        """ Compare values of cards """
         if not other or not self:
             raise ValueError("Cannot compare to Empty Element")
         self_i = GameRules.VALUES.index(self.number)
@@ -77,6 +89,7 @@ class Card(GamePlay):
         return self_i < other_i
 
     def __le__(self, other):
+        """ Compare values of cards """
         if not other or not self:
             raise ValueError("Cannot compare to Empty Element")
         self_i = GameRules.VALUES.index(self.number)
@@ -91,9 +104,11 @@ class Card(GamePlay):
         return f"{self.number},{GameRules.COLORS[self.color]}"
 
     def __str__(self):
+        """ Card as unsafe characters (prettier) """
         return f"{self.number}{self.color}"
 
     def __repr__(self):
+        """ Card as unsafe characters (prettier) """
         return self.__str__()
 
     def same_as(self, card: Card):
@@ -102,6 +117,7 @@ class Card(GamePlay):
 
     @staticmethod
     def from_unicode(unisafe_color):
+        """ Transform cards unicode_safe color to unsafe """
         for k, v in GameRules.COLORS.items():
             if v == unisafe_color:
                 return k
