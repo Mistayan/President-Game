@@ -265,7 +265,7 @@ class CardGame(Game):
                         not (override_test and self.skip_inputs) else None
             if self._run:
                 self._initialize_game()
-                super(CardGame, self)._reset_winner()  # then reset winners for new game
+                super()._reset_winner()  # then reset winners for new game
 
     def _run_loop(self) -> None:
         """
@@ -356,7 +356,7 @@ class CardGame(Game):
 
         while player.is_active:
             self._send_player(player, f"Last played card : (most recent on the right)\n{self.pile}"
-                             if self.pile else "You are the first to play.")
+                                      if self.pile else "You are the first to play.")
 
             if self.status == self.OFFLINE or not player.is_human:
                 cards = player.play(self.required_cards)
@@ -372,12 +372,12 @@ class CardGame(Game):
                     break
                 elif self.pile:
                     self._send_player(player, f"Card{'s' if len(cards) > 1 else ''}"
-                                             " not powerful enough. Pick again")
+                                              " not powerful enough. Pick again")
                     for card in cards:  # Give cards back...
                         player.add_to_hand(card)
             elif not player.folded:  # Fail-safe for unexpected behaviour...
                 self._send_player(player, f"Not enough {cards[0].number} in hand" if cards
-                                 else f"No card{'s' if len(cards) > 1 else ''} played")
+                else f"No card{'s' if len(cards) > 1 else ''} played")
         self.send_all(f"{player} played {cards}" if cards else f"{player} Folded.")
         return cards
 
@@ -513,7 +513,7 @@ class CardGame(Game):
         return player.plays
 
     def _init_server(self, name):
-        super(CardGame, self)._init_server(name)
+        super()._init_server(name)
 
         @self.route(f"/{Play.request['message']}/{Play.REQUIRED}", methods=Play.methods)
         def play(player):
