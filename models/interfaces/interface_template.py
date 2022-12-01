@@ -65,7 +65,7 @@ class Interface(Server):
         assert port and type(port) is int
         self.__msg_buffer = Connect
         self.__msg_buffer.request.setdefault("player", self.__player.name)
-        response = self.send(destination=f"{uri}:{port}")  # first time require destination
+        response = self._send(destination=f"{uri}:{port}")  # first time require destination
         if response:
             if response.status_code == 200:
                 self.status = self.CONNECTED
@@ -82,7 +82,7 @@ class Interface(Server):
         if not self.__game:
             return
         self.__msg_buffer = Disconnect
-        if self.send().status_code == 200:
+        if self._send().status_code == 200:
             self.status = self.CONNECTED
 
     @property
@@ -96,7 +96,7 @@ class Interface(Server):
     def receive(self, msg: dict):
         return super().receive(msg)
 
-    def send(self, destination=None, msg=None):
+    def _send(self, destination=None, msg=None):
         """
         Send messages to game
         Everytime the game wants to send a message, we have to retrieve those by updating
@@ -104,7 +104,7 @@ class Interface(Server):
         target = destination or self.__game
         if not target:
             return self.not_found(target)
-        super(Interface, self).send(target, self.__msg_buffer)
+        super()._send(target, self.__msg_buffer)
         message = self.__msg_buffer()  # Instantiate before filling request
         message_method, *others = message.methods  # Gather only first element from tuple
         message.request = self._fill_request(message, self.__player, self.__token)
@@ -138,7 +138,7 @@ class Interface(Server):
             print(self.__msg_buffer["message"])
         else:
             raise MessageError(f"Non of the given message is valid: {self.__msg_buffer}")
-        return self.send()
+        return self._send()
 
     @staticmethod
     def _fill_request(msg: SerializableClass, player, token) -> dict:
@@ -183,7 +183,7 @@ class Interface(Server):
     def __get_update(self):
         self.__msg_buffer = Update
         self.__msg_buffer.request.update({"content": self.__player.name})
-        res = self.send()
+        res = self._send()
         return res
 
     def send_start_game_signal(self):
@@ -192,7 +192,7 @@ class Interface(Server):
         self.__msg_buffer = Start
         self.__msg_buffer.request.update({"rules": {}, })
 
-        if self.send().status_code == 200:
+        if self._send().status_code == 200:
             self.status = self.GAME_RUNNING
 
     def __serialize_game(self, _json):
@@ -206,7 +206,7 @@ class Interface(Server):
         except MessageError:
             self.__msg_buffer = AnomalyDetected
             self.__msg_buffer.request.update("anomaly", **_json)
-            self.send()
+            self._send()
 
     def request_player_action(self):
         # self.__msg_buffer = Play or Give or Answer
@@ -214,7 +214,7 @@ class Interface(Server):
         if plays or self.__player.folded:
             self.__msg_buffer = Play
             self.__msg_buffer.request["plays"] = [c.unicode_safe() for c in plays if c]
-            self.send()
+            self._send()
 
     def __update_token(self, token):
         self.__token = token
