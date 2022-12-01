@@ -172,10 +172,11 @@ class CardGame(Game):
         :returns: True if Card is from Game
         """
         valid = False
-        for test in self.deck.cards:
-            if test.same_as(card):
-                valid = True
-                break
+        if isinstance(card, Card):
+            for test in self.deck.cards:
+                if test.same_as(card):
+                    valid = True
+                    break
         return valid
 
     def _free_pile(self):
