@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Final
 
-from models import root_logger
+from models import ROOT_LOGGER
 from models.utils import SerializableClass
 
 
@@ -24,7 +24,7 @@ class Message(SerializableClass):
 class MessageError(Exception):
 
     def __init__(self, msg):
-        root_logger.critical(f"{msg}")
+        ROOT_LOGGER.critical(f"{msg}")
         # Non blocking Error ?
 
 

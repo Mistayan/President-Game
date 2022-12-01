@@ -162,29 +162,33 @@ class Player(SerializableObject, ABC):
 
     @property
     def folded(self) -> bool:
+        """ return player fold status """
         return self._folded
 
     @property
     def played(self) -> bool:
+        """ return player play status """
         return self._played_turn
 
     @property
     def is_human(self):
+        """ return player human condition """
+
         return self._is_human
 
     @property
     def hand_as_numbers(self):
+        """ return cards from hand as numbers only """
         return [card.number for card in self.hand]
 
     @property
     def hand_as_colors(self):
+        """ return cards from hand as colors only """
         return [GameRules.COLORS[card.color] for card in self.hand]
 
     @property
     def max_combo(self):
-        """
-        :return: the maximum amount of cards a player can play at once
-        """
+        """ return the maximum amount of cards a player can play at once """
         if self.hand:
             k, v = Counter(self.hand_as_numbers).most_common(1)[0]
         else:
@@ -234,12 +238,15 @@ class Player(SerializableObject, ABC):
         return self.__buffer
 
     def __str__(self):
+        """obj as string"""
         return f"{self.name}"
 
     def __repr__(self):
+        """obj as complex repr"""
         return self.__str__()
 
     def sort_hand(self) -> None:
+        """ Sort player's hand by cards power."""
         self.hand.sort()
 
     def choose_cards_to_play(self, n_cards_to_play, override: str = None) -> list[Card]:

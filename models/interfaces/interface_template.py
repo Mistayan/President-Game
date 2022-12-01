@@ -52,6 +52,7 @@ class Interface(Server):
             self.__banner()
         self.__run = True
 
+
     @property
     def action_required(self):
         return self.__player.action_required
@@ -100,7 +101,7 @@ class Interface(Server):
     def _send(self, destination=None, msg=None):
         """
         Send messages to game
-        Everytime the game wants to send a message, we have to retrieve those by updating
+        Everytime the game wants to _send a message, we have to retrieve those by updating
         """
         target = destination or self.__game
         if not target:
@@ -381,6 +382,7 @@ class Interface(Server):
         res.status_code = 404
         return res
 
+
     def start_new_game(self):
         """
         Choose a game from a list of available games styles
@@ -390,23 +392,12 @@ class Interface(Server):
             "Card Game": functools.partial(CardGame, 1, 3),
             "President Game": functools.partial(CardGame, 1, 3),
         })
-        print(game)
-        print(game.__repr__())
         self.__player.set_game(game)  # necessary to play local
         self.set_game_options(game)  # WIP
         game.start()
         # Game is over, and player chose not to start another one
         self.__player.set_game(None)  # reset game pointer, in case he wants to go 'online'
 
-    def start_GameServer(self, port=5001, exec_path=BASEDIR):
-        self.local_process = Popen([
-            os.path.join(exec_path, "venv/Scripts/python"),
-            os.path.join(exec_path, f"run_server.py"),
-            f"-p {port}",
-        ])
-        if self.__super:
-            print(self.__super)
-            self.local_process.communicate()
 
     def run_interface(self):
         try:
@@ -420,3 +411,4 @@ class Interface(Server):
                         self.menu()
         except KeyboardInterrupt as e:
             print("Shutting down Interface...")
+

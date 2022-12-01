@@ -11,7 +11,7 @@ from abc import abstractmethod, ABC
 from threading import Thread  # required for Background server task
 from typing import Any
 
-from flask import request, make_response
+from flask import request, make_response, Response
 
 from models.players import Player, Human, AI
 from models.responses import Connect, Disconnect, Start, Update
@@ -22,11 +22,11 @@ from .db import Database
 from .plays import GamePlay
 
 
-class Game(Server, ABC, SerializableObject):
+class Game(Server, SerializableObject, ABC):
 
     @abstractmethod
     def __init__(self, nb_players=0, nb_ai=3, *players_names, save=True):
-        super(Game, self).__init__("Game_Server")  # test: init only when start server
+        super().__init__("Game_Server")  # test: init only when start server
 
         self.players_limit = 100  # Arbitrary Value
         self.__game_log = logging.getLogger(__class__.__name__)
@@ -34,7 +34,7 @@ class Game(Server, ABC, SerializableObject):
         self._winners: list[Player.__class__, int, GamePlay] = []
         self.losers: list[Player.__class__, int, GamePlay] = []
         self.disconnected_players: list[Player] = []  # players logged out while game started
-        self.awaiting_players: list[Player] = []  # players that registered after game started
+        self.spectators: list[Player] = []  # players that registered after game started
         self.plays: list[list] = []
         self._turn = 0
         self._run = False
@@ -54,12 +54,12 @@ class Game(Server, ABC, SerializableObject):
         self.losers = []
         self.disconnected_players = []
         # as long as we can, add players for next game
-        while self.awaiting_players and len(self.players) < self.players_limit:
-            self.players.append(self.awaiting_players.pop())
+        while self.spectators and len(self.players) < self.players_limit:
+            self.players.append(self.spectators.pop())
         # Check players count before starting, remove extra players before starting.
         while len(self.players) > self.players_limit:
             for player in self.players[::-1]:
-                self.awaiting_players.append(self.players.pop(self.players.index(player)))
+                self.spectators.append(self.players.pop(self.players.index(player)))
         self.__game_log.info(' '.join(["#" * 15, "PREPARING NEW GAME", "#" * 15]))
         self._init_db()
 
@@ -110,7 +110,7 @@ class Game(Server, ABC, SerializableObject):
         for winner in winners:
             ww = winner.copy()
             if winner['last_play']:
-                ww["last_play"] = winner["last_play"].unicode_safe() or None
+                ww["last_play"] = winner["last_play"] or None
             json_winners.append(ww)
         return json_winners
 
@@ -144,9 +144,9 @@ class Game(Server, ABC, SerializableObject):
             return p
 
         # player register to the game after it started
-        if player in self.awaiting_players and not self._run:
+        if player in self.spectators and not self._run:
             self.logger.debug(f"Done Waiting {player}")
-            p = self.awaiting_players.pop(self.awaiting_players.index(player))
+            p = self.spectators.pop(self.spectators.index(player))
             p.reset()  # Ensure player is set to default when joining the game
         else:  # Player registers for first time (or after being voided)
             self.logger.debug(f"Registering {player}")
@@ -156,7 +156,7 @@ class Game(Server, ABC, SerializableObject):
                                  f"{' with token ' + str(p.token) if p.is_human else ''}")
 
         if self._run is True and p not in self.players:
-            self.awaiting_players.append(p)
+            self.spectators.append(p)
         if self._run is False:
             self.players.append(p)
 
@@ -190,7 +190,7 @@ class Game(Server, ABC, SerializableObject):
         rank_gen = [{"player": player_infos[0].name,
                      "rank": i + 1,
                      "round": player_infos[1],
-                     "last_play": player_infos[2].unicode_safe()
+                     "last_play": player_infos[2]
                      } for i, player_infos in enumerate(self._winners)]
         return rank_gen
 
@@ -241,20 +241,20 @@ class Game(Server, ABC, SerializableObject):
             if isinstance(test, Player) and test == player:
                 return test
 
-    def get_player(self, player: Player or str) -> Player or Human or AI:
+    def get_player(self, player: Player or str) -> Player:
         return self.get_player_from(player, self.players)
 
     # ###################### SERVER IMPLEMENTATIONS TO GAME  #######################
 
     @abstractmethod
-    def init_server(self, name):
+    def _init_server(self, name):
         """ Children must implement their own routes """
-        super(Game, self).init_server(name)
+        super()._init_server(name)
 
         # ALL ROUTES LISTED BELOW ARE HUMANS INTENDED !!!! ONLY !!!!
 
         @self.route(f"/{Connect.request['message']}/{Connect.REQUIRED}", methods=Connect.methods)
-        def register(player):
+        def register(player) -> Response:
             if not self.get_player(player):
                 player: Human = self.register(player)  # If previously disconnected, log back in
                 if player.is_human:
@@ -266,7 +266,7 @@ class Game(Server, ABC, SerializableObject):
 
         @self.route(f"/{Disconnect.request['message']}/{Disconnect.REQUIRED}",
                     methods=Disconnect.methods)
-        def unregister(player: str):
+        def unregister(player: str) -> Response:
             player: Human = self.get_player(player) or self.get_awaiting(player)
             if player and player.is_human and request.headers["Content-Type"].find("json"):
                 datas = json.loads(request.data)["request"]
@@ -307,13 +307,17 @@ class Game(Server, ABC, SerializableObject):
         if type(msg) is str:
             return self.send_all({'message': "Info", 'content': msg})
 
+        # If playing local, no need to display messages multiple times
         if self.status == self.OFFLINE:
             return print(msg)
+
+        # If playing 'online'', _send messages to every human player active (or observers).
         for player in self.players:
             if player.is_human:
-                self.send(player, msg)
+                self._send(player, msg)
 
-    def send(self, player, msg):
+    def _send(self, player, msg):
+        """ Method is public so players will be able to chat together later on the project. """
         player.messages.append(msg)
 
     def receive(self, msg: dict):
@@ -369,10 +373,12 @@ class Game(Server, ABC, SerializableObject):
     #             raise
     #     pass
 
-    @abstractmethod
     def to_json(self) -> dict:
-        su: dict = super(Game, self).to_json()
-        update = {
+        """
+        Since class is abstract and inherit from SerializableObject,
+         __dict__ won't be used, we have to use repr as a dict...
+        """
+        return {
             "game": self.game_name,
             "running": self._run,
             "turn": self._turn,
@@ -383,10 +389,9 @@ class Game(Server, ABC, SerializableObject):
             "losers": [[p.name, turn, [card.unicode_safe()]] for p, turn, card in self.losers],
             "plays": [[c.number for c in pile] for pile in self.plays],
             # players that registered after game started
-            "awaiting": [p.name for p in self.awaiting_players],
+            # "spectators": [p.name for p in self.spectators],
         }
-        su.update(update)
-        return su
+
 
     @property
     def game_infos(self) -> (str, int, dict):
@@ -402,7 +407,7 @@ class Game(Server, ABC, SerializableObject):
         return self.get_player_from(player, self.disconnected_players)
 
     def get_awaiting(self, player: Player or str) -> Player and Human:
-        return self.get_player_from(player, self.awaiting_players)
+        return self.get_player_from(player, self.spectators)
 
     def player_infos(self, pname):
         """

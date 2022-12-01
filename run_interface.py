@@ -15,4 +15,5 @@ from models.players import Human
 if __name__ == '__main__':
     coloredlogs.set_level(logging.INFO)
     with Interface(Human(input("Player Name ?"))) as interface:  # With, auto-disconnect on exit
+
         interface.run_interface()

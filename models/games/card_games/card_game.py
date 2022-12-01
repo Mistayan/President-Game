@@ -22,6 +22,11 @@ from ..game_template import Game
 
 
 class CardGame(Game):
+    """ A Playable Card Game, Depending on GameRules
+
+    game = CardGame(humans, ais, humans_names)
+    game.start()
+    """
     def __init__(self, nb_players=0, nb_ai=3, *players_names, nb_games: int = 0, save=True):
         """
         Game Instance.
@@ -45,7 +50,7 @@ class CardGame(Game):
         self.VALUES = GameRules.VALUES
         self._pile: list[Card] = []
         self.deck = Deck()
-        self._skip_players = False  # Required for next_player behavior
+        self._skip_players = False  # Required for _next_player behavior
         self.required_cards = 0
 
     def _initialize_game(self):
@@ -79,19 +84,23 @@ class CardGame(Game):
             self.__logger.debug(f"Gave {card} to player {self.players[player_index]}")
 
     @property
-    def run_condition(self):
-        return GameRules.LOSER_CAN_PLAY and self.count_still_alive >= 1 \
-               or self.count_still_alive > 1
+    def _run_condition(self):
+        """
+        Define the game's running condition as a property
+        :return bool: True is Game should run.
+        """
+        return GameRules.LOSER_CAN_PLAY and self._count_still_alive >= 1 \
+               or self._count_still_alive > 1
 
     @property
-    def count_still_alive(self) -> int:
+    def _count_still_alive(self) -> int:
         """ returns a counter or players that hasn't won the game """
         still_alive = [player.won for player in self.players].count(False)
         self.__logger.debug(f"Active players : {still_alive}")
         return still_alive
 
     @property
-    def count_active_players(self) -> int:
+    def _count_active_players(self) -> int:
         """ returns the number of players able to play during current round """
         return self._active_players.count(True)
 
@@ -106,11 +115,6 @@ class CardGame(Game):
         return self.VALUES[-1]
 
     @property
-    def everyone_played(self):
-        """ returns True if everyone played his turn """
-        return [p.played or p.won for p in self.players].count(True) == len(self.players)
-
-    @property
     def pile(self) -> list[Card]:
         """ returns game's pile"""
         return self._pile
@@ -122,22 +126,26 @@ class CardGame(Game):
 
     @property
     def everyone_folded(self):
+        """ return true if everyone folded or won in game"""
         return [p.folded or p.won for p in self.players].count(True) == len(self.players)
 
     @property
     def _everyone_played(self):
+        """ return true if everyone played in game"""
         return [p.played for p in self.players].count(True) == len(self.players)
 
     @property
     def count_humans(self):
+        """ returns Humans count in game """
         return [p.is_human for p in self.players].count(True)
 
     @property
-    def next_player(self):
+    def _next_player(self) -> tuple[int, Player]:
+        """ get the next player able to play """
         self.__logger.debug("########## NEXT INIT ##########")
         while not self.everyone_folded:
             self._skip_players = True
-            while not self.everyone_played:
+            while not self._everyone_played:
                 self.__logger.debug("########## PLAY LOOP ##########")
                 for index, player in enumerate(self.players):
                     if index == self.next_player_index:
@@ -153,13 +161,16 @@ class CardGame(Game):
         self.__logger.debug("########## EVERYONE FOLDED ##########")
         return -1, None  # Reset generator since everyone folded.
 
-    def add_to_pile(self, card: Card) -> None:
+    def __add_to_pile(self, card: Card) -> None:
         """ add a given card to the current pile, therefore visible to everyone """
         if not self.valid_card(card):
             raise CheaterDetected("Card is not from this game")
         self._pile.append(card)
 
     def valid_card(self, card) -> bool:
+        """
+        :returns: True if Card is from Game
+        """
         valid = False
         for test in self.deck.cards:
             if test.same_as(card):
@@ -195,7 +206,7 @@ class CardGame(Game):
         if isinstance(to, Player):
             to.add_to_hand(card)
         elif isinstance(to, CardGame):
-            to.add_to_pile(card)
+            to.__add_to_pile(card)
         elif isinstance(to, list):
             to.append(card)
         else:
@@ -213,7 +224,7 @@ class CardGame(Game):
             player.set_played(False)
             player.set_fold(False)
 
-    def next_turn(self) -> None:
+    def _next_turn(self) -> None:
         """ Increment round, reset required values """
         self._turn += 1
         self.send_all(' '.join(["#" * 15, f"Round {self._turn}", "#" * 15]))
@@ -243,13 +254,13 @@ class CardGame(Game):
         """
         if not self._run:
             self._initialize_game()
-            self.queen_of_heart_starts()  # ONLY FIRST GAME If Rule is True, set next_player
+            self._queen_of_heart_starts()  # ONLY FIRST GAME If Rule is True, set _next_player
 
         while self._run:
             self._run_loop()
             for player in self.players:
                 if player.is_human:
-                    self._run = self.ask_yesno(player, "Another Game") if \
+                    self._run = self._ask_yesno(player, "Another Game") if \
                         not (override_test and self.skip_inputs) else None
             if self._run:
                 self._initialize_game()
@@ -274,16 +285,16 @@ class CardGame(Game):
         A classic game loop
         increment turn
         play while everyone is not folded or some rule stops the round
-        whenever run_condition become False, every player remaining LOSE the game.
+        whenever _run_condition become False, every player remaining LOSE the game.
         """
-        while self.run_condition:
-            self.next_turn()  # set new round... (many things happens here)
+        while self._run_condition:
+            self._next_turn()  # set new round... (many things happens here)
             # If pile is empty, find player that open round, else find next player
             self._skip_players = self.pile == [] or self._skip_players
             while not self.everyone_folded:
                 self._play_round()
                 # Check if players still playing game:
-                if not self.run_condition:
+                if not self._run_condition:
                     for player in self.players:
                         self.set_win(player, False)  # set remaining player to loser
                     self._run = False
@@ -300,11 +311,11 @@ class CardGame(Game):
         """
 
         self._reset_played_status()  # Everyone played, reset this status
-        for index, player in self.next_player:
+        for index, player in self._next_player:
             if not player:  # No one left standing
                 break
             self.send_all(' '.join(["#" * 15, f" {player}'s TURN ", "#" * 15]))
-            cards = self.player_loop(player)
+            cards = self._player_loop(player)
             # If player returned cards, confirm play
             if cards and not self._do_play(index, player, cards):
                 player.set_played()
@@ -321,7 +332,7 @@ class CardGame(Game):
                                         "#" * 15]))
                 break
 
-    def player_loop(self, player: Player) -> list[Card]:
+    def _player_loop(self, player: Player) -> list[Card]:
         """
         If the player is active (not folded, not won, hasn't played):
             - If required_cards == 0, the amount of cards a player plays
@@ -343,13 +354,13 @@ class CardGame(Game):
                 input("Press Enter to play (this is to avoid other players to see your hand)")
 
         while player.is_active:
-            self.send_player(player, f"Last played card : (most recent on the right)\n{self.pile}"
+            self._send_player(player, f"Last played card : (most recent on the right)\n{self.pile}"
                              if self.pile else "You are the first to play.")
 
             if self.status == self.OFFLINE or not player.is_human:
                 cards = player.play(self.required_cards)
             else:
-                cards = self.wait_player_action(player)
+                cards = self.__wait_player_action(player)
                 player.plays = []  # Once synced with game, reset player's play
             if not self.required_cards:
                 # First-player -> his card count become required card for other to play.
@@ -359,12 +370,12 @@ class CardGame(Game):
                 if self.card_can_be_played(cards[0]):
                     break
                 elif self.pile:
-                    self.send_player(player, f"Card{'s' if len(cards) > 1 else ''}"
+                    self._send_player(player, f"Card{'s' if len(cards) > 1 else ''}"
                                              " not powerful enough. Pick again")
                     for card in cards:  # Give cards back...
                         player.add_to_hand(card)
             elif not player.folded:  # Fail-safe for unexpected behaviour...
-                self.send_player(player, f"Not enough {cards[0].number} in hand" if cards
+                self._send_player(player, f"Not enough {cards[0].number} in hand" if cards
                                  else f"No card{'s' if len(cards) > 1 else ''} played")
         self.send_all(f"{player} played {cards}" if cards else f"{player} Folded.")
         return cards
@@ -376,7 +387,7 @@ class CardGame(Game):
         """
         return not self.pile or card >= self.pile[-1]
 
-    def queen_of_heart_starts(self) -> int:
+    def _queen_of_heart_starts(self) -> int:
         """Only triggers if rule in True
         set the player with queen of heart as the first player"""
         if GameRules.QUEEN_OF_HEART_STARTS:
@@ -398,13 +409,13 @@ class CardGame(Game):
             status = True
         return status
 
-    def ask_yesno(self, player, question):
+    def _ask_yesno(self, player, question):
         """ Ask a question that requires  yes/no answer
         if self.skip_input is active, will return True"""
         answer = -1
         while answer == -1:
             if not self.skip_inputs:
-                _in = self.send_player(player, f"{question} ? (y/n)", input).lower()
+                _in = self._send_player(player, f"{question} ? (y/n)", input).lower()
                 answer = True if _in and _in[0] == 'y' \
                     else False if _in and _in[0] == 'n' \
                     else -1
@@ -424,7 +435,7 @@ class CardGame(Game):
         # Check that every card given can be played
         if not [self.card_can_be_played(card) for card in cards].count(True) == len(cards):
             return False
-        [self.add_to_pile(card) for card in cards]
+        [self.__add_to_pile(card) for card in cards]
         player.last_played = cards
         player.set_played()
         if self.best_card_played and GameRules.PLAYING_BEST_CARD_END_ROUND:
@@ -435,23 +446,28 @@ class CardGame(Game):
         return self.set_win(player)
 
     def _reset_fold_status(self) -> None:
+        """ Reset players fold status for next round """
         self.__logger.debug("Resetting players 'fold' status")
         [p.set_fold(False) for p in self.players]
 
     def _reset_played_status(self) -> None:
-        """ Also reset fold status if rule apply """
+        """
+        Reset played status for each player in game
+        Also reset fold status if rule apply """
         self.__logger.debug("Resetting players 'played' status")
         [p.set_played(False) for p in self.players]
         if not GameRules.WAIT_NEXT_ROUND_IF_FOLD and not self.everyone_folded:
             self._reset_fold_status()
 
     def get_player_index(self, player):
+        """ return the player's index (in case you need it) """
         for i, p in enumerate(self.players):
             if p == player:
                 return i
         raise PlayerNotFound(player)  # Should only be reached when server is running...
 
     def to_json(self) -> dict:
+        """ Serialize game for communications"""
         su: dict = super(CardGame, self).to_json()
         update = {
             "pile": [(card.number, GameRules.COLORS[card.color]) for card in self.pile],
@@ -462,7 +478,7 @@ class CardGame(Game):
         su.update(update)
         return su
 
-    def send_player(self, player, msg, method=None):
+    def _send_player(self, player, msg, method=None):
         assert player and msg
         if not player.is_human:
             return
@@ -476,7 +492,7 @@ class CardGame(Game):
             player.messages.append(request)
             answer = None
             self.__logger.warning(f"{method}({msg})")
-            self.wait_player_action(player)
+            self.__wait_player_action(player)
             self.logger.info(f"waiting. for {player}\r")
             while answer is None:
                 time.sleep(GameRules.TICK_SPEED)
@@ -487,7 +503,7 @@ class CardGame(Game):
         elif method is None:
             player.messages.append(msg)
 
-    def wait_player_action(self, player):
+    def __wait_player_action(self, player):
         self.__logger.info(f"awaiting {player} to play")
         timeout = Message.timeout
         while player.action_required and timeout > 0:
@@ -495,8 +511,8 @@ class CardGame(Game):
             timeout -= GameRules.TICK_SPEED
         return player.plays
 
-    def init_server(self, name):
-        super(CardGame, self).init_server(name)
+    def _init_server(self, name):
+        super(CardGame, self)._init_server(name)
 
         @self.route(f"/{Play.request['message']}/{Play.REQUIRED}", methods=Play.methods)
         def play(player):
