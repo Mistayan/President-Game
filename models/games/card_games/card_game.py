@@ -489,7 +489,7 @@ class CardGame(Game):
         if self.status == self.OFFLINE:
             self.logger.info("offline.")
             return method and method(msg) or print(msg)
-        if method is input:
+        elif method is input:
             request = Question().request
             request.setdefault("question", msg)
             player.action_required = True
