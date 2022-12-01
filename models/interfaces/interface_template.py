@@ -14,10 +14,10 @@ from json import JSONDecodeError
 from subprocess import Popen
 
 import colorama
-import coloredlogs
 import requests
 from requests import Response
 
+from models import CardGame
 from models.conf import BASEDIR
 from models.games.apis.server import Server
 from models.players.player import Human
@@ -45,6 +45,7 @@ class Interface(Server):
         self.__msg_buffer = None
         self.__game_dict = None
         self.logger = logging.getLogger(__class__.__name__)
+        self.__super = self.logger.level
         self.__game = None
         self.__player: Human = player
         if not kwargs.get("nobanner"):
