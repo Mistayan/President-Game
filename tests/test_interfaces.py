@@ -6,11 +6,13 @@ IDE: PyCharm
 Creation-date: 11/17/22
 """
 import logging
+import re
 import time
 import unittest
 
 import coloredlogs
 
+import models.conf
 from models import Human
 from models.interfaces import Interface
 from models.utils import GameFinder
@@ -21,7 +23,8 @@ class TestInterfaces(unittest.TestCase):
     player = Human()  # Player 1 is used to test basics functions
     interface = Interface(player=player, nobanner=True)  # tie player to interface
     player2 = Human()  # Player 2 is used to test server behaviour when disconnecting IN-GAME
-    interface2 = Interface(player2)
+    interface2 = Interface(player2, nobanner=True)
+    server = None
 
     def test_game_player_interface_connexions(self):
         """ test connection, disconnect, update when game not running """
