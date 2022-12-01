@@ -59,7 +59,8 @@ class Human(Player):
             'finished': self.won,
             'last_played': [_.unicode_safe() for _ in self.last_played],
             'messages': self.messages,
-            'action_required': self.action_required
+            'action_required': self.action_required,
+            'rank': self.rank and self.rank.rank_name
         }
 
     def from_json(self, _json: dict):

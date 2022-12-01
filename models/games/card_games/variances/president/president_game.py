@@ -116,7 +116,7 @@ class PresidentGame(CardGame):
             for player in self.players:
                 if player.name == winner['player']:
                     rank = PresidentRank(i + 1, player, len(self.players))
-                    winner.setdefault("grade", rank)
+                    winner.setdefault("grade", rank.rank_name)
                     self.send_all(f"{player} has been assigned {rank}")
         return winners
 
@@ -159,7 +159,7 @@ class PresidentGame(CardGame):
         """
         if self._run and self._winners:
             self.do_exchanges()  # Do exchanges
-        super(PresidentGame, self)._run_loop()
+        super()._run_loop()
 
     def to_json(self) -> dict:
         """ Serialize game for communications"""
