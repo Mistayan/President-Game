@@ -105,20 +105,11 @@ class Game(Server, SerializableObject, ABC):
     def set_game_name(self, name):
         self.game_name = name  # Override name
 
-    def __winners_unicode_safe(self, winners):
-        json_winners = []
-        for winner in winners:
-            ww = winner.copy()
-            if winner['last_play']:
-                ww["last_play"] = winner["last_play"] or None
-            json_winners.append(ww)
-        return json_winners
-
     def save_results(self, name) -> dict:
         to_save = {
             "game": name,
             "players": [player.name for player in self.players],
-            "winners": self.__winners_unicode_safe(self.winners()),
+            "winners": self.winners(),
             "plays": self.__plays_to_unicode_safe(),
         }
         if not self.__db:
