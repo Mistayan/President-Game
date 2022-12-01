@@ -5,6 +5,7 @@ Project: President-Game
 IDE: PyCharm
 Creation-date: 11/01/22
 """
+import json
 import logging
 from typing import Final
 
@@ -72,3 +73,9 @@ class PresidentRank:
     def __repr__(self):
         """ return rank's nomination in listings"""
         return self.__str__()
+
+    def __dict__(self):
+        return {
+            "rank": self.rank_name,
+            "adv": self.advantage
+        }
