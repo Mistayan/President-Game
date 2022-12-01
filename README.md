@@ -1,12 +1,14 @@
 # Le jeu du président
 
-### How to use :
-> git clone https://github.com/Mistayan/President-Game.git <Br>
-> cd Prisendt-Game <br>
-> py setup.py <br>
-> venv/Scripts/python run_interface.py <br>
+## How to use :
+```shell
+#git clone https://github.com/Mistayan/President-Game.git
+#cd President-Game
+py setup.py
+venv/Scripts/python run_interface.py
+```
 
-[[_TOC_]]
+[_TOC_]
 
 Le président (aussi appelé le troufion) est un jeu de cartes rapide et amusant, au cours duquel la
 hiérarchie des joueurs changera à chaque manche.
@@ -129,9 +131,7 @@ classDiagram
     }
     class PresidentGame{
         start() --> super()
-        winners() --> super()
-        +do_exchanges()
-        +do_play()
+        winners() <-- super()
     }
     class PresidentRankings{
         +rank_name
@@ -241,7 +241,6 @@ classDiagram
     Interface Visuelle
     +prompt()
     +display()
-    +send()
     +receive()
     }
     
@@ -322,11 +321,19 @@ class Play(Restricted):
 
 ```shell
 pylint $(git ls-files '*.py')
->>> Your code has been rated at 7.73/10 (previous run: 7.73/10, +0.00) # 21/11/2022 20-38-00
->>> Your code has been rated at 7.82/10 (previous run: 7.56/10, +0.26) # 21/11/2022 21-37-00
-
+# Your code has been rated at 7.73/10 (previous run: 7.73/10, +0.00) # 21/11/2022 20-38-00
+# Your code has been rated at 7.82/10 (previous run: 7.56/10, +0.26) # 21/11/2022 21-37-00
+```
+```shell
 pylint ./models
->>> Your code has been rated at 7.83/10 (previous run: 7.83/10, +0.00) # 21/11/2022 21-38-00
-
+# Your code has been rated at 7.83/10 (previous run: 7.83/10, +0.00) # 21/11/2022 21-38-00
+```
+```shell
 pylint ./tests
+```
+
+# TODO
+```python
+def _next_player(self) -> tuple[int, Player]:
+    ...
 ```
