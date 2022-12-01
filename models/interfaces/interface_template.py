@@ -29,7 +29,7 @@ class Interface(Server):
     """
     Instantiate basics for Game interfaces
     """
-
+    local_process: Popen
     DISCONNECTED = 8
     CONNECTED = 10
     WAITING_NEW_GAME = 12
@@ -156,7 +156,6 @@ class Interface(Server):
         _request["token"] = token
         return _request
 
-    @property
     def update(self):
         """
         Update game status, then player status.
@@ -171,11 +170,13 @@ class Interface(Server):
             self.menu()
             response = self.not_found(self.__game)
         try:
-            if response and response.headers["Content-Type"] == "application/json":
-                _json = response.json()
-                self.__serialize_game(_json=_json['game'])
-                if response.status_code == 200:
-                    self.__serialize_player(_json=_json['player'])
+            # if response and response.headers["Content-Type"] == "application/json":
+            _json = response.json()
+            self.__serialize_game(_json=_json['game'])
+            if response.status_code == 200:
+                self.__serialize_player(_json=_json['player'])
+            # else:
+            #     print("not json")
         except JSONDecodeError as e:
             self.logger.critical(e)
         return response
@@ -243,13 +244,13 @@ class Interface(Server):
         """
         if options is None:
             options = {"Find Game": self.find_game,
-                       # "Start a new server of your own": self.create_game,  # WIP
+                       "Start a new server of your own": self.start_GameServer,
+                       # "Start a game locally": self.start_new_game,
                        "Exit Interface": functools.partial(exit, 0)}
             if self.__game:  # Display more options if interface successfully connected to a game
                 options.setdefault("Start Game", self.send_start_game_signal)
                 options.setdefault("Game Options [Game, rules] (WIP)", self.set_game_options)
-            else:
-                options.setdefault("Reconnect", self.reconnect)
+                self.__token and options.setdefault("Reconnect", self.reconnect)
         action = -1
         if len(options):
             while action == -1:
@@ -322,7 +323,6 @@ class Interface(Server):
         self.logger.critical(_type)
         self.logger.critical(value)
         self.logger.critical(traceback)
-        self.__token and print(f"Here is your token to reconnect to server : \n{self.__token}")
         print(colorama.Style.BRIGHT + colorama.Fore.BLACK + colorama.Back.GREEN,
               "\tSee you soon :D\t\t" + colorama.Style.RESET_ALL)
 
@@ -347,36 +347,75 @@ class Interface(Server):
         if len(options):
             return self.menu("Choose Game", options)
         elif self.__player.ask_yes_no("No game Found. Start a server yourself ? :)"):
-            print("python :", os.path.join(BASEDIR, "venv/Scripts/python"))
             print("starting background task : ", os.path.join(BASEDIR, "run_server.py"))
-            self.local_process = Popen([
-                os.path.join(BASEDIR, "venv/Scripts/python"),
-                os.path.join(BASEDIR, "run_server.py")
-            ])
-            if coloredlogs.get_level() == logging.DEBUG:
-                self.local_process.communicate()
+            self.start_GameServer()
             time.sleep(3)  # let time for server to start
             return self.find_game()
         return -1
 
-    def create_game(self):
-        """ Allows player to start a new server locally """
-        pass
-
-    def set_game_options(self):
+    def set_game_options(self, game=None):
+        """
+        Set game's options like QUEEN_OF_HEART_STARTS
+        if no game is given, and connected to a server that accepts it, edit game's rules
+        """
         pass
 
     def reconnect(self):
-        self.find_game()
-        self.__token = input("token ? >")
+        """ If a session token is found from previous connection, try to reconnect to game"""
+        if not self.__token:
+            return print("No previous connection established")
 
-    def init_server(self, name):
+        # __game is formatted like "host:port".
+        # calling *on a list or a tuple decomposes it like *args
+        self.connect(*self.__game.split(":"))
+
+    def _init_server(self, name):
         pass
 
     def to_json(self):
         pass
 
-    def not_found(self, target):
+    def not_found(self, target=None):
         res = Response
         res.status_code = 404
         return res
+
+    def start_new_game(self):
+        """
+        Choose a game from a list of available games styles
+        and set games options before starting it.
+        """
+        game = self.menu("Choose game", {
+            "Card Game": functools.partial(CardGame, 1, 3),
+            "President Game": functools.partial(CardGame, 1, 3),
+        })
+        print(game)
+        print(game.__repr__())
+        self.__player.set_game(game)  # necessary to play local
+        self.set_game_options(game)  # WIP
+        game.start()
+        # Game is over, and player chose not to start another one
+        self.__player.set_game(None)  # reset game pointer, in case he wants to go 'online'
+
+    def start_GameServer(self, port=5001, exec_path=BASEDIR):
+        self.local_process = Popen([
+            os.path.join(exec_path, "venv/Scripts/python"),
+            os.path.join(exec_path, f"run_server.py"),
+            f"-p {port}",
+        ])
+        if self.__super:
+            print(self.__super)
+            self.local_process.communicate()
+
+    def run_interface(self):
+        try:
+            while self.__run:
+
+                self.menu()  # Connect or exit
+                while self.update():  # As long as we are connected, with no errors
+                    if self.action_required is True:
+                        self.request_player_action()
+                    elif self.game_dict and self.game_dict.get('running') is False:
+                        self.menu()
+        except KeyboardInterrupt as e:
+            print("Shutting down Interface...")
