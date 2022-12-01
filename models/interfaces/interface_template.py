@@ -37,7 +37,7 @@ class Interface(Server):
     PLAY_REQUIRED = 22
     GIVE_REQUIRED = 23
 
-    def __init__(self, player: Human):
+    def __init__(self, player: Human, **kwargs):
         if not isinstance(player, Human):
             raise TypeError("Interface's players MUST be Humans.")
         super().__init__("Player_Interface")
@@ -47,7 +47,9 @@ class Interface(Server):
         self.logger = logging.getLogger(__class__.__name__)
         self.__game = None
         self.__player: Human = player
-        self.__banner()
+        if not kwargs.get("nobanner"):
+            self.__banner()
+        self.__run = True
 
     @property
     def action_required(self):
