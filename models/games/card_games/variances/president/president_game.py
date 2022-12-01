@@ -141,7 +141,7 @@ class PresidentGame(CardGame):
         super()._do_play(index, player, cards)
         len(cards) == 4 and self.set_revolution()  # if PresidentRules.USE_REVOLUTION
         if self.skip_next_player_rule_apply:
-            for _, p in self.next_player:
+            for _, p in self._next_player:
                 if not p:
                     break  # Nothing happens
                 self.send_all(''.join(["#" * 20, f"applying TG to {p}", "#" * 20]))
@@ -159,9 +159,10 @@ class PresidentGame(CardGame):
         """
         if self._run and self._winners:
             self.do_exchanges()  # Do exchanges
-        super(PresidentGame, self)._run_loop()
+        super()._run_loop()
 
     def to_json(self) -> dict:
+        """ Serialize game for communications"""
         su: dict = super(PresidentGame, self).to_json()
         update = {"revolution": self.revolution}
         if not self._run:
