@@ -439,7 +439,7 @@ class CardGame(Game):
         # Check that every card given can be played
         if not [self.card_can_be_played(card) for card in cards].count(True) == len(cards):
             return False
-        [self.__add_to_pile(card) for card in cards]
+        [self.add_to_pile(card) for card in cards]
         player.last_played = cards
         player.set_played()
         if self.best_card_played and GameRules.PLAYING_BEST_CARD_END_ROUND:
