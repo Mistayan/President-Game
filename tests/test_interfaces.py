@@ -13,12 +13,13 @@ import coloredlogs
 
 from models import Human
 from models.interfaces import Interface
+from models.utils import GameFinder
 
 
 class TestInterfaces(unittest.TestCase):
     """ In order to perform these tests, Game_Server MUST be running """
     player = Human()  # Player 1 is used to test basics functions
-    interface = Interface(player=player)  # tie player to interface
+    interface = Interface(player=player, nobanner=True)  # tie player to interface
     player2 = Human()  # Player 2 is used to test server behaviour when disconnecting IN-GAME
     interface2 = Interface(player2)
 
@@ -26,6 +27,12 @@ class TestInterfaces(unittest.TestCase):
         """ test connection, disconnect, update when game not running """
         # game = CardGame(nb_players=0, nb_ai=2, nb_games=1, save=False)
         # Connect first time
+
+        if not GameFinder().running_servers:
+            base_dir = re.sub(r"\\", r"/", models.conf.BASEDIR)
+            if re.match(r".*/tests.*?", base_dir):
+                base_dir = re.sub("/tests.*$", "", base_dir)
+            self.interface.start_GameServer(port=5001, exec_path=base_dir)
         self.interface.connect("localhost", 5001)  # ask the interface to connect to the game
         self.assertIsNone(self.player.game)
         self.assertIsNotNone(self.interface.game_token, "Once connected, game sent a token")
@@ -82,6 +89,11 @@ class TestInterfaces(unittest.TestCase):
         """Player cannot start a game if he is not registered with a token"""
         # Player already connected should not renew their token
         # self.interface.connect("localhost", 5001)  # ask the interface to connect to the game
+        self.assertEqual(200, self.interface.disconnect())
+        self.assertRaises(AssertionError, self.interface.send_start_game_signal(),
+                          "Unregistered player cannot start a game")
+        self.assertEqual(200, self.interface.update().status_code,
+                         "Player registered, should be able to update profile")
 
         self.interface.send_start_game_signal()
         time.sleep(0.2)
@@ -94,29 +106,36 @@ class TestInterfaces(unittest.TestCase):
 
     def test_second_player_disconnect_and_reconnect_after_game_started(self):
         """ MUST be run after game started and player 2 connected """
-        self.assertEqual(self.interface2.update().status_code, 200,
+        self.assertEqual(200, self.interface2.update().status_code,
                          "Connected player should be able to view his profile")
         self.assertTrue(self.interface.game_dict.get("running"),
                         "After game started, server should show 'running")
         self.interface2.disconnect()
-        self.assertEqual(self.interface2.update().status_code, 404,
+        self.assertEqual(404, self.interface2.update().status_code,
                          "Disconnected player should not be able to view his profile")
         self.interface2.connect("localhost", 5001)
-        self.assertEqual(self.interface2.update().status_code, 200,
+        self.assertEqual(200, self.interface2.update().status_code,
                          "Player re-joined and should be able to update")
         self.assertEqual(self.interface2.game_dict.get("players")[-1][0], self.player2,
                          "A player that joined before the game started should be able to re-join")
 
     def test_third_player_join_after_game_started(self):
         player3 = Human()
-        interface3 = Interface(player3)
+        interface3 = Interface(player3, nobanner=True)
         interface3.connect("localhost", 5001)  # ask the interface to connect to the game
-        self.assertEqual(interface3.update().status_code, 404,
+        self.assertEqual(404, interface3.update().status_code,
                          "After game started, cannot update profile, since waiting")
         self.assertNotEqual(interface3.game_dict.get("awaiting"), [],
                             "A player that joined after the game started should be waiting")
         self.assertNotEqual(interface3.game_dict.get("players")[-1][0], player3,
                             "A player that joined after the game started should be waiting")
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.server:
+            self.server.terminate()
+        print(exc_type)
+        print(exc_val)
+        print(exc_tb)
 
 
 if __name__ == '__main__':
