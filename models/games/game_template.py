@@ -208,7 +208,7 @@ class Game(Server, SerializableObject, ABC):
                 raise CheaterDetected(f"{player} already in the ladder.")
         if win:
             self.__game_log.info(f"{player} won the place N°{len(self._winners) + 1}")
-            winner_data = [player, self._turn, player.last_played[0]]
+            winner_data = [player, self._turn, player.last_played[0].unicode_safe()]
             self._winners.append(winner_data)
             player.set_win()
         else:
