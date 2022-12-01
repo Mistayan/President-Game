@@ -352,7 +352,10 @@ class CardGame(Game):
             if player.is_human and self.count_humans > 1:
                 # with multiple players in the same console.
                 print("\n" * 10)
-                input("Press Enter to play (this is to avoid other players to see your hand)")
+                self._send_player(player,
+                                  "Press Enter to play (this is to avoid"
+                                  "other players to see your hand)",
+                                  input)
 
         while player.is_active:
             self._send_player(player, f"Last played card : (most recent on the right)\n{self.pile}"
