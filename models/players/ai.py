@@ -98,7 +98,8 @@ class AI(Player):
                 total_possible_cards += self.counter[number]
                 total_combo_pairs += 1
         if total_possible_cards:
-            result = total_power / (self.game.revolution + 1)
+            result = total_power / (self.game.revolution + 1) \
+                if self.game.name == "PresidentGame" else total_power
             result /= (total_combo_pairs + 1)
             result *= total_possible_cards
             result /= len(self.counter)
