@@ -397,6 +397,16 @@ class Interface(Server):
         # Game is over, and player chose not to start another one
         self.__player.set_game(None)  # reset game pointer, in case he wants to go 'online'
 
+    def start_GameServer(self, port=5001, exec_path=BASEDIR):
+        self.local_process = Popen([
+            os.path.join(exec_path, "venv/Scripts/python"),
+            os.path.join(exec_path, f"run_server.py"),
+            f"-p {port}",
+        ])
+        if self.__super:
+            print(self.__super)
+            self.local_process.communicate()
+
     def run_interface(self):
         try:
             while self.__run:
