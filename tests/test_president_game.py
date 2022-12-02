@@ -1,3 +1,9 @@
+"""
+Created by: Mistayan
+Project: President-Game
+IDE: PyCharm
+Creation-date: 11/10/22
+"""
 import logging
 import unittest
 from collections import Counter
@@ -5,7 +11,8 @@ from collections import Counter
 import coloredlogs
 
 from models import PresidentGame, Card
-from models.games.Errors import CheaterDetected
+from models import CheaterDetected
+from models.utils import measure_performance
 from rules import GameRules, PresidentRules
 
 
@@ -31,6 +38,7 @@ class TestPresidentGame(unittest.TestCase):
                                "Troufion": None,  # To be defined on each game, if players leave
                                }
 
+    @measure_performance
     def test_winner_ladder_no_neutrals(self):
         """ 4 players default should be President, neutre, neutre, Troufion """
         game = PresidentGame(nb_players=0, nb_ai=4, nb_games=1, save=True)
@@ -45,6 +53,7 @@ class TestPresidentGame(unittest.TestCase):
         self.assertRegex(str(ladder), "Trouf")
         self.assertRegex(str(ladder), "Neut")
 
+    @measure_performance
     def test_winner_ladder_two_neutrals(self):
         """ Ensure ladder give ranks as Expected"""
         game = PresidentGame(nb_players=0, nb_ai=6, nb_games=True, save=True)
@@ -59,6 +68,7 @@ class TestPresidentGame(unittest.TestCase):
         self.assertRegex(str(ladder), "Vice-T")
         self.assertRegex(str(ladder), "Trouf")
 
+    @measure_performance
     def test_revolution(self):
         """ Ensure revolution happens when requested """
         game = PresidentGame(1, 4, "Mistayan", nb_games=1, save=False)
@@ -72,6 +82,7 @@ class TestPresidentGame(unittest.TestCase):
         GameRules.USE_REVOLUTION = False
         self.assertEqual(strongest_before, game.strongest_card)
 
+    @measure_performance
     def test_one_game_3_AIs_with_ladder(self):
         """ Test that winners() triggers as soon as game is over """
         # the simple fact that it runs until the end is proof
@@ -81,6 +92,7 @@ class TestPresidentGame(unittest.TestCase):
         game._play_game()
         self.assertIsNotNone(game.winners())
 
+    @measure_performance
     def test_one_game_with_exchange___3_AIs(self):
         """ Test may fail because AI is dumb... given bad instructions
         Ensure exchanges are made properly (AI tested, human is expected to behave almost the same)
@@ -109,12 +121,14 @@ class TestPresidentGame(unittest.TestCase):
                 self.assertEqual(players_before[i], players_after[i],
                                  "Neutres should not have given cards")
 
+    @measure_performance
     def test_trigger_CheaterDetected_Error(self):
         """
         Ensure Cheaters block the game.
         In the future, it will have to ensure that this player has been kicked and voided"""
         self.assertRaises(CheaterDetected)
 
+    @measure_performance
     def test_do_play(self):
         """ assert if a card can be played or not given different circumstances"""
         game = PresidentGame(0, 3, nb_games=1)
@@ -128,6 +142,7 @@ class TestPresidentGame(unittest.TestCase):
         # Ensure a player with cards from the game can play them all
         self.assertTrue(game._do_play(1, player2, player2.hand))
 
+    @measure_performance
     def test_next_player(self):
         """ test if next player is the one expected """
         game = PresidentGame(nb_players=0, nb_ai=3)

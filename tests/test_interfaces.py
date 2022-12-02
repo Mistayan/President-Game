@@ -15,7 +15,7 @@ import coloredlogs
 import models.conf
 from models import Human
 from models.interfaces import Interface
-from models.utils import GameFinder
+from models.utils import GameFinder, measure_performance
 
 
 class TestInterfaces(unittest.TestCase):
@@ -24,8 +24,8 @@ class TestInterfaces(unittest.TestCase):
     interface = Interface(player=player, nobanner=True)  # tie player to interface
     player2 = Human()  # Player 2 is used to test server behaviour when disconnecting IN-GAME
     interface2 = Interface(player2, nobanner=True)
-    server = None
 
+    @measure_performance
     def test_game_player_interface_connexions(self):
         """ test connection, disconnect, update when game not running """
         # game = CardGame(nb_players=0, nb_ai=2, nb_games=1, save=False)
@@ -83,12 +83,14 @@ class TestInterfaces(unittest.TestCase):
         self.assertTrue(len(self.interface.game_dict.get("players")) == previous_len,
                         "Player just reconnected. Should appear in game")
 
+    @measure_performance
     def test_h_second_player_joining_game_before_start(self):
         self.interface2.connect("localhost", 5001)  # ask the interface to connect to the game
         self.interface2.update()
         self.assertEqual(self.interface2.game_dict.get("players")[-1][0], self.player2,
                          "A player that joined before the game started should play")
 
+    @measure_performance
     def test_interface_start_game(self):
         """Player cannot start a game if he is not registered with a token"""
         # Player already connected should not renew their token
@@ -112,6 +114,7 @@ class TestInterfaces(unittest.TestCase):
                             "After game started, it should have distributed cards")
         self.assertIsNone(self.player.game)
 
+    @measure_performance
     def test_second_player_disconnect_and_reconnect_after_game_started(self):
         """ MUST be run after game started and player 2 connected """
         self.assertEqual(200, self.interface2.update().status_code,
@@ -127,6 +130,7 @@ class TestInterfaces(unittest.TestCase):
         self.assertEqual(self.interface2.game_dict.get("players")[-1][0], self.player2,
                          "A player that joined before the game started should be able to re-join")
 
+    @measure_performance
     def test_third_player_join_after_game_started(self):
         player3 = Human()
         interface3 = Interface(player3, nobanner=True)
@@ -138,13 +142,15 @@ class TestInterfaces(unittest.TestCase):
         self.assertNotEqual(interface3.game_dict.get("players")[-1][0], player3,
                             "A player that joined after the game started should be waiting")
 
+    @measure_performance
     def test_z_exit(self):
+        """ Exit interfaces to finish tests. This ensures no server is left running"""
         self.interface.__exit__(exit, 1, None)
         self.interface2.__exit__(exit, 1, None)
 
+    @measure_performance
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.server:
-            self.server.terminate()
+        """ Show exit conditions """
         print(exc_type)
         print(exc_val)
         print(exc_tb)

@@ -78,17 +78,17 @@ class ValidateBuffer:
         self.after = message_after
         self.__buffer = None
 
-    def __call__(self, f):
+    def __call__(self, fn):
         def validate(*args, **kwargs):
             self.__buffer = kwargs
-            print(f"Buffer validation ==> {f}({args}\t{kwargs})")
+            print(f"Buffer validation ==> {fn}({args}\t{kwargs})")
             if not (args or kwargs):
                 raise BufferError("Nothing to apply. Empty buffer")
-            response = f(*args, **kwargs)
-            self.after and ROOT_LOGGER.debug(f"{self.after}")
+            response = fn(*args, **kwargs)
+            self.after and ROOT_LOGGER.debug(self.after)
             return response
 
-        self.before and ROOT_LOGGER.debug(f"{self.before}")
+        self.before and ROOT_LOGGER.debug(self.before)
         return validate
 
 
