@@ -106,7 +106,7 @@ classDiagram
     }
 ```
 
-## Le jeu du président
+### Le jeu du président
 
 Comme annoncé, le jeu du __President__ et un __jeu de cartes__ <br>
 Il possède des __regles supplémentaires__ par rapport à un jeu de cartes classique <br>
@@ -155,7 +155,6 @@ classDiagram
     }
     class Game{
     (or any dependent)
-       +send_player()
     }
     class Server{
     +receive()
