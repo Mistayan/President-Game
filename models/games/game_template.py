@@ -407,8 +407,7 @@ class Game(Server, SerializableObject, ABC):
         :param pname: player to get infos from
         :return: "MSG", status_code, player_as_json
         """
-        p: Human = self.get_player(pname) or \
-            self.get_disonnected(pname) or self.get_awaiting(pname)
+        p: Human = self.get_player(pname) or self.get_disonnected(pname)
         content = None
         if not p:
             status = 404
