@@ -2,8 +2,8 @@
 
 ## How to use :
 ```shell
-#git clone https://github.com/Mistayan/President-Game.git
-#cd President-Game
+# git clone https://github.com/Mistayan/President-Game.git
+# cd President-Game
 py setup.py
 venv/Scripts/python run_interface.py
 ```
@@ -108,12 +108,12 @@ classDiagram
 
 ### Le jeu du président
 
-Comme annoncé, le jeu du __President__ et un __jeu de cartes__ <br>
-Il possède des __regles supplémentaires__ par rapport à un jeu de cartes classique <br>
+Comme annoncé, le jeu du __President__ est un __jeu de cartes__ <br>
+Il possède des __règles supplémentaires__ par rapport à un jeu de cartes classique <br>
 Ce jeu possède aussi son propre __système de classement des joueurs__, chaque rang ayant des
 __avantages__ donnés en nombre de cartes, à échanger lors de la prochaine partie <br>
 Un joueur peut jouer un __jeu de cartes__ ou le jeu du __Président__.
-Le __jeu__ accepte de recevoir des cartes de la part des joueurs --> __do_play()__<br>
+Le __jeu__ accepte de recevoir des cartes de la part des joueurs --> __play()__<br>
 Il peut forcer les joueurs à échanger leurs cartes lors du début d'une __nouvelle partie__
 
 ```mermaid
@@ -161,7 +161,6 @@ classDiagram
     +send_all()
     }
     class Interface{
-        +send()
         +update()
         +connect()
         +disconnect()
@@ -277,18 +276,6 @@ classDiagram
     - Le troufion doit donner sa meilleure carte, le président choisit quelle carte donner
 - [x] Intelligence artificielle
     - Ajouter un raisonnement simple en plus du raisonnement déjà existant.
-
-# Comment utiliser le logiciel :
-
-> Il est fortement recommandé d'utiliser un environnement virtuel :
-> > python -m venv venv  
-> > .\venv\Scripts\activate
-
-> pip install -r requirements.txt
->
-> Modifier rules.py pour adapter les regles du jeu
->
-> python main.py
 
 # TODO schema mermaid de sécurité timeline
 
