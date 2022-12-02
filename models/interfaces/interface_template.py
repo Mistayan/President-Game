@@ -247,7 +247,7 @@ class Interface(Server):
         if options is None:
             options = {"Find Game": self.find_game,
                        "Start a new server of your own": self.start_GameServer,
-                       # "Start a game locally": self.start_new_game,
+                       # "Start a game locally": self.start_new_local_game,
                        "Exit Interface": functools.partial(exit, 0)}
             if self.__game:  # Display more options if interface successfully connected to a game
                 options.setdefault("Start Game", self.send_start_game_signal)
@@ -382,8 +382,7 @@ class Interface(Server):
         res.status_code = 404
         return res
 
-
-    def start_new_game(self):
+    def start_new_local_game(self):
         """
         Choose a game from a list of available games styles
         and set games options before starting it.
@@ -397,7 +396,6 @@ class Interface(Server):
         game.start()
         # Game is over, and player chose not to start another one
         self.__player.set_game(None)  # reset game pointer, in case he wants to go 'online'
-
 
     def run_interface(self):
         try:
