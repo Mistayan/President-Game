@@ -52,7 +52,6 @@ class Interface(Server):
             self.__banner()
         self.__run = True
 
-
     @property
     def action_required(self):
         return self.__player.action_required
@@ -101,7 +100,7 @@ class Interface(Server):
     def _send(self, destination=None, msg=None):
         """
         Send messages to game
-        Everytime the game wants to _send a message, we have to retrieve those by updating
+        Everytime the game wants to send a message, we have to retrieve those by updating
         """
         target = destination or self.__game
         if not target:
@@ -397,6 +396,16 @@ class Interface(Server):
         # Game is over, and player chose not to start another one
         self.__player.set_game(None)  # reset game pointer, in case he wants to go 'online'
 
+    def start_GameServer(self, port=5001, exec_path=BASEDIR):
+        self.local_process = Popen([
+            os.path.join(exec_path, "venv/Scripts/python"),
+            os.path.join(exec_path, f"run_server.py"),
+            f"-p {port}",
+        ])
+        if self.__super:
+            print(self.__super)
+            self.local_process.communicate()
+
     def run_interface(self):
         try:
             while self.__run:
@@ -409,4 +418,3 @@ class Interface(Server):
                         self.menu()
         except KeyboardInterrupt as e:
             print("Shutting down Interface...")
-
