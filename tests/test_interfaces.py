@@ -36,6 +36,7 @@ class TestInterfaces(unittest.TestCase):
             if re.match(r".*/tests.*?", base_dir):
                 base_dir = re.sub("/tests.*$", "", base_dir)
             self.interface.start_GameServer(port=5001, exec_path=base_dir)
+            time.sleep(5)
         self.interface.connect("localhost", 5001)  # ask the interface to connect to the game
         self.assertIsNone(self.player.game)
         self.assertIsNotNone(self.interface.game_token, "Once connected, game sent a token")
@@ -92,9 +93,13 @@ class TestInterfaces(unittest.TestCase):
         """Player cannot start a game if he is not registered with a token"""
         # Player already connected should not renew their token
         # self.interface.connect("localhost", 5001)  # ask the interface to connect to the game
-        self.assertEqual(200, self.interface.disconnect())
-        self.assertRaises(AssertionError, self.interface.send_start_game_signal(),
+        self.interface.disconnect()
+        self.assertIsNone(self.interface.send_start_game_signal(),
                           "Unregistered player cannot start a game")
+        self.assertEqual(404, self.interface.update().status_code,
+                         "Player not registered, should not be able to update profile")
+
+        self.interface.connect("localhost", 5001)
         self.assertEqual(200, self.interface.update().status_code,
                          "Player registered, should be able to update profile")
 
@@ -114,8 +119,8 @@ class TestInterfaces(unittest.TestCase):
         self.assertTrue(self.interface.game_dict.get("running"),
                         "After game started, server should show 'running")
         self.interface2.disconnect()
-        self.assertEqual(404, self.interface2.update().status_code,
-                         "Disconnected player should not be able to view his profile")
+        self.assertEqual(200, self.interface2.update().status_code,
+                         "Disconnected player is able to view his profile, given correct token")
         self.interface2.connect("localhost", 5001)
         self.assertEqual(200, self.interface2.update().status_code,
                          "Player re-joined and should be able to update")
@@ -127,11 +132,15 @@ class TestInterfaces(unittest.TestCase):
         interface3 = Interface(player3, nobanner=True)
         interface3.connect("localhost", 5001)  # ask the interface to connect to the game
         self.assertEqual(404, interface3.update().status_code,
-                         "After game started, cannot update profile, since waiting")
-        self.assertNotEqual(interface3.game_dict.get("awaiting"), [],
+                         "After game started, cannot update profile, since spectator")
+        self.assertNotEqual(interface3.game_dict.get("spectators"), [],
                             "A player that joined after the game started should be waiting")
         self.assertNotEqual(interface3.game_dict.get("players")[-1][0], player3,
                             "A player that joined after the game started should be waiting")
+
+    def test_z_exit(self):
+        self.interface.__exit__(exit, 1, None)
+        self.interface2.__exit__(exit, 1, None)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self.server:
