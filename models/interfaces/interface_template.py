@@ -319,14 +319,17 @@ class Interface(Server):
             self.logger.critical(e)
 
     def __exit__(self, _type, value, traceback):
-        self.disconnect()
-        if self.local_process:
-            self.local_process.terminate()
-        self.logger.critical(_type)
-        self.logger.critical(value)
-        self.logger.critical(traceback)
-        print(colorama.Style.BRIGHT + colorama.Fore.BLACK + colorama.Back.GREEN,
-              "\tSee you soon :D\t\t" + colorama.Style.RESET_ALL)
+        try:
+            self.disconnect()
+            if self.local_process:
+                self.local_process.terminate()
+        except Exception:
+            self.logger.critical(_type)
+            self.logger.critical(value)
+            self.logger.critical(traceback)
+        finally:
+            print(colorama.Style.BRIGHT + colorama.Fore.BLACK + colorama.Back.GREEN,
+                  "\tSee you soon :D\t\t" + colorama.Style.RESET_ALL)
 
     def __aexit__(self, exc_type, exc_val, exc_tb):
         self.disconnect()
