@@ -7,5 +7,5 @@ Creation-date: 26/10/22
 """
 # sub_modules MUST be in MRO order !!!
 from .conf import ROOT_LOGGER
-from .games import CardGame, PresidentGame, Card
+from .games import CardGame, PresidentGame, Card, CheaterDetected
 from .players import Player, AI, Human
