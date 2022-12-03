@@ -482,39 +482,6 @@ class CardGame(Game):
         su.update(update)
         return su
 
-    def _send_player(self, player, msg, method=None):
-        assert player and msg
-        if not player.is_human:
-            return
-        if self.status == self.OFFLINE:
-            self.logger.info("offline.")
-            return method and method(msg) or print(msg)
-        elif method is input:
-            request = Question().request
-            request.setdefault("question", msg)
-            player.action_required = True
-            player.messages.append(request)
-            answer = None
-            self.__logger.warning(f"{method}({msg})")
-            self.__wait_player_action(player)
-            self.logger.info(f"waiting. for {player}\r")
-            while answer is None:
-                time.sleep(GameRules.TICK_SPEED)
-                if self._last_message_received:
-                    answer = self._last_message_received.get(player.plays)  # TODO change to answer
-            self.__logger.warning("Done Waiting.")
-            return answer
-        elif method is None:
-            player.messages.append(msg)
-
-    def __wait_player_action(self, player):
-        self.__logger.info(f"awaiting {player} to play")
-        timeout = Message.timeout
-        while player.action_required and timeout > 0:
-            time.sleep(GameRules.TICK_SPEED)
-            timeout -= GameRules.TICK_SPEED
-        return player.plays
-
     def _init_server(self, name):
         super()._init_server(name)
 
