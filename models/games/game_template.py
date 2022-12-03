@@ -7,6 +7,7 @@ Creation-date: 11/10/22
 """
 import json
 import logging
+import time
 from abc import abstractmethod, ABC
 from threading import Thread  # required for Background server task
 from typing import Any
@@ -14,8 +15,9 @@ from typing import Any
 from flask import request, make_response, Response
 
 from models.players import Player, Human, AI
-from models.responses import Connect, Disconnect, Start, Update
+from models.responses import Connect, Disconnect, Start, Update, Message, Question
 from models.utils import SerializableObject
+from rules import GameRules
 from .Errors import CheaterDetected
 from .apis.server import Server
 from .db import Database
@@ -292,6 +294,41 @@ class Game(Server, SerializableObject, ABC):
             pass  # Find a way for server or no server to play the same way
 
     ########################################################################
+
+    def _send_player(self, player, msg, method=None):
+        assert player and msg
+        if not player.is_human:
+            return
+        if self.status == self.OFFLINE:
+            self.logger.info("offline.")
+            return method and method(msg) or print(msg)
+        elif method is input:
+            request = Question().request
+            request.setdefault("question", msg)
+            player.action_required = True
+            player.messages.append(request)
+            answer = None
+            self.__game_log.warning(f"{method}({msg})")
+            self.__wait_player_action(player)
+            self.logger.info(f"waiting for {player}...\r")
+            while answer is None and player in self.players:
+                time.sleep(GameRules.TICK_SPEED)
+                if self._last_message_received:
+                    answer = self._last_message_received.get(player.plays)
+            self.__game_log.warning("Done Waiting.")
+            if player not in self.players:
+                self.send_all(f"{player} Disconnected. Skipping turn.")
+            return answer
+        elif method is None:
+            player.messages.append(msg)
+
+    def __wait_player_action(self, player):
+        self.__game_log.info(f"awaiting {player} to play")
+        timeout = Message.timeout
+        while player.action_required and timeout > 0:
+            time.sleep(GameRules.TICK_SPEED)
+            timeout -= GameRules.TICK_SPEED
+        return player.plays
 
     def send_all(self, msg):
         """ Send a message containing 'msg' to every Human player"""
