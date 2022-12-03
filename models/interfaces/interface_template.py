@@ -245,14 +245,17 @@ class Interface(Server):
         :return: requested method's results
         """
         if options is None:
-            options = {"Find Game": self.find_game,
-                       "Start a new server of your own": self.start_GameServer,
-                       # "Start a game locally": self.start_new_local_game,
-                       "Exit Interface": functools.partial(exit, 0)}
+            options = {
+
+                "Find Game": self.find_game,
+                "Start a new server of your own": self.start_GameServer,
+                # "Start a game locally": self.start_new_local_game,
+                "Exit Interface": functools.partial(exit, 0)}
             if self.__game:  # Display more options if interface successfully connected to a game
                 options.setdefault("Start Game", self.send_start_game_signal)
                 options.setdefault("Game Options [Game, rules] (WIP)", self.set_game_options)
                 self.__token and options.setdefault("Reconnect", self.reconnect)
+            not self.__token and options.setdefault(" !! I already have a token !! ", self._set_token)
         action = -1
         if len(options):
             while action == -1:
@@ -276,6 +279,9 @@ class Interface(Server):
     def __aenter__(self):
         # Prevision for asynchronous processes (allow faster requests and processing)
         return self
+
+    def _set_token(self):
+        self.__token = input("Token ?")
 
     def __banner(self):
         import PIL.Image
@@ -422,4 +428,5 @@ class Interface(Server):
                         self.menu()
         except KeyboardInterrupt as e:
             print("Shutting down Interface...")
+            print(f"here is your token to reconnect : {self.__token}")
 
