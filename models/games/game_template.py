@@ -261,7 +261,7 @@ class Game(Server, SerializableObject, ABC):
         @self.route(f"/{Disconnect.request['message']}/{Disconnect.REQUIRED}",
                     methods=Disconnect.methods)
         def unregister(player: str) -> Response:
-            player: Human = self.get_player(player) or self.get_awaiting(player)
+            player: Human = self.get_player(player) or self.get_observers(player)
             if player and player.is_human and request.headers["Content-Type"].find("json"):
                 datas = json.loads(request.data)["request"]
                 if player.token == datas.get("token"):
@@ -326,7 +326,7 @@ class Game(Server, SerializableObject, ABC):
     def _wait_player_action(self, player):
         self.__game_log.info(f"awaiting {player} to play")
         timeout = Message.timeout
-        while player.action_required and timeout > 0:
+        while player.action_required and timeout > 0 and player in self.players:
             time.sleep(GameRules.TICK_SPEED)
             timeout -= GameRules.TICK_SPEED
         return player.plays
@@ -435,7 +435,7 @@ class Game(Server, SerializableObject, ABC):
     def get_disonnected(self, player: Player or str) -> Player and Human:
         return self.get_player_from(player, self.disconnected_players)
 
-    def get_awaiting(self, player: Player or str) -> Player and Human:
+    def get_observers(self, player: Player or str) -> Player and Human:
         return self.get_player_from(player, self.spectators)
 
     def player_infos(self, pname):
