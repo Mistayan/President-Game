@@ -12,10 +12,15 @@ import coloredlogs
 
 from models import PresidentGame
 
+
+def run_background(pool):
+    return pool.apply_async(PresidentGame().run_server())
+
+
 if __name__ == '__main__':
     coloredlogs.set_level(logging.CRITICAL)
     try:
         with Pool(processes=1, ) as pool:
-            pool.apply_async(PresidentGame().run_server())
+            run_background(pool)
     except KeyboardInterrupt as e:
         print("Server Shutting down...")
