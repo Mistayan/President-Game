@@ -367,6 +367,7 @@ class CardGame(Game):
             else:
                 cards = self._wait_player_action(player)
                 player.plays = []  # Once synced with game, reset player's play
+                player.set_played()  # Whatever happens, player played.
             if not self.required_cards:
                 # First-player -> his card count become required card for other to play.
                 self.required_cards = len(cards)
