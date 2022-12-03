@@ -263,7 +263,7 @@ class Game(Server, SerializableObject, ABC):
         def unregister(player: str) -> Response:
             player: Human = self.get_player(player) or self.get_observers(player)
             if player and player.is_human and request.headers["Content-Type"].find("json"):
-                datas = json.loads(request.data)["request"]
+                datas = json.loads(request.data)["headers"]
                 if player.token == datas.get("token"):
                     self.unregister(player)
                     return make_response('OK', 200, {'Disconnected': '"Disconnected from game"'})
@@ -286,7 +286,7 @@ class Game(Server, SerializableObject, ABC):
             assert request.headers["Content-Type"] == "application/json"
             p: Human = self.get_player(player)
             assert p and p == player
-            assert request.is_json and p.token == request.json.get('request').get('token')
+            assert request.is_json and p.token == request.json.get('headers').get('token')
             if not self._run:
                 self.status = self.GAME_RUNNING
                 self.__game_daemon = self.__start_server_mode()  # True to override local_cli prompts
@@ -451,7 +451,7 @@ class Game(Server, SerializableObject, ABC):
             status = 404
         else:
             assert p.is_human
-            if p.token != request.json.get('request').get('token'):
+            if p.token != request.json.get('headers').get('token'):
                 status = 403
             else:
                 status = 200

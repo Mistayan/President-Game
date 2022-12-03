@@ -109,8 +109,9 @@ class Interface(Server):
         super()._send(target, self.__msg_buffer)
         message = self.__msg_buffer()  # Instantiate before filling request
         message_method, *others = message.methods  # Gather only first element from tuple
-        message.request = self._fill_request(message, self.__player, self.__token)
-        self.logger.debug(f"{message_method} : {message.request}")
+        message.headers = self._fill_headers(message)
+        message.request = self.__msg_buffer.request
+        self.logger.debug(f"{message_method} // {message.headers} // : {message.request}")
         self.logger.info(f"sending {message.__class__.__name__} request to {target}")
         response = self.not_found(target)
         try:
@@ -142,8 +143,7 @@ class Interface(Server):
             raise MessageError(f"Non of the given message is valid: {self.__msg_buffer}")
         return self._send()
 
-    @staticmethod
-    def _fill_request(msg: SerializableClass, player, token) -> dict:
+    def _fill_headers(self, msg: SerializableClass) -> dict:
         """
         Complete 'msg.request' with required information
         :param msg: Any Message class
@@ -153,9 +153,9 @@ class Interface(Server):
         """
         # instantiate message buffer to memory, so any modification is not in file
         _j = msg.to_json()
-        _request = _j.get("request")
-        _request["player"] = player.name
-        _request["token"] = token
+        _request = _j.get("headers")
+        _request["player"] = self.__player.name
+        _request["token"] = self.__token
         return _request
 
     def update(self):
