@@ -395,7 +395,7 @@ class CardGame(Game):
     def _queen_of_heart_starts(self) -> int:
         """Only triggers if rule in True
         set the player with queen of heart as the first player"""
-        if GameRules.QUEEN_OF_HEART_STARTS:
+        if GameRules.QUEEN_OF_HEART_STARTS and not self._winners:
             for i, player in enumerate(self.players):
                 for card in player.hand:
                     if card.number == "Q" and card.color == "♡":
