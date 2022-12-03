@@ -124,7 +124,7 @@ class Game(Server, SerializableObject, ABC):
         if not isinstance(player, (AI, Player, str)):
             raise ValueError(f"{player} not a Player")
         # Player already 'in-game'
-        p = self.get_player(player)
+        p = self.get_player(player) or self.get_disonnected(player)
         if p and token == p.token:
             return p
 
@@ -249,7 +249,7 @@ class Game(Server, SerializableObject, ABC):
 
         @self.route(f"/{Connect.request['message']}/{Connect.REQUIRED}", methods=Connect.methods)
         def register(player) -> Response:
-            if not self.get_player(player):
+            if not self.get_player(player) or self.get_disonnected(player):
                 player: Human = self.register(player)  # If previously disconnected, log back in
                 if player.is_human:
                     player.set_game(self)
