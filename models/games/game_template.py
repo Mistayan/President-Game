@@ -223,7 +223,7 @@ class Game(Server, SerializableObject, ABC):
         last_played = player.hand[-1] if player.hand and not reason \
             else player.last_played[-1] if player.last_played else None
 
-        self.losers.append([player, self._turn, last_played])
+        self.losers.append([player, self._turn, last_played and last_played.unicode_safe()])
         player.set_win()  # It just means that a player cannot play anymore for current game
 
     @staticmethod
