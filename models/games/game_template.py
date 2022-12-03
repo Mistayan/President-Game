@@ -189,6 +189,7 @@ class Game(Server, SerializableObject, ABC):
 
     def _reset_winner(self):
         self._winners = []
+        self.losers = []
 
     def show_winners(self):
         self.send_all("".join(["#" * 15, "WINNERS", "#" * 15]))
