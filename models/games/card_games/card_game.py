@@ -256,6 +256,7 @@ class CardGame(Game):
         if not self._run:
             self._initialize_game()
             self._queen_of_heart_starts()  # ONLY FIRST GAME If Rule is True, set _next_player
+            super()._reset_winner()  # then reset winners for new game
 
         while self._run:
             self._run_loop()
