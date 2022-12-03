@@ -364,7 +364,7 @@ class CardGame(Game):
             if self.status == self.OFFLINE or not player.is_human:
                 cards = player.play(self.required_cards)
             else:
-                cards = self.__wait_player_action(player)
+                cards = self._wait_player_action(player)
                 player.plays = []  # Once synced with game, reset player's play
             if not self.required_cards:
                 # First-player -> his card count become required card for other to play.

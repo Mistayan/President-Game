@@ -310,7 +310,7 @@ class Game(Server, SerializableObject, ABC):
             player.messages.append(request)
             answer = None
             self.__game_log.warning(f"{method}({msg})")
-            self.__wait_player_action(player)
+            self._wait_player_action(player)
             self.logger.info(f"waiting for {player}...\r")
             while answer is None and player in self.players:
                 time.sleep(GameRules.TICK_SPEED)
@@ -323,7 +323,7 @@ class Game(Server, SerializableObject, ABC):
         elif method is None:
             player.messages.append(msg)
 
-    def __wait_player_action(self, player):
+    def _wait_player_action(self, player):
         self.__game_log.info(f"awaiting {player} to play")
         timeout = Message.timeout
         while player.action_required and timeout > 0:
