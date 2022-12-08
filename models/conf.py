@@ -25,6 +25,8 @@ ENV_NAME = "venv"
 SYSTEM = platform.system()
 if SYSTEM not in ("Windows", "POSIX"):
     raise OSError("Unknown OS type, cannot execute. Please contact software maintainer")
-VENV_PYTHON = os.path.join(ENV_NAME,
-                           "Scripts" if SYSTEM == "Windows" else "bin",  # if not windows, POSIX
+VENV_PATH = os.path.join(BASEDIR, ENV_NAME,
+                         "Scripts" if SYSTEM == "Windows" else "bin",  # if not windows, POSIX
+                         )
+VENV_PYTHON = os.path.join(VENV_PATH,
                            "python")
