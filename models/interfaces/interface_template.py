@@ -31,7 +31,6 @@ class Interface(Server):
     """
     Instantiate basics for Game interfaces
     """
-    local_process: Popen
     DISCONNECTED = 8
     CONNECTED = 10
     WAITING_NEW_GAME = 12
@@ -434,8 +433,8 @@ class Interface(Server):
 
     def start_GameServer(self, port=5001, exec_path=BASEDIR):
         """ start a game server in a background task """
-        self.local_process = Popen([
-                                    os.path.join(exec_path, "venv/Scripts/python"),
+        self._local_process = Popen([
+                                    os.path.join(exec_path, VENV_PYTHON),
                                     os.path.join(exec_path, "run_server.py"),
                                     f"-p {port}"])
         # if self.__super:

@@ -47,7 +47,7 @@ class Server(Flask, ABC):
     @abstractmethod
     def __init__(self, import_name: str, *args):
         super().__init__(import_name)
-        self.local_process = None
+        self._local_process = None
         self.logger = logging.getLogger(__class__.__name__)
         self.name = import_name
         self.status = self.OFFLINE
