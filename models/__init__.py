@@ -9,7 +9,7 @@ import os
 
 import colorama as colorama
 
-from setup import ENV_NAME
+from .conf import ENV_NAME
 # sub_modules MUST be in MRO order !!!
 
 from .conf import ROOT_LOGGER, BASEDIR
