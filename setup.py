@@ -11,23 +11,21 @@ from subprocess import Popen
 
 from setuptools import setup
 
-if not len(sys.argv) >= 2:
-    BASEDIR = os.path.abspath(os.getcwd())
-    _ENV = "venv"
-    venv_py = f"{_ENV}/Scripts/python"
+from models.conf import VENV_PYTHON, ENV_NAME, BASEDIR
+
+if sys.argv and not len(sys.argv) >= 2:
     if not os.path.exists(os.path.join(BASEDIR, "venv")):
-        print(f"Creating virtual environment : {_ENV}")
-        init = Popen(f"python -m venv {_ENV}".split()).communicate()
-        print("Checking for new pip && wheel versions... last security version.")
-        check_pip = Popen(f"{venv_py} -m pip install --upgrade pip".split()).communicate()
-        check_wheel = Popen(f"{venv_py} -m pip install --upgrade wheel".split()).communicate()
-        if not os.path.exists(os.path.join(BASEDIR, _ENV)):
-            raise EnvironmentError("You must setup a virtual environment to use this method.\n"
-                                   f">>> python venv {_ENV}\n>>> activate\n"
-                                   ">>>pip install -r requirements.txt")
-    if os.path.exists(os.path.join(BASEDIR, _ENV)):
-        print("Applying requirements")
-        install = Popen(f"{venv_py} -m pip install -r requirements.txt".split()).communicate()
+        print(f"Creating virtual environment : {ENV_NAME}")
+        # communicate, so we know what happens
+        init = Popen(f"python -m venv {ENV_NAME}".split()).communicate()  # <==
+    print("Upgrading pip and wheel :\n"
+          "\t- upgrading pip ensure you match last security standards \n"
+          "\t- wheel is faster than pip, allowing smaller downloads and faster install")
+    print(VENV_PYTHON)
+    check_pip = Popen(f"{VENV_PYTHON} -m pip install --upgrade pip".split()).communicate()
+    check_wheel = Popen(f"{VENV_PYTHON} -m pip install --upgrade wheel".split()).communicate()
+    print("Applying requirements (Flask, names, requests, ...)")
+    install = Popen(f"{VENV_PYTHON} -m pip install -r requirements.txt".split()).communicate()
 
     # argparse.ArgumentParser(
     #     prog="setup.py",
