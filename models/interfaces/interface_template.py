@@ -19,7 +19,7 @@ import PIL.Image
 from requests import Response
 
 from models import CardGame
-from models.conf import BASEDIR
+from models.conf import BASEDIR, VENV_PYTHON
 from models.games.apis.server import Server
 from models.players.player import Human
 from models.responses import Connect, Disconnect, MessageError, Update, Start,\
@@ -132,7 +132,7 @@ class Interface(Server):
                 cert=None,  # yet...
                 json=message.to_json(),
             )
-        except ConnectionError:
+        except (ConnectionError, ConnectionRefusedError):
             print(f"Server {target} Not responding. {response}")
 
         return response if response else self.not_found(target)
@@ -253,27 +253,32 @@ class Interface(Server):
                 print("Requires a number")
         return answer
 
+    @property
+    def __base_menu(self):
+        options = {
+            "Find Game": self.find_game,
+            # "Start a game locally": self.start_new_local_game,
+            "Exit Interface": functools.partial(exit, 0)}
+        if self.__game:  # Display more options if interface successfully connected to a game
+            options.setdefault("Start Game", self.send_start_game_signal)
+            options.setdefault("Game Options [Game, rules] (WIP)", self.set_game_options)
+            if not self.__token:
+                options.setdefault(" !! I already have a token !! ", self._set_token)
+        if self.__token and not self.__game:
+            options.setdefault("Reconnect", self.reconnect)
+        if not self.__local_process and not self.__game:
+            options.setdefault("Start a new server of your own", self.start_GameServer)
+        else:
+            options.setdefault("Stop server", self.stop_GameServer)
+        return options
+
     def menu(self, name: str = "main menu", options: dict = None):
         """
         CLI Menu
         :return: requested method's results
         """
         if options is None:
-            options = {
-
-                "Find Game": self.find_game,
-                # "Start a game locally": self.start_new_local_game,
-                "Exit Interface": functools.partial(exit, 0)}
-            if self.__game:  # Display more options if interface successfully connected to a game
-                options.setdefault("Start Game", self.send_start_game_signal)
-                options.setdefault("Game Options [Game, rules] (WIP)", self.set_game_options)
-                if self.__token:
-                    options.setdefault("Reconnect", self.reconnect)
-                else:
-                    options.setdefault(" !! I already have a token !! ", self._set_token)
-            if not self.local_process:
-                options.setdefault("Start a new server of your own", self.start_GameServer),
-
+            options = self.__base_menu()
 
         action = -1
         if len(options):
