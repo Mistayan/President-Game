@@ -47,7 +47,7 @@ class Database:
         self.__save()
 
     def __save(self):
-        self.__logger.debug("saving %s", {self.__data})  # data to set for print
+        self.__logger.debug("saving %s", self.__data)  # data to set for print
         self.__renew_fp()
         try:
             json.dump(self.__data, self.__fp)
