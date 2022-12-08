@@ -76,6 +76,7 @@ class Interface(Server):
             if response.status_code == 200:
                 self.status = self.CONNECTED
                 self.__game = f"{uri}:{port}"  # If succeeded, we know the game exists
+            print(response)
             self.logger.debug(response.headers)
             if response.headers.get('token') != self.__token:
                 self.__update_token(response.headers.get('token'))
@@ -122,7 +123,7 @@ class Interface(Server):
                           message.request)
         self.logger.info("sending %s request to %s", message.__class__.__name__,
                          target)
-        response = self.not_found(target)
+        response = None
         try:
             response = requests.request(
                 method=message_method,
@@ -134,7 +135,7 @@ class Interface(Server):
         except ConnectionError:
             print(f"Server {target} Not responding. {response}")
 
-        return response
+        return response if response else self.not_found(target)
 
     # @ValidateBuffer
     # def __apply_message(self, msg):  # WIP
@@ -261,7 +262,6 @@ class Interface(Server):
             options = {
 
                 "Find Game": self.find_game,
-                "Start a new server of your own": self.start_GameServer,
                 # "Start a game locally": self.start_new_local_game,
                 "Exit Interface": functools.partial(exit, 0)}
             if self.__game:  # Display more options if interface successfully connected to a game
@@ -271,6 +271,10 @@ class Interface(Server):
                     options.setdefault("Reconnect", self.reconnect)
                 else:
                     options.setdefault(" !! I already have a token !! ", self._set_token)
+            if not self.local_process:
+                options.setdefault("Start a new server of your own", self.start_GameServer),
+
+
         action = -1
         if len(options):
             while action == -1:
