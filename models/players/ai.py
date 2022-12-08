@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created by: Mistayan
+Project: President-Game
+IDE: PyCharm
+Creation-date: 13/10/22
+"""
 import logging
 from collections import Counter
 
@@ -9,6 +16,7 @@ from rules import PresidentRules
 
 
 class AI(Player):
+    """ AI Player """
 
     def __init__(self, name=None, game_pointer=None):
         """
@@ -26,12 +34,12 @@ class AI(Player):
         self.first = False
         self.game = game_pointer
         self.counter = Counter()
-        self.__buffer = []
         self.got_revolution_in_hand = False
 
     def set_rank(self, rank_pointer):
-        self.__logger.info(f"I have been assigned {rank_pointer}")
-        super(AI, self).set_rank(rank_pointer)
+        """ Set player's rank to given rank_pointer (Generic, use with care)"""
+        self.__logger.info("I have been assigned %s", rank_pointer)
+        super().set_rank(rank_pointer)
 
     def _play_cli(self, n_cards_to_play=0, override=None, action='play') -> list[Card]:
         """The actual calculation method don't take into account the fact that you can break pairs
@@ -49,7 +57,7 @@ class AI(Player):
             self.first = True
             n_cards_to_play = self.ask_n_cards_to_play()
         if action == "play" and n_cards_to_play <= self.max_combo:
-            self.__logger.debug(f"Estimating my hand : {self.hand}\tAgainst : {self.game.pile}")
+            self.__logger.debug("Estimating my hand : %s\tAgainst : %s", self.hand, self.game.pile)
             play = self.calc_best_card(n_cards_to_play)
         if action == "give" or not play:
             play = self.calc_best_card(n_cards_to_play, split=True)
@@ -57,7 +65,7 @@ class AI(Player):
 
     def play_tk(self, n_cards_to_play=0) -> list[Card]:
         """ Graphical or CLI does not matter for AI ... Only datas"""
-        return self._play_cli()
+        return self._play_cli(n_cards_to_play)
 
     def ask_n_cards_to_play(self) -> int:
         """ pick how many cards would be wisest to be played"""
@@ -67,8 +75,7 @@ class AI(Player):
                  len(self.hand) <= 6 and self.calc_revolution_interest() < 0.5):
             n_cards_to_play = 4
         elif self.max_combo < 4:
-            n_cards_to_play = self.calc_n_cards(self.max_combo,
-                                                True if not self.got_revolution_in_hand else False)
+            n_cards_to_play = self.calc_n_cards(self.max_combo, self.got_revolution_in_hand)
         return n_cards_to_play
 
     def calc_revolution_interest(self) -> float:
@@ -80,9 +87,9 @@ class AI(Player):
         counter = Counter([card.number for card in self.hand])
         total = 0
         for number, count in self.counter.items():
-            total += count / (self.game.VALUES.index(number) + 1)
+            total += count / (self.game.values.index(number) + 1)
         mean = total / len(counter)
-        self.__logger.debug(f"interest over playing revolution : {mean}")
+        self.__logger.debug("interest over playing revolution : %f:.3f", mean)
         return mean
 
     def calc_n_cards(self, combo, requires_low_result=True, split=False) -> int:
@@ -94,8 +101,8 @@ class AI(Player):
         total_combo_pairs = 0
         for number, count in self.counter.items():
             if count == combo or combo > 1 and (split and count == combo - 1):
-                total_power += self.game.VALUES.index(number)
-                total_possible_cards += self.counter[number]
+                total_power += self.game.values.index(number)
+                total_possible_cards += count
                 total_combo_pairs += 1
         if total_possible_cards:
             result = total_power / (self.game.revolution + 1) \
@@ -108,35 +115,37 @@ class AI(Player):
 
         if not requires_low_result and result:
             result = 1 / result ** combo
-        self.__logger.debug(f" My estimation for a combo of {combo} : {result:.3f}")
+        self.__logger.debug("My estimation for a combo of %d : %f:.3f", combo, result)
         if result >= 1.43 and requires_low_result and combo > 1:
             # and not (len(self.hand) < self.max_combo):
             return self.calc_n_cards(combo - 1)
             # result not satisfying, try lower combo if possible.
-        self.__logger.info(f"i'm going to play {combo} cards")
+        self.__logger.info("i'm going to play %d cards", combo)
         return combo
 
     def calc_best_card(self, nb_cards, split=False, action='play', rec_level=1):
+        """ Estimate best card to be played """
         if self.game.check_if_played_last(self):
-            self.__logger.info(f"played last, not raising myself")
+            self.__logger.info("played last, not raising myself")
             return 'F'
         _local_counter = self.counter.items()
         if self.got_revolution_in_hand:
-            _local_counter = _local_counter.__reversed__()
+            _local_counter = reversed(_local_counter)
         card = None
         for card, qty in _local_counter:
             # the card can be played no matter of the pile if first to play
             # OR if value OK according to game_pointer's pile and rules
             if self.game.card_can_be_played(card):
                 if qty == nb_cards:
-                    self.__logger.debug(f"my interest goes to {card} (no splits)")
+                    self.__logger.debug("my interest goes to %s no splits", card)
                     break
                 # otherwise, play a card from a split combo.
                 if split or action == 'give' and {qty - 1, qty - 2} == nb_cards:
-                    self.__logger.debug(f"my interest goes to {card} *** splits ***")
+                    self.__logger.debug("my interest goes to %s *** splits ***", card)
                     break
             card = None
-        card and self.__logger.info(f"Trying: {card.__repr__()}")
+        if card:
+            self.__logger.info("Trying: %s", repr(card))
         return card or \
                rec_level and self.calc_best_card(nb_cards, split=not split,
                                                  rec_level=rec_level - 1)

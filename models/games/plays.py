@@ -18,10 +18,8 @@ class GamePlay(ABC):
     @abstractmethod
     def unicode_safe(self):
         """ Every Game-Plays MUST have a unicode_safe method for json exchanges """
-        pass
 
     @staticmethod
     @abstractmethod
     def from_unicode(*args):
         """ Avery Game-Plays MUST have a method to unhash unicoded message """
-        pass

@@ -15,20 +15,24 @@ from tests.test_interfaces import TestInterfaces
 
 
 class TestAll(unittest.TestCase):
-
+    """ Test every aspect of the project"""
     def test_1(self):
+        """ test cards and deck for card games """
         TestCards()
         TestDeck()
 
     def test_2(self):
+        """ test players and base game """
         TestPlayers()
         TestGame()
 
     def test_3(self):
+        """ Test president game """
         TestPresidentGame()
 
     # Tests above are considered to be tests for core functionalities
     def test_4(self):
+        """ Tests interfaces """
         TestInterfaces()
 
 

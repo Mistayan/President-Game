@@ -122,7 +122,7 @@ class TestPresidentGame(unittest.TestCase):
                                  "Neutres should not have given cards")
 
     @measure_performance
-    def test_trigger_CheaterDetected_Error(self):
+    def test_trigger_cheater_detected(self):
         """
         Ensure Cheaters block the game.
         In the future, it will have to ensure that this player has been kicked and voided"""
@@ -156,16 +156,16 @@ class TestPresidentGame(unittest.TestCase):
         prev.set_played()
         self.assertTrue(prev.played)
         first = True
-        for i, p in game._next_player:  # ensure looping behavior
-            if not p:
+        for i, player in game._next_player:  # ensure looping behavior
+            if not player:
                 # returned index should never be a player index if no player left standing
                 self.assertTrue(i not in range(len(game.players)))
                 break
-            self.assertTrue(i == game.get_player_index(p))
+            self.assertTrue(i == game.get_player_index(player))
             if first:
                 first = not first
                 self.assertFalse(player_index == i)
-            p and p.set_played()
+            player and player.set_played()
             game._skip_players = True  # optional ?
 
 

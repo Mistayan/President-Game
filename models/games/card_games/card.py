@@ -118,6 +118,6 @@ class Card(GamePlay):
     @staticmethod
     def from_unicode(unisafe_color):
         """ Transform cards unicode_safe color to unsafe """
-        for k, v in GameRules.COLORS.items():
-            if v == unisafe_color:
-                return k
+        for key, value in GameRules.COLORS.items():
+            if value == unisafe_color:
+                return key

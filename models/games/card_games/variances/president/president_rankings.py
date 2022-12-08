@@ -5,7 +5,6 @@ Project: President-Game
 IDE: PyCharm
 Creation-date: 11/01/22
 """
-import json
 import logging
 from typing import Final
 
@@ -32,7 +31,7 @@ class PresidentRank:
         """ Ranks classifications for President Game """
         self.logger = logging.getLogger(__class__.__name__)
         self.nb_players = nb_players
-        self.logger.debug(f"nb_players : {nb_players}, currently requested game_rank: {game_rank}")
+        self.logger.debug("nb_players : %d, currently requested game_rank: %s", nb_players, game_rank)
         if nb_players < 3 or nb_players > 6:
             raise CheaterDetected()
 

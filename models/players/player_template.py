@@ -22,6 +22,7 @@ from rules import GameRules
 
 
 class Player(SerializableObject, ABC):
+    """ The Base Player Template """
     # WARNING !!!
     # Any value you put below this line,  outside __init__
     # might be shared amongst different instances !!!
@@ -63,10 +64,10 @@ class Player(SerializableObject, ABC):
         :param action: the action to be played (play, give, ...)
         """
         if not n_cards_to_play:
-            self._logger.info(f"Choose N card to {action}")
+            self._logger.info("Choose N card to %s", action)
             n_cards_to_play = self.ask_n_cards_to_play()
         player_game = self.choose_cards_to_play(n_cards_to_play, override)
-        self._logger.debug(f"{player_game}")
+        self._logger.debug(player_game)
         if player_game and len(player_game) == n_cards_to_play:
             self.__buffer = []
         elif not self.folded:
@@ -77,10 +78,10 @@ class Player(SerializableObject, ABC):
     @abstractmethod
     def ask_n_cards_to_play(self) -> int:
         """ Implement logic to ask the number of cards to play to player"""
-        ...
 
     @property
     def won(self) -> bool:
+        """ returns True if player won """
         return self._won
 
     def reset(self):
@@ -94,11 +95,13 @@ class Player(SerializableObject, ABC):
         self.last_played = []
 
     def set_game(self, game):
+        """ Set player's internal game pointer (server side only)"""
         self.game = game
 
     def set_win(self, value: bool = True) -> None:
         """ set _won to given value"""
-        value and self._logger.info(f"{self} {'have won' if not len(self.hand) else 'have Lost'}")
+        if value:
+            self._logger.info("%s %s", self, 'have won' if not self.hand else 'have Lost')
         self._won = value
 
     def set_rank(self, rank_pointer) -> None:
@@ -107,7 +110,7 @@ class Player(SerializableObject, ABC):
 
     def set_fold(self, value=True) -> None:
         """ set fold to given value (True by default)"""
-        value and self._folded is False and self._logger.info(f"{self} folds")
+        value and self._folded is False and self._logger.info("%s folds", self.name)
         self._folded = value
 
     def set_played(self, value=True) -> None:
@@ -115,7 +118,8 @@ class Player(SerializableObject, ABC):
         set played to given value (True by default)
          if played, his action is no longer required
         """
-        value and self._logger.info(f"{self} played")
+        if value:
+            self._logger.info("%s played", self.name)
         self._played_turn = value
         if self.played:
             self.action_required = False
@@ -125,7 +129,7 @@ class Player(SerializableObject, ABC):
         if not isinstance(card, Card):
             raise ValueError("card must be an instance of Card.")
         self.hand.append(card)
-        self._logger.debug(f"{self} received {card}")
+        self._logger.debug("%s received %s", self, card)
         self.sort_hand()  # Replicating real life's behaviour
 
     def remove_from_hand(self, card: Card) -> Card | None:
@@ -138,7 +142,7 @@ class Player(SerializableObject, ABC):
             raise ValueError("card must be an instance of Card.")
         if card in self.hand:
             self.hand.remove(card)
-            self._logger.debug(f"{self} removed {card} from hand")
+            self._logger.debug("%s removed %s from hand", self, card)
         else:
             card = None
 
@@ -153,11 +157,12 @@ class Player(SerializableObject, ABC):
         won the game
         """
         active = not self.folded and not self.played and not self.won
-        self._logger.debug(f"{self} says i'm {'' if active else 'not '}active")
+        self._logger.debug("%s says i'm%s active", self, '' if active else ' not')
         if not active:
-            self._logger.debug(f"Reasons: {'won.' if self._won else ''}"
-                               f"{'folded. ' if not self._won and self.folded else ''}"
-                               f"{'played. ' if not self._won and self.played else ''}")
+            reasons = f"Reasons: {'won.' if self._won else ''}" \
+                      f"{'folded. ' if not self._won and self.folded else ''}" \
+                      f"{'played. ' if not self._won and self.played else ''}"
+            self._logger.debug(reasons)
         return active
 
     @property
@@ -190,10 +195,10 @@ class Player(SerializableObject, ABC):
     def max_combo(self):
         """ return the maximum amount of cards a player can play at once """
         if self.hand:
-            k, v = Counter(self.hand_as_numbers).most_common(1)[0]
+            _, val = Counter(self.hand_as_numbers).most_common(1)[0]
         else:
-            v = 0
-        return v
+            val = 0
+        return val
 
     def all_of_combo(self, combo) -> Counter:
         """
@@ -225,7 +230,7 @@ class Player(SerializableObject, ABC):
         """
         if self.is_active:
             # Validate that player has n times this card in hand
-            for i in range(n_cards_to_play):
+            for _ in range(n_cards_to_play):
                 card = self.validate_input(wanted_card)  # transforms wanted_card to Card
                 if card:
                     self.__buffer.append(self.remove_from_hand(card))
@@ -255,10 +260,10 @@ class Player(SerializableObject, ABC):
         Otherwise, player choose a card number from his hand and give N times this card.
         """
         cards_to_play = []
-        self._logger.info(f"Choose cards x {n_cards_to_play} : {not override}")
-        self._logger.debug(f"must play {n_cards_to_play}; my max is {self.max_combo}")
+        self._logger.info("Choose cards x %d", n_cards_to_play)
+        self._logger.debug("must play %d; my max is %d", n_cards_to_play, self.max_combo)
         if n_cards_to_play <= self.max_combo:
-            _in = input(f"[2-9 JQKA] or 'F' to fold"
+            _in = input("[2-9 JQKA] or 'F' to fold"
                         f"{'(you will not be able to play current round)' if GameRules.WAIT_NEXT_ROUND_IF_FOLD else ''}\n") \
                 .upper() if not override else override.upper()
             # Check fold status
@@ -275,6 +280,7 @@ class Player(SerializableObject, ABC):
         return cards_to_play
 
     def validate_input(self, _in: str) -> Card | None:
+        """ Ensure the data given is valid """
         if _in and not isinstance(_in, str):
             return self.validate_input(str(_in))
 
@@ -305,10 +311,10 @@ class Player(SerializableObject, ABC):
 
     def play(self, required_cards):
         """ allows player to play according to his interface preferences """
-        self._logger.info(f"{self} playing")
+        self._logger.info("%s playing", self.name)
         if not self.game or not self.is_human:  # local side
             return self._play_cli(n_cards_to_play=required_cards)
-        elif self.is_human and self.game:  # server side
+        if self.is_human and self.game:  # server side
             return self.wait_response()
 
     def __eq__(self, other: Player | str) -> bool:
@@ -320,6 +326,7 @@ class Player(SerializableObject, ABC):
         return ret
 
     def wait_response(self):
+        """ Await timeout or player's action (asynchronously)"""
         timeout_counter = 10
         while self.plays is None:
             time.sleep(0.3)

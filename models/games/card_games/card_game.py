@@ -7,14 +7,13 @@ Creation-date: 11/10/22
 """
 import json
 import logging
-import time
 from typing import Final
 
 from flask import request, make_response
 
 from models.games.Errors import CheaterDetected, PlayerNotFound
 from models.players import Player, Human
-from models.responses import Question, Message, Play, Give
+from models.responses import Play, Give
 from rules import GameRules
 from .card import Card
 from .deck import Deck
@@ -38,16 +37,16 @@ class CardGame(Game):
         """
         self.__logger: Final = logging.getLogger(__class__.__name__)
         if GameRules.MIN_PLAYERS < nb_players + nb_ai > GameRules.MAX_PLAYERS:
-            raise ValueError(f"Invalid Total Number of Players to create PresidentGame.")
-        super(CardGame, self).__init__(nb_players, nb_ai, *players_names, save=save)
+            raise ValueError("Invalid Total Number of Players to create PresidentGame.")
+        super().__init__(nb_players, nb_ai, *players_names, save=save)
         self.__logger.debug("instantiating CardGame")
         self.players_limit = 12  # Arbitrary Value
         super().set_game_name(__class__.__name__)
-        self.__logger.debug(self._super_shared_private)
+        self.__logger.debug(self._SUPER_PRIVATE)
         self.skip_inputs = nb_games if nb_games >= 1 else False
         self.next_player_index: int = 0
         self.plays: list[list[Card]]  # For AI training sets
-        self.VALUES = GameRules.VALUES
+        self.values = GameRules.VALUES
         self._pile: list[Card] = []
         self.deck = Deck()
         self._skip_players = False  # Required for _next_player behavior
@@ -59,11 +58,11 @@ class CardGame(Game):
         distribute cards to players
         show players and their card count
         """
-        super(CardGame, self)._initialize_game()
+        super()._initialize_game()
         self._free_pile()
         self.plays = []
         self.next_player_index = 0
-        self.VALUES = GameRules.VALUES
+        self.values = GameRules.VALUES
         self.deck.shuffle()
         self._turn = 0
         self._run = True
@@ -76,12 +75,12 @@ class CardGame(Game):
 
     def _distribute(self):
         """ Usual method of distribution : distribute all cards amongst players """
-        self.__logger.info(f"distributing cards")
+        self.__logger.info("distributing cards")
         for i, card in enumerate(self.deck.cards):
             player_index = i % len(self.players)
             self.players[player_index].add_to_hand(card)  # 'Give' card to player
             # NEVER GIVE UP THE CARD FROM DECK, to ensure cards given by players are from this game
-            self.__logger.debug(f"Gave {card} to player {self.players[player_index]}")
+            self.__logger.debug("Gave %s to player %s", card, self.players[player_index])
 
     @property
     def _run_condition(self):
@@ -96,7 +95,7 @@ class CardGame(Game):
     def _count_still_alive(self) -> int:
         """ returns a counter or players that hasn't won the game """
         still_alive = [player.won for player in self.players].count(False)
-        self.__logger.debug(f"Active players : {still_alive}")
+        self.__logger.debug("Active players : %s", still_alive)
         return still_alive
 
     @property
@@ -112,7 +111,7 @@ class CardGame(Game):
     @property
     def strongest_card(self):
         """ returns the actual best card in the game (take into considerations values changes)"""
-        return self.VALUES[-1]
+        return self.values[-1]
 
     @property
     def pile(self) -> list[Card]:
@@ -122,7 +121,7 @@ class CardGame(Game):
     @property
     def best_card_played(self) -> bool:
         """ Returns True if the last card played is the best card"""
-        return self.pile and self.pile[-1] == self.VALUES[-1]
+        return self.pile and self.pile[-1] == self.values[-1]
 
     @property
     def everyone_folded(self):
@@ -239,7 +238,7 @@ class CardGame(Game):
         next_player_index does not behave exactly the same in some circumstances
         """
         if self.pile and player.last_played and len(self.pile) >= len(player.last_played):
-            self.__logger.debug(f"{self.pile} VS {player.last_played}")
+            self.__logger.debug("%s VS %s", self.pile, player.last_played)
             return [self.pile[-(i + 1)] == card
                     for i, card in enumerate(player.last_played[::-1])
                     ].count(True) == len(player.last_played)
@@ -292,7 +291,7 @@ class CardGame(Game):
         while self._run_condition:
             self._next_turn()  # set new round... (many things happens here)
             # If pile is empty, find player that open round, else find next player
-            self._skip_players = self.pile == [] or self._skip_players
+            self._skip_players = not self.pile or self._skip_players
             while not self.everyone_folded:
                 self._play_round()
                 # Check if players still playing game:
@@ -321,8 +320,8 @@ class CardGame(Game):
             # If player returned cards, confirm play
             if cards and not self._do_play(index, player, cards):
                 player.set_played()
-                self.__logger.critical(f"{cards} are miss-played."
-                                       f" Player keep his cards and skip turn")
+                self.__logger.critical("%s are miss-played. Player keep his cards and skip turn",
+                                       cards)
             # If player has no more cards, WIN (or lose, depending on rules)
             if not cards:
                 self.next_player_index = index  # Last player to fold should always start next
@@ -375,7 +374,7 @@ class CardGame(Game):
             if cards and len(cards) == self.required_cards:
                 if self.card_can_be_played(cards[0]):
                     break
-                elif self.pile:
+                if self.pile:
                     self._send_player(player, f"Card{'s' if len(cards) > 1 else ''}"
                                               " not powerful enough. Pick again")
                     for card in cards:  # Give cards back...
@@ -409,8 +408,8 @@ class CardGame(Game):
         Game sets current player to losers
         :returns: True if player lost, False otherwise"""
         status = False
-        if GameRules.FINISH_WITH_BEST_CARD__LOOSE and not len(player.hand) \
-                and self.best_card_played:
+        if GameRules.FINISH_WITH_BEST_CARD__LOOSE and player.hand and \
+                not len(player.hand) and self.best_card_played:
             self.set_win(player, False)
             status = True
         return status
@@ -437,7 +436,7 @@ class CardGame(Game):
             If the player has no more cards after he played, he wins (or lose depending on rules)
             :return: True if player won/lost; False otherwise
         """
-        self.__logger.info(f"{player} tries to play {cards}")
+        self.__logger.info("%s tries to play %s", player, cards)
         # Check that every card given can be played
         if not [self.card_can_be_played(card) for card in cards].count(True) == len(cards):
             return False
@@ -465,24 +464,24 @@ class CardGame(Game):
         if not GameRules.WAIT_NEXT_ROUND_IF_FOLD and not self.everyone_folded:
             self._reset_fold_status()
 
-    def get_player_index(self, player):
+    def get_player_index(self, pname):
         """ return the player's index (in case you need it) """
-        for i, p in enumerate(self.players):
-            if p == player:
+        for i, player in enumerate(self.players):
+            if player == pname:
                 return i
-        raise PlayerNotFound(player)  # Should only be reached when server is running...
+        raise PlayerNotFound(pname)  # Should only be reached when server is running...
 
     def to_json(self) -> dict:
         """ Serialize game for communications"""
-        su: dict = super(CardGame, self).to_json()
+        sup: dict = super().to_json()
         update = {
             "pile": [(card.number, GameRules.COLORS[card.color]) for card in self.pile],
             "required_cards": self.required_cards,
         }
         if not self._run:
             update.setdefault("game_rules", GameRules().__repr__())
-        su.update(update)
-        return su
+        sup.update(update)
+        return sup
 
     def _init_server(self, name):
         super()._init_server(name)
@@ -506,10 +505,10 @@ class CardGame(Game):
                 for play in plays:
                     num, color = play.split(',')
                     color = Card.from_unicode(color)
-                    self.logger.debug(f"{num} / {color}")
+                    self.logger.debug("%s / %s", num, color)
                     for card in player.hand:
                         if card.number == num and card.color == color:
-                            self.logger.debug(f"found {card} in player's hand")
+                            self.logger.debug("found %s in player's hand", card)
                             self.player_give_to(player, card, player.plays)
                             break
             if player.folded or player.plays:

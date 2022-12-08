@@ -25,11 +25,14 @@ from .plays import GamePlay
 
 
 class Game(Server, SerializableObject, ABC):
+    """ Base class of Games Hierarchy,
+     implements many functionalities for other games to run """
 
     @abstractmethod
     def __init__(self, nb_players=0, nb_ai=3, *players_names, save=True):
         super().__init__("Game_Server")  # test: init only when start server
 
+        self.game_name = None
         self.players_limit = 100  # Arbitrary Value
         self.__game_log = logging.getLogger(__class__.__name__)
         self.players: list[Player.__class__] = []
@@ -67,19 +70,20 @@ class Game(Server, SerializableObject, ABC):
 
     @abstractmethod
     def start(self, override_test=False):
+        """ Enforce this method on children ,
+         set actions to be done when you start your game """
         # super(Game, self).__init__(self.game_name)
-        pass
 
     @abstractmethod
     def player_give_to(self, player: Player, give: Any, to: Any):
         """ In almost every game, Someone can give something to someone/something else"""
-        pass
 
     @abstractmethod
     def player_lost(self, player):
-        pass
+        """ Implement how to determine that a player lost from game's rules """
 
     def _init_db(self):
+        """ Instantiate Database link """
         if self.__save and not self.__db:
             self.__db = Database(self.game_name or __class__.__name__)
 
@@ -105,9 +109,11 @@ class Game(Server, SerializableObject, ABC):
         return json_piles
 
     def set_game_name(self, name):
+        """ set game's name to given one (use this method after you instantiated super()"""
         self.game_name = name  # Override name
 
     def save_results(self, name) -> dict:
+        """ save game's results to db as a Document """
         to_save = {
             "game": name,
             "players": [player.name for player in self.players],
@@ -121,46 +127,45 @@ class Game(Server, SerializableObject, ABC):
 
     def register(self, player: Player or str, token: str = None) -> Player:
         """ Every game need to register players before they are able to play """
-        if not isinstance(player, (AI, Player, str)):
+        if not isinstance(player, (AI, Human, str)):
             raise ValueError(f"{player} not a Player")
         # Player already 'in-game'
-        p = self.get_player(player) or self.get_disonnected(player)
-        if p and token == p.token:
-            return p
+        if self.get_player(player) and player.is_human and token == player.token:
+            player = self.get_player(player)
 
         # Player Re-Connect
-        p = self.get_disonnected(player)
-        if p and self._run:
-            self.logger.debug(f"Re-Connecting {player}")
-            p = self.disconnected_players.pop(self.disconnected_players.index(p))
-            self.players.append(p)
-            return p
+        if self.get_disonnected(player) and self._run:
+            self.logger.debug("Re-Connecting %s", player)
+            player = self.disconnected_players.pop(self.disconnected_players.index(player))
+            self.players.append(player)
 
         # player register to the game after it started
-        if player in self.spectators and not self._run:
-            self.logger.debug(f"Done Waiting {player}")
-            p = self.spectators.pop(self.spectators.index(player))
-            p.reset()  # Ensure player is set to default when joining the game
-        else:  # Player registers for first time (or after being voided)
-            self.logger.debug(f"Registering {player}")
-            p = Human(player) if type(player) is str else player
-            not p.is_human or p.renew_token()
-            self.__game_log.info(f"{p} registered to the game"
-                                 f"{' with token ' + str(p.token) if p.is_human else ''}")
+        if self.get_observers(player) and not self._run:
+            self.logger.debug("Done Waiting %s", player)
+            player = self.spectators.pop(self.spectators.index(player))
+            player.reset()  # Ensure player is set to default when joining the game
 
-        if self._run is True and p not in self.players:
-            self.spectators.append(p)
-        if self._run is False:
-            self.players.append(p)
+        if player:  # Player registers for first time (or after being voided)
+            self.logger.debug("Registering %s", player)
+            player = Human(player) if isinstance(player, str) else player
+            if player and (not player.is_human or player.renew_token()):
+                self.__game_log.info("%s registered to the game %s", player,
+                                     ' with token ' + str(player.token) if player.is_human else '')
+
+        if self._run is True and player not in self.spectators:
+            self.spectators.append(player)
+        if self._run is False and player not in self.players:
+            self.players.append(player)
 
         # server-side assignment only.
-        p.set_game(self)  # important to remind: self is a reference to last sub_class in MRO
-        return p
+        player.set_game(self)  # important to remind:
+        # self is a reference to last sub_class in MRO
+        return player
 
     def unregister(self, player: Player or str) -> None:
         """ Every game needs to register players before they are able to play"""
         if not isinstance(player, (Human, str)):
-            raise ValueError(f"Unclear player type Not Allowed.")
+            raise ValueError("Unclear player type Not Allowed.")
         for i, p in enumerate(self.players):
             if p == player:
                 player = self.players.pop(i)
@@ -174,7 +179,7 @@ class Game(Server, SerializableObject, ABC):
         """ Generate winners ladder, appends losers starting from the last one"""
         if self._run:
             raise RuntimeWarning("Game still running, cannot display winners")
-        self.__game_log.debug(f"\nwinners : {self._winners}\nLosers : {self.losers}")
+        self.__game_log.debug("\nwinners : %s\nLosers : %s", self._winners, self.losers)
         if self.losers:
             # Losers are to be added from the end. First loser is last 'winner'
             [self._winners.append(player_infos) for player_infos in self.losers[::-1]]
@@ -188,10 +193,12 @@ class Game(Server, SerializableObject, ABC):
         return rank_gen
 
     def _reset_winner(self):
+        """ reset winners and losers queue """
         self._winners = []
         self.losers = []
 
     def show_winners(self):
+        """ send every player game's ladder """
         self.send_all("".join(["#" * 15, "WINNERS", "#" * 15]))
         for winner in self.winners():
             self.send_all(winner)
@@ -210,7 +217,7 @@ class Game(Server, SerializableObject, ABC):
             if test[0] == player:
                 raise CheaterDetected(f"{player} already in the ladder.")
         if win:
-            self.__game_log.info(f"{player} won the place N°{len(self._winners) + 1}")
+            self.__game_log.info("%s won the place N°%d", player, len(self._winners) + 1)
             winner_data = [player, self._turn, player.last_played[0].unicode_safe()]
             self._winners.append(winner_data)
             player.set_win()
@@ -222,20 +229,24 @@ class Game(Server, SerializableObject, ABC):
         """ Set player status to winner and append [Player, Rank] to _rounds_winners"""
         if player.won:
             return
-        self.__game_log.info(f"{player} Lost the game.")
+        self.__game_log.info("%s Lost the game.", player)
         last_played = player.hand[-1] if player.hand and not reason \
             else player.last_played[-1] if player.last_played else None
 
         self.losers.append([player, self._turn, last_played and last_played.unicode_safe()])
         player.set_win()  # It just means that a player cannot play anymore for current game
+        return
 
     @staticmethod
     def get_player_from(player: Player or str, _from: list[Player]) -> Player:
+        """ search player's name (token is already validated if required)
+         in current players connected """
         for test in _from:
             if isinstance(test, Player) and test == player:
                 return test
 
     def get_player(self, player: Player or str) -> Player:
+        """ get player from players list """
         return self.get_player_from(player, self.players)
 
     # ###################### SERVER IMPLEMENTATIONS TO GAME  #######################
@@ -249,6 +260,7 @@ class Game(Server, SerializableObject, ABC):
 
         @self.route(f"/{Connect.request['message']}/{Connect.REQUIRED}", methods=Connect.methods)
         def register(player) -> Response:
+            """ route to register to a game server """
             if not self.get_player(player) or self.get_disonnected(player):
                 player: Human = self.register(player)  # If previously disconnected, log back in
                 if player.is_human:
@@ -261,6 +273,7 @@ class Game(Server, SerializableObject, ABC):
         @self.route(f"/{Disconnect.request['message']}/{Disconnect.REQUIRED}",
                     methods=Disconnect.methods)
         def unregister(player: str) -> Response:
+            """ route to exit a game server """
             player: Human = self.get_player(player) or self.get_observers(player)
             if player and player.is_human and request.headers["Content-Type"].find("json"):
                 datas = json.loads(request.data)["headers"]
@@ -283,16 +296,17 @@ class Game(Server, SerializableObject, ABC):
 
         @self.route(f"/{Start.request['message']}/{Start.REQUIRED}", methods=Start.methods)
         async def start_from_player(player):
+            """ route to register to a game server """
             assert request.headers["Content-Type"] == "application/json"
             p: Human = self.get_player(player)
             assert p and p == player
             assert request.is_json and p.token == request.json.get('headers').get('token')
             if not self._run:
                 self.status = self.GAME_RUNNING
-                self.__game_daemon = self.__start_server_mode()  # True to override local_cli prompts
+                self.__start_server_mode()  # True to override local_cli prompts
                 return make_response("SERVER_RUNNING", 200)
+            # Find a way for server or no server to play the same way
             return make_response("Cannot start another game. Server busy.")
-            pass  # Find a way for server or no server to play the same way
 
     ########################################################################
 
@@ -304,14 +318,14 @@ class Game(Server, SerializableObject, ABC):
             self.logger.info("offline.")
             return method and method(msg) or print(msg)
         elif method is input:
-            request = Question().request
-            request.setdefault("question", msg)
+            req = Question().request
+            req.setdefault("question", msg)
             player.action_required = True
-            player.messages.append(request)
+            player.messages.append(req)
             answer = None
-            self.__game_log.warning(f"{method}({msg})")
+            self.__game_log.warning("%s(%s)", method, msg)
             self._wait_player_action(player)
-            self.logger.info(f"waiting for {player}...\r")
+            self.logger.info("waiting for %s...\r", player)
             while answer is None and player in self.players:
                 time.sleep(GameRules.TICK_SPEED)
                 if self._last_message_received:
@@ -324,8 +338,8 @@ class Game(Server, SerializableObject, ABC):
             player.messages.append(msg)
 
     def _wait_player_action(self, player):
-        self.__game_log.info(f"awaiting {player} to play")
-        timeout = Message.timeout
+        self.__game_log.info("awaiting %s to play", player)
+        timeout = Message.TIMEOUT
         while player.action_required and timeout > 0 and player in self.players:
             time.sleep(GameRules.TICK_SPEED)
             timeout -= GameRules.TICK_SPEED
@@ -351,7 +365,6 @@ class Game(Server, SerializableObject, ABC):
 
     def receive(self, msg: dict):
         """ Received a message, apply it to the game if valid """
-        pass
     #     super(Game, self).receive(msg)
     #     self.__game_log.info(f"Receiving : {msg}...")
     #     try:
@@ -421,21 +434,21 @@ class Game(Server, SerializableObject, ABC):
             # "spectators": [p.name for p in self.spectators],
         }
 
-
     @property
     def game_infos(self) -> (str, int, dict):
         """
         collect information on game (Public method, for potential future viewing system)
-        :param pname: player to get infos from
         :return: "MSG", status_code, game_as_json
         """
         self.logger.debug(self.to_json())
         return self.to_json()
 
     def get_disonnected(self, player: Player or str) -> Player and Human:
+        """ Get player from disconnected list """
         return self.get_player_from(player, self.disconnected_players)
 
     def get_observers(self, player: Player or str) -> Player and Human:
+        """ Get player from observers list """
         return self.get_player_from(player, self.spectators)
 
     def player_infos(self, pname):
@@ -445,21 +458,21 @@ class Game(Server, SerializableObject, ABC):
         :param pname: player to get infos from
         :return: "MSG", status_code, player_as_json
         """
-        p: Human = self.get_player(pname) or self.get_disonnected(pname)
+        player: Human = self.get_player(pname) or self.get_disonnected(pname)
         content = None
-        if not p:
+        if not player:
             status = 404
         else:
-            assert p.is_human
-            if p.token != request.json.get('headers').get('token'):
+            assert player.is_human
+            if player.token != request.json.get('headers').get('token'):
                 status = 403
             else:
                 status = 200
-                content = p.to_json()
-                p.messages = []
+                content = player.to_json()
+                player.messages = []
         return status, content
 
-    def __start_server_mode(self):
-        daemon = Thread(target=self.start, args=(True,), daemon=True, name='Game')
-        daemon.start()
-        return daemon
+    def __start_server_mode(self) -> None:
+        """ Run Game as a Thread, allowing for server to be independent of game logics """
+        self.__game_daemon = Thread(target=self.start, args=(True,), daemon=True, name='Game')
+        self.__game_daemon.start()

@@ -14,6 +14,7 @@ from models.utils import measure_performance
 
 
 class TestDeck(unittest.TestCase):
+    """ Test many aspects of Deck class """
     @measure_performance
     def test_deck_has_52_cards(self):
         """ A basic card game has 52 cards """

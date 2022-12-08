@@ -18,7 +18,7 @@ from flask import Flask
 
 from models import ROOT_LOGGER
 from models.games.apis import apis_conf  # , ma
-from models.games.apis.apis_conf import SERVER_HOST, SERVER_PORT
+from models.games.apis.apis_conf import SERVER_HOST
 from models.utils import GameFinder
 
 
@@ -28,9 +28,10 @@ class Server(Flask, ABC):
     """
     # Instances Shared attributes
     # Will only be generated on first run of an instance, while GameManager runs
-    _super_shared_private: Final = ''.join(random.choices(string.hexdigits, k=100))
+    _SUPER_PRIVATE: Final = os.getenv('SECRET_KEY',
+                                      ''.join(random.choices(string.hexdigits, k=100)))
     if not os.environ.get("SECRET_KEY"):
-        os.putenv("SECRET_KEY", _super_shared_private)
+        os.putenv("SECRET_KEY", _SUPER_PRIVATE)
     _SECRET_KEY = os.environ.get("SECRET_KEY")
 
     # Internal status
@@ -86,7 +87,6 @@ class Server(Flask, ABC):
         # except:
         #     pass
         # self.__cors = CORS(self.__app, resources={r"/*": {"origins": "*"}})
-        pass
 
     def run_server(self, port: int = 0):
         """ Emulate server running to accept connexions """
@@ -105,7 +105,7 @@ class Server(Flask, ABC):
             self.run(SERVER_HOST, port)
         except KeyboardInterrupt:
             self.status = self.OFFLINE
-            self.logger.critical(f"Closing Server {self.name}...")
+            self.logger.critical("Closing Server %s...", self.name)
 
         # except Exception as e:
         #     print(f'nope {e}')
@@ -115,7 +115,7 @@ class Server(Flask, ABC):
         """ check file integrity before you can _send """
         if not (msg and destination):
             return
-        self.logger.debug(f"Preparing : {msg} for {destination}")
+        self.logger.debug("Preparing : %s for %s", msg, destination)
         self._last_message_sent = msg
 
     @abstractmethod
@@ -123,7 +123,7 @@ class Server(Flask, ABC):
         """ base method to verify content of a received message, before you can process it"""
         assert isinstance(msg, dict) and msg.get("message") \
                and msg.get("player")
-        self.logger.info(f"Receiving : {msg}")
+        self.logger.info("Receiving : %s", msg)
         self._last_message_received = msg
 
     @abstractmethod

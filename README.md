@@ -298,7 +298,7 @@ def play(player, plays):
 class Play(Restricted):
     REQUIRED = "<player>/<plays>"
     request: dict = {'methods': ("POST",), 'message': "Play", 'plays': []}
-    POSSIBLE_VALUES = GameRules.VALUES
+    POSSIBLE_VALUES = GameRules.values
     POSSIBLE_COLORS = GameRules.COLORS
     response: dict = {'token': None, 'player': None, "play": []}
 ```
@@ -311,11 +311,17 @@ pylint $(git ls-files '*.py')
 # Your code has been rated at 7.82/10 (previous run: 7.56/10, +0.26) # 21/11/2022 21-37-00
 ```
 ```shell
-pylint ./models
+./venv/Scripts/pylint ./models
 # Your code has been rated at 7.83/10 (previous run: 7.83/10, +0.00) # 21/11/2022 21-38-00
+# Your code has been rated at 8.28/10 (previous run: 8.16/10, +0.11) # 08/12/2022 12:05
+# Your code has been rated at 9.34/10 (previous run: 8.71/10, +0.63) # 08/12/2022 15:15
+
 ```
 ```shell
-pylint ./tests
+./venv/Scripts/pylint ./tests
+# Your code has been rated at 9.18/10 (previous run: 8.99/10, +0.20) # 08/12/22 11:10
+# Your code has been rated at 9.32/10 (previous run: 9.24/10, +0.08) # 08/12/22 11:17
+
 ```
 
 # TODO

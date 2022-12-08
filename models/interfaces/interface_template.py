@@ -15,14 +15,16 @@ from subprocess import Popen
 
 import colorama
 import requests
+import PIL.Image
 from requests import Response
 
 from models import CardGame
 from models.conf import BASEDIR
 from models.games.apis.server import Server
 from models.players.player import Human
-from models.responses import *  # over 5 modules, and less than 20% unused, it's permitted
-from models.utils import ValidateBuffer, GameFinder
+from models.responses import Connect, Disconnect, MessageError, Update, Start,\
+    AnomalyDetected, Play
+from models.utils import GameFinder, SerializableClass
 
 
 class Interface(Server):
@@ -52,22 +54,24 @@ class Interface(Server):
             self.__banner()
         self.__run = True
 
-
     @property
     def action_required(self):
+        """ returns True if interface's user action is required """
         return self.__player.action_required
 
     @property
     def game_dict(self):
+        """ returns game state as dict"""
         return self.__game_dict
 
     def connect(self, uri: str, port: int):
         """ Set a connection to Game """
-        assert uri and type(uri) is str
-        assert port and type(port) is int
+        assert uri and isinstance(uri, str)
+        assert port and isinstance(port, int)
         self.__msg_buffer = Connect
         self.__msg_buffer.request.setdefault("player", self.__player.name)
-        response = self._send(destination=f"{uri}:{port}")  # first time require destination
+        # first time requires destination
+        response = self._send(destination=f"{uri}:{port}")
         if response:
             if response.status_code == 200:
                 self.status = self.CONNECTED
@@ -89,10 +93,12 @@ class Interface(Server):
 
     @property
     def game_addr(self):
+        """ Returns game's address """
         return self.__game
 
     @property
     def game_token(self):
+        """ Returns token given by server """
         return self.__token
 
     def receive(self, msg: dict):
@@ -101,18 +107,21 @@ class Interface(Server):
     def _send(self, destination=None, msg=None):
         """
         Send messages to game
-        Everytime the game wants to _send a message, we have to retrieve those by updating
+        Everytime the game wants to _send a message, we have to retrieve those by
+         updating
         """
         target = destination or self.__game
         if not target:
             return self.not_found(target)
         super()._send(target, self.__msg_buffer)
         message = self.__msg_buffer()  # Instantiate before filling request
-        message_method, *others = message.methods  # Gather only first element from tuple
+        message_method, *_ = message.methods  # Gather only first element from tuple
         message.headers = self._fill_headers(message)
         message.request = self.__msg_buffer.request
-        self.logger.debug(f"{message_method} // {message.headers} // : {message.request}")
-        self.logger.info(f"sending {message.__class__.__name__} request to {target}")
+        self.logger.debug("{%s} // {%s} // : {%s}", message_method, message.headers,
+                          message.request)
+        self.logger.info("sending %s request to %s", message.__class__.__name__,
+                         target)
         response = self.not_found(target)
         try:
             response = requests.request(
@@ -127,28 +136,26 @@ class Interface(Server):
 
         return response
 
-    @ValidateBuffer
-    def __apply_message(self, msg):  # WIP
-        """
-        Whenever we receive a message, we are required to apply it
-        """
-        test = self.__msg_buffer["action"]
-        if test == "Play":  # changed to if/elif for python 3.9 compatibility
-            self.__msg_buffer.setdefault("action", self.__player.play(msg['required_cards']))
-        elif test == "Give":
-            self.__msg_buffer.setdefault("action", self.__player.choose_cards_to_give())
-        elif test == "Info":
-            print(self.__msg_buffer["message"])
-        else:
-            raise MessageError(f"Non of the given message is valid: {self.__msg_buffer}")
-        return self._send()
+    # @ValidateBuffer
+    # def __apply_message(self, msg):  # WIP
+    #     """
+    #     Whenever we receive a message, we are required to apply it
+    #     """
+    #     test = self.__msg_buffer["action"]
+    #     if test == "Play":  # changed to if/elif for python 3.9 compatibility
+    #         self.__msg_buffer.setdefault("action", self.__player.play(msg['required_cards']))
+    #     elif test == "Give":
+    #         self.__msg_buffer.setdefault("action", self.__player.choose_cards_to_give())
+    #     elif test == "Info":
+    #         print(self.__msg_buffer["message"])
+    #     else:
+    #         raise MessageError(f"Non of the given message is valid: {self.__msg_buffer}")
+    #     return self._send()
 
     def _fill_headers(self, msg: SerializableClass) -> dict:
         """
         Complete 'msg.request' with required information
         :param msg: Any Message class
-        :param player: player sending message
-        :param token: interface's token
         :return:
         """
         # instantiate message buffer to memory, so any modification is not in file
@@ -179,8 +186,8 @@ class Interface(Server):
                 self.__serialize_player(_json=_json['player'])
             # else:
             #     print("not json")
-        except JSONDecodeError as e:
-            self.logger.critical(e)
+        except JSONDecodeError as ex:
+            self.logger.critical(ex)
         return response
 
     def __get_update(self):
@@ -190,8 +197,10 @@ class Interface(Server):
         return res
 
     def send_start_game_signal(self):
+        """ send server a signal to run a game """
         if not self.__game:
-            return print("Impossible")
+            print("Impossible")
+            return
         self.__msg_buffer = Start
         self.__msg_buffer.request.update({"rules": {}, })
 
@@ -199,11 +208,13 @@ class Interface(Server):
             self.status = self.GAME_RUNNING
 
     def __serialize_game(self, _json):
-        self.logger.debug(f"Serializing Game from : {type(_json)}  ->  {_json}")
+        """ Serialize game from json to actualize game state """
+        self.logger.debug("Serializing Game from : %s -> %s", type(_json), _json)
         self.__game_dict = _json
 
     def __serialize_player(self, _json):
-        self.logger.debug(f"Serializing player from : {type(_json)}  ->  {_json}")
+        """ Serialize game from json to actualize player state """
+        self.logger.debug("Serializing player from : %s -> %s", type(_json), _json)
         try:
             self.__player.from_json(_json=_json)
         except MessageError:
@@ -212,6 +223,7 @@ class Interface(Server):
             self._send()
 
     def request_player_action(self):
+        """ send player a play request """
         # self.__msg_buffer = Play or Give or Answer
         plays = self.__player.play(required_cards=self.game_dict.get("required_cards"))
         if plays or self.__player.folded:
@@ -220,8 +232,9 @@ class Interface(Server):
             self._send()
 
     def __update_token(self, token):
+        """ update player token to given one"""
         self.__token = token
-        self.logger.debug(f"Updated token to {self.__token}")
+        self.logger.debug("Updated token to %s", self.__token)
 
     @staticmethod
     def __select_option_number(rows):
@@ -254,8 +267,10 @@ class Interface(Server):
             if self.__game:  # Display more options if interface successfully connected to a game
                 options.setdefault("Start Game", self.send_start_game_signal)
                 options.setdefault("Game Options [Game, rules] (WIP)", self.set_game_options)
-                self.__token and options.setdefault("Reconnect", self.reconnect)
-            not self.__token and options.setdefault(" !! I already have a token !! ", self._set_token)
+                if self.__token:
+                    options.setdefault("Reconnect", self.reconnect)
+                else:
+                    options.setdefault(" !! I already have a token !! ", self._set_token)
         action = -1
         if len(options):
             while action == -1:
@@ -263,7 +278,7 @@ class Interface(Server):
                 for i, option in enumerate(options):
                     print(f"{i + 1} : {option}")
                 choice = self.__select_option_number(options)
-                for i, (info, action) in enumerate(options.items()):
+                for i, (_, action) in enumerate(options.items()):
                     if i + 1 == choice:
                         action = action()
                         break
@@ -272,7 +287,7 @@ class Interface(Server):
         return action
 
     def __enter__(self):
-        # ttysetattr etc goes here before opening and returning the file object
+        # ttysetattr etc. goes here before opening and returning the file object
         print(f"Welcome, {self.__player}")
         return self
 
@@ -284,10 +299,9 @@ class Interface(Server):
         self.__token = input("Token ?")
 
     def __banner(self):
-        import PIL.Image
         ascii_map = ["@", "#", "$", "%", "?", "!", "*", "+", ":", ",", ".", ".", "."]
-        BANNER_WIDTH = 75
-        MAX_LINES = 25
+        banner_width = 75
+        max_lines = 25
 
         def pixel_to_ascii(img):
             pixels = img.getdata()
@@ -298,31 +312,31 @@ class Interface(Server):
             return ascii_str
 
         def resize(img):
-            return img.resize((BANNER_WIDTH, MAX_LINES))
+            return img.resize((banner_width, max_lines))
 
         try:
             self.logger.info("Preparing Interface ... ")
             req = requests.get(
                 "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTzA-OJMj_asPXQM-1TAlC3"
                 "_yn03sPkArzvMd5qglLom5-nzyOr09596kof0xauehvc31M&usqp=CAU",
-                stream=True)
-            self.logger.info(f"self assigning : {req.status_code}")
+                stream=True, timeout=5)
+            self.logger.info("self assigning : %d", req.status_code)
             image_bytes = io.BytesIO(req.content)
             self.logger.info("Transposing ...")
             image = PIL.Image.open(image_bytes)
-            self.logger.info(f"Transforming ...")
+            self.logger.info("Transforming ...")
             image = image.convert(mode="L")  # GreyScales
-            self.logger.info(f"Resizing ...")
+            self.logger.info("Resizing ...")
             image = resize(image)
-            self.logger.info(f"Manipulating ...")
+            self.logger.info("Manipulating ...")
             banner = pixel_to_ascii(image)
-            self.logger.info(f"Printing ...")
+            self.logger.debug("Printing ...")
             prev = 0
-            for line in range(0, MAX_LINES):
-                print(banner[prev:line * BANNER_WIDTH])
-                prev = line * BANNER_WIDTH
-        except Exception as e:
-            self.logger.critical(e)
+            for line in range(0, max_lines):
+                print(banner[prev:line * banner_width])
+                prev = line * banner_width
+        except Exception as ex:
+            self.logger.critical(ex)
 
     def __exit__(self, _type, value, traceback):
         try:
@@ -352,12 +366,12 @@ class Interface(Server):
         :return: either server index selected or -1 in case of error
         """
         finder = GameFinder()
-        self.logger.debug(f"Not running : {finder.availabilities}")
+        self.logger.debug("Not running : %s", finder.availabilities)
         options = {(s, p): functools.partial(self.connect, s, p)
                    for s, p in finder.running_servers}
         if len(options):
             return self.menu("Choose Game", options)
-        elif self.__player.ask_yes_no("No game Found. Start a server yourself ? :)"):
+        if self.__player.ask_yes_no("No game Found. Start a server yourself ? :)"):
             print("starting background task : ", os.path.join(BASEDIR, "run_server.py"))
             self.start_GameServer()
             time.sleep(3)  # let time for server to start
@@ -369,7 +383,6 @@ class Interface(Server):
         Set game's options like QUEEN_OF_HEART_STARTS
         if no game is given, and connected to a server that accepts it, edit game's rules
         """
-        pass
 
     def reconnect(self):
         """ If a session token is found from previous connection, try to reconnect to game"""
@@ -378,7 +391,7 @@ class Interface(Server):
 
         # __game is formatted like "host:port".
         # calling *on a list or a tuple decomposes it like *args
-        self.connect(*self.__game.split(":"))
+        return self.connect(*self.__game.split(":"))
 
     def _init_server(self, name):
         pass
@@ -387,6 +400,10 @@ class Interface(Server):
         pass
 
     def not_found(self, target=None):
+        """ Generate log info and basic response type """
+        if target is None:
+            target = self.__game
+        self.logger.info("Could not connect to server %s", target)
         res = Response
         res.status_code = 404
         return res
@@ -407,16 +424,22 @@ class Interface(Server):
         self.__player.set_game(None)  # reset game pointer, in case he wants to go 'online'
 
     def start_GameServer(self, port=5001, exec_path=BASEDIR):
+        """ start a game server in a background task """
         self.local_process = Popen([
-            os.path.join(exec_path, "venv/Scripts/python"),
-            os.path.join(exec_path, f"run_server.py"),
-            f"-p {port}",
-        ])
-        if self.__super:
-            print(self.__super)
-            self.local_process.communicate()
+                                    os.path.join(exec_path, "venv/Scripts/python"),
+                                    os.path.join(exec_path, "run_server.py"),
+                                    f"-p {port}"])
+        # if self.__super:
+        #     print(self.__super)
+        #     self.local_process.communicate()
+        time.sleep(3)
 
-    def run_interface(self):
+    def run_interface(self) -> None:
+        """
+        Run the interface for user to interact with
+        as long as player does not intentionally exit via menu or use KeyboardInterrupts,
+         it will run
+        """
         try:
             while self.__run:
 
@@ -426,7 +449,6 @@ class Interface(Server):
                         self.request_player_action()
                     elif self.game_dict and self.game_dict.get('running') is False:
                         self.menu()
-        except KeyboardInterrupt as e:
+        except KeyboardInterrupt:
             print("Shutting down Interface...")
             print(f"here is your token to reconnect : {self.__token}")
-

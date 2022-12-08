@@ -85,6 +85,7 @@ class TestInterfaces(unittest.TestCase):
 
     @measure_performance
     def test_h_second_player_joining_game_before_start(self):
+        """ A player joining Before a game start can join """
         self.interface2.connect("localhost", 5001)  # ask the interface to connect to the game
         self.interface2.update()
         self.assertEqual(self.interface2.game_dict.get("players")[-1][0], self.player2,
@@ -132,6 +133,7 @@ class TestInterfaces(unittest.TestCase):
 
     @measure_performance
     def test_third_player_join_after_game_started(self):
+        """ After game started, a player cannot join the game"""
         player3 = Human()
         interface3 = Interface(player3, nobanner=True)
         interface3.connect("localhost", 5001)  # ask the interface to connect to the game

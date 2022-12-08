@@ -27,7 +27,7 @@ class Database:
         self.__data = []
         self.__fp = None
         self.__logger = logging.getLogger(__class__.__name__)
-        self.__name: Final = f"results"
+        self.__name: Final = "results"
         self.__file = self.__new_save()
         with open(self.__file, 'w') as fp:  # with handle errors on its own.
             json.dump(self.__data, fp)
@@ -47,7 +47,7 @@ class Database:
         self.__save()
 
     def __save(self):
-        self.__logger.debug(f"saving {self.__data}")
+        self.__logger.debug("saving %s", {self.__data})  # data to set for print
         self.__renew_fp()
         try:
             json.dump(self.__data, self.__fp)

@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created by: Mistayan
+Project: President-Game
+IDE: PyCharm
+Creation-date: 11/10/22
+"""
 from __future__ import annotations
 
 import logging
@@ -9,20 +16,24 @@ from .player_template import Player
 
 
 class Human(Player):
+    """ a Human player"""
 
     def __init__(self, name=None, game=None):
-        super(Human, self).__init__(name, game)
+        """ Instantiate a Human player """
+        super().__init__(name, game)
         self._is_human = True
         self.__logger = logging.getLogger(__class__.__name__)
         self.__token = None
         self.messages: list[dict] = []
 
     def renew_token(self):
+        """ generate a new random token """
         self.__token = secrets.token_hex(100)
-        self.__logger.debug(f"Updated token to {self.__token}")
+        self.__logger.debug("Updated token to %s", self.__token)
 
     @property
     def token(self):
+        """ returns player's token"""
         return self.__token
 
     def ask_n_cards_to_play(self) -> int:
@@ -30,24 +41,25 @@ class Human(Player):
         :return: self's pick between 1 and his maximum combo
         """
         _max = self.max_combo
-        n = _max if _max <= 1 else 0
-        while not n > 0 or n > _max:
+        n_cards = _max if _max <= 1 else 0
+        while not n_cards > 0 or n_cards > _max:
             try:
-                n = int(input("[FIRST-PLAYER]"
+                n_cards = int(input("[FIRST-PLAYER]"
                               f" - How many cards do you want to play (1-{_max})?\n?> "))
-                if 0 > n > _max:
-                    n = 0
+                if 0 > n_cards > _max:
+                    n_cards = 0
             except ValueError:
-                n = 0
-        return 1 if n < 1 else n
+                n_cards = 0
+        return 1 if n_cards <= 1 else n_cards
 
     def _play_cli(self, n_cards_to_play=0, override=None, action='play') -> list[Card]:
         if not override:
             print(f"Your hand :\n{self.hand}", flush=True)
-            n_cards_to_play and print(f"you must {action} "
-                                      f" {'a card' if n_cards_to_play == 1 else n_cards_to_play} "
-                                      f"{'' if n_cards_to_play == 1 else 'cards'}")
-        return super(Human, self)._play_cli(n_cards_to_play, override, action=action)
+            if n_cards_to_play:
+                print(f"you must {action} "
+                      f" {'a card' if n_cards_to_play == 1 else n_cards_to_play} "
+                      f"{'' if n_cards_to_play == 1 else 'cards'}")
+        return super()._play_cli(n_cards_to_play, override, action=action)
 
     def to_json(self) -> dict:
         return {
@@ -64,10 +76,12 @@ class Human(Player):
         }
 
     def from_json(self, _json: dict):
+        """ Turn json datas to actual player's datas """
         self.__update_hand(_json.get("hand_c"), _json.get("hand_n"))
         self.__update_status(_json)
 
     def __update_hand(self, hand_c: list[str], hand_n: list[int]):
+        """ from json, update hand (sent from server) """
         assert len(hand_n) == len(hand_c)
         cards = []
         for i, color in enumerate(hand_c):
@@ -77,6 +91,7 @@ class Human(Player):
         self.hand = cards
 
     def __update_status(self, _json: dict):
+        """ from json, update player's status (sent from server)"""
         self.action_required = _json.get("action_required")
         self.set_played(_json.get("played"))
         self.set_fold(_json.get("folded"))
