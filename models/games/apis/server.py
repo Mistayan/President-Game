@@ -16,7 +16,7 @@ from typing import Final
 # import Migrate as Migrate
 from flask import Flask
 
-from models import ROOT_LOGGER
+from models import ROOT_LOGGER, conf
 from models.games.apis import apis_conf  # , ma
 from models.games.apis.apis_conf import SERVER_HOST
 from models.utils import GameFinder
@@ -68,7 +68,7 @@ class Server(Flask, ABC):
                                                           f"{apis_conf.DATABASE_PORT}"
                                                           f"/{self.import_name}" \
             if apis_conf.DB_TYPE != "sqlite" else \
-            'sqlite:///' + os.path.join(apis_conf.BASEDIR, self.name))
+            'sqlite:///' + os.path.join(conf.BASEDIR, self.name))
 
         self._init_server(import_name)
         self.app_context().push()
