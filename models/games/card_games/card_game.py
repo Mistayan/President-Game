@@ -351,7 +351,7 @@ class CardGame(Game):
             # Playing local,
             if player.is_human and self.count_humans > 1:
                 # with multiple players in the same console.
-                print("\n" * 10)
+                self._send_player(player, "\n" * 10)
                 self._send_player(player,
                                   "Press Enter to play (this is to avoid"
                                   "other players to see your hand)",
