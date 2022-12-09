@@ -20,13 +20,13 @@ class TestCards(unittest.TestCase):
     @measure_performance
     def test_card_constructor(self):
         """ Test that a card can be built """
-        self.assertTrue(isinstance(Card('A', '♡'), Card))
+        self.assertTrue(isinstance(Card('A', '♥'), Card))
 
     @measure_performance
     def test_cards_equal_value(self):
         """ Test different equality """
-        ace_of_hearts = Card('A', '♡')
-        ace_of_spades = Card('A', '♤')
+        ace_of_hearts = Card('A', '♥')
+        ace_of_spades = Card('A', '♠')
         self.assertEqual(ace_of_hearts, ace_of_spades, 'Two cards having '
                                                        'same value should be considered equal')
 
@@ -34,9 +34,9 @@ class TestCards(unittest.TestCase):
     def test_cards_comparison(self):
         """ Test different comparisons """
 
-        ace_of_hearts = Card('A', '♡')
-        two_of_hearts = Card('2', '♡')
-        five_of_hearts = Card('5', '♡')
+        ace_of_hearts = Card('A', '♥')
+        two_of_hearts = Card('2', '♥')
+        five_of_hearts = Card('5', '♥')
 
         self.assertTrue(ace_of_hearts > five_of_hearts)
         self.assertTrue(two_of_hearts > ace_of_hearts > five_of_hearts,
@@ -47,9 +47,9 @@ class TestCards(unittest.TestCase):
     @measure_performance
     def test_cards_strictly_the_same(self):
         """ ensure a card is not another, even if the values are the same """
-        ace_of_hearts = Card('A', '♡')
-        ace_of_hearts2 = Card('A', '♡')
-        two_of_hearts = Card('2', '♡')
+        ace_of_hearts = Card('A', '♥')
+        ace_of_hearts2 = Card('A', '♥')
+        two_of_hearts = Card('2', '♥')
         # a card is unique in a deck, no copies should be same_as.
         self.assertIs(ace_of_hearts.same_as(ace_of_hearts2), False)
         self.assertIs(ace_of_hearts.same_as(ace_of_hearts), True)
