@@ -71,16 +71,18 @@ class Interface(Server):
         self.__msg_buffer.request.setdefault("player", self.__player.name)
         # first time requires destination
         response = self._send(destination=f"{uri}:{port}")
-        if response:
-            if response.status_code == 200:
-                self.status = self.CONNECTED
-                self.__game = f"{uri}:{port}"  # If succeeded, we know the game exists
-            print(response)
+        self.logger.debug(response, response.status_code)
+        if response and response.status_code == 200:
+            self.status = self.CONNECTED
+            self.__game = f"{uri}:{port}"  # If succeeded, we know the game exists
             self.logger.debug(response.headers)
             if response.headers.get('token') != self.__token:
                 self.__update_token(response.headers.get('token'))
                 assert self.__token == response.headers.get('token')
-        self.logger.debug(self.__token)
+            self.logger.debug(self.__token)
+        else:
+            self.__game = None
+            print('Failed to connect')
         return response
 
     def disconnect(self):
@@ -265,7 +267,7 @@ class Interface(Server):
                 options.setdefault(" !! I already have a token !! ", self._set_token)
         if self.__token and not self.__game:
             options.setdefault("Reconnect", self.reconnect)
-        if not self.__local_process and not self.__game:
+        if not self._local_process and not self.__game:
             options.setdefault("Start a new server of your own", self.start_GameServer)
         else:
             options.setdefault("Stop server", self.stop_GameServer)
@@ -349,8 +351,8 @@ class Interface(Server):
     def __exit__(self, _type, value, traceback):
         try:
             self.disconnect()
-            if self.local_process:
-                self.local_process.terminate()
+            if self._local_process:
+                self._local_process.terminate()
         except Exception:
             self.logger.critical(_type)
             self.logger.critical(value)
@@ -431,7 +433,7 @@ class Interface(Server):
         # Game is over, and player chose not to start another one
         self.__player.set_game(None)  # reset game pointer, in case he wants to go 'online'
 
-    def start_GameServer(self, port=5001, exec_path=BASEDIR):
+    def start_GameServer(self, port=5001, exec_path=BASEDIR) -> None:
         """ start a game server in a background task """
         self._local_process = Popen([
                                     os.path.join(exec_path, VENV_PYTHON),
@@ -441,6 +443,15 @@ class Interface(Server):
         #     print(self.__super)
         #     self.local_process.communicate()
         time.sleep(3)
+
+    def stop_GameServer(self) -> None:
+        self.disconnect()
+        self.__game = None
+        self.__token = None
+        if self._local_process:
+            self._local_process.terminate()
+        self._local_process = None
+        return self.menu()
 
     def run_interface(self) -> None:
         """
