@@ -12,6 +12,7 @@ import os
 import time
 from json import JSONDecodeError
 from subprocess import Popen
+from typing import Any
 
 import colorama
 import requests
@@ -190,6 +191,8 @@ class Interface(Server):
             #     print("not json")
         except JSONDecodeError as ex:
             self.logger.critical(ex)
+        except TypeError:
+            pass
         return response
 
     def __get_update(self):
@@ -269,17 +272,17 @@ class Interface(Server):
             options.setdefault("Reconnect", self.reconnect)
         if not self._local_process and not self.__game:
             options.setdefault("Start a new server of your own", self.start_GameServer)
-        else:
+        elif self._local_process:
             options.setdefault("Stop server", self.stop_GameServer)
         return options
 
-    def menu(self, name: str = "main menu", options: dict = None):
+    def menu(self, name: str = "main menu", options: dict = None, edit: bool = False) -> Any:
         """
         CLI Menu
         :return: requested method's results
         """
         if options is None:
-            options = self.__base_menu()
+            options = self.__base_menu
 
         action = -1
         if len(options):
@@ -288,9 +291,12 @@ class Interface(Server):
                 for i, option in enumerate(options):
                     print(f"{i + 1} : {option}")
                 choice = self.__select_option_number(options)
-                for i, (_, action) in enumerate(options.items()):
+                for i, (key, action) in enumerate(options.items()):
                     if i + 1 == choice:
-                        action = action()
+                        if not edit:
+                            action = action()
+                        else:
+                            action = key
                         break
         else:
             print("No menu to display")
@@ -393,14 +399,31 @@ class Interface(Server):
         Set game's options like QUEEN_OF_HEART_STARTS
         if no game is given, and connected to a server that accepts it, edit game's rules
         """
+        menu: dict = self.game_dict.get("game_rules", dict())
+        menu.update(self.game_dict.get("president_rules", dict()))
+        for key in list(menu):  # Remove values that should not be edited
+            if not isinstance(menu[key], bool):
+                menu.pop(key)
+        menu.update({"Exit": self.menu})
+        choice = ""
+        # Edit game options
+        while choice != "Exit":
+            choice = self.menu("edit game options", menu, edit=True)
+            test = menu.get(choice)
+            if isinstance(test, bool):
+                menu[choice] = not menu[choice]
+                print(f"{choice} has been set to {menu[choice]}")
+            elif isinstance(test, (list, dict)):
+                print(f"Cannot edit this => {choice} : {test}")
+        # send game options
 
     def reconnect(self):
         """ If a session token is found from previous connection, try to reconnect to game"""
-        if not self.__token:
+        if not self.__token or not self.__game:
             return print("No previous connection established")
 
         # __game is formatted like "host:port".
-        # calling *on a list or a tuple decomposes it like *args
+        # calling * on a list or a tuple decomposes it like *args
         return self.connect(*self.__game.split(":"))
 
     def _init_server(self, name):
@@ -435,10 +458,11 @@ class Interface(Server):
 
     def start_GameServer(self, port=5001, exec_path=BASEDIR) -> None:
         """ start a game server in a background task """
+        print(os.path.join(exec_path, VENV_PYTHON),
+              os.path.join(exec_path, "run_server.py"))
         self._local_process = Popen([
-                                    os.path.join(exec_path, VENV_PYTHON),
-                                    os.path.join(exec_path, "run_server.py"),
-                                    f"-p {port}"])
+            os.path.join(BASEDIR, VENV_PYTHON),
+            os.path.join(exec_path, "run_server.py")])
         # if self.__super:
         #     print(self.__super)
         #     self.local_process.communicate()
