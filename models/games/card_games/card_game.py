@@ -398,8 +398,8 @@ class CardGame(Game):
         if GameRules.QUEEN_OF_HEART_STARTS and not self._winners:
             for i, player in enumerate(self.players):
                 for card in player.hand:
-                    if card.number == "Q" and card.color == "♡":
-                        self.send_all(f"{player} got Q♡ : starting the game, ")
+                    if card.number == self.values[-4] and card.color == list(GameRules.COLORS)[0]:
+                        self.send_all(f"{player} got {card} : starting the game, ")
                         self.next_player_index = i
                         return i
 
@@ -491,7 +491,6 @@ class CardGame(Game):
             """
             implement Game logic for this method
             :param player: player we received message from
-            :param plays: what player plays
             :return:  200 | 401
             """
 
@@ -520,7 +519,6 @@ class CardGame(Game):
             """
             implement Game logic for this method
             :param player: player we received message from
-            :param plays: what player give
             :return: what player gives
             """
             player: Human = self.get_player(player)
