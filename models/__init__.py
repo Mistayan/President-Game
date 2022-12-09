@@ -16,10 +16,3 @@ from .conf import ROOT_LOGGER, BASEDIR
 from .games import CardGame, PresidentGame, Card, CheaterDetected
 from .players import Player, AI, Human
 
-if not os.path.exists(os.path.join(BASEDIR, ENV_NAME)):
-    raise EnvironmentError("You MUST setup a virtual environment to use this project.\n"
-                           f"{colorama.Fore.LIGHTGREEN_EX}"
-                           f">>> python -m venv {ENV_NAME}\n"
-                           f">>> activate\n"
-                           ">>> pip install -r requirements.txt"
-                           f"{colorama.Fore.RESET}")
