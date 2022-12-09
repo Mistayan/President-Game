@@ -12,8 +12,7 @@ import unittest
 
 import coloredlogs
 
-import models.conf
-from models import Human
+from models import Human, conf
 from models.interfaces import Interface
 from models.utils import GameFinder, measure_performance
 
@@ -32,7 +31,7 @@ class TestInterfaces(unittest.TestCase):
         # Connect first time
 
         if not GameFinder().running_servers:
-            base_dir = re.sub(r"\\", r"/", models.conf.BASEDIR)
+            base_dir = re.sub(r"\\", r"/", conf.BASEDIR)
             if re.match(r".*/tests.*?", base_dir):
                 base_dir = re.sub("/tests.*$", "", base_dir)
             self.interface.start_GameServer(port=5001, exec_path=base_dir)
