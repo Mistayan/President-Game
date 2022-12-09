@@ -6,7 +6,7 @@ IDE: PyCharm
 Creation-date: 11/05/22
 """
 
-from typing import Final
+from typing import Final, Any
 
 
 # EDIT VALUES IN EACH CATEGORY AS YOU SEE FIT
@@ -19,7 +19,7 @@ class GameRules:
 
     VALUES: Final = [str(num) for num in range(3, 11)] + ["J", "Q", "K", "A", "2"]
     # color: unicode_safe
-    COLORS: Final = {'♡': 'Heart', '♦': 'Square', '♤': 'Spade', '♣': 'Clover'}
+    COLORS: Final = {'♥': 'Heart', '♦': 'Square', '♠': 'Spade', '♣': 'Clover'}
 
     # Player starting the first game is Queen of Heart's owner
     QUEEN_OF_HEART_STARTS = True
@@ -39,16 +39,19 @@ class GameRules:
     def __init__(self):
         pass
 
-    def __repr__(self):
+    def __repr__(self) -> dict[str, Any]:
         return {
             "cards_values": self.VALUES,
             "cards_colors": [safe for unsafe, safe in self.COLORS.items()],
             "queen_of_heart_start_first_game": self.QUEEN_OF_HEART_STARTS,
-            "finish_with_best_ard__lose": self.FINISH_WITH_BEST_CARD__LOOSE,
+            "finish_with_best_card_lose": self.FINISH_WITH_BEST_CARD__LOOSE,
             "playing_best_card_end_round": self.PLAYING_BEST_CARD_END_ROUND,
             "last_player_can_play_until_over": self.LOSER_CAN_PLAY,
             "fold_means_played": self.WAIT_NEXT_ROUND_IF_FOLD,
         }
+
+    def __dict__(self):
+        return self.__repr__()
 
 
 class PresidentRules:
@@ -87,7 +90,7 @@ class PresidentRules:
     def __init__(self, nb_players):
         self.nbp = nb_players
 
-    def __repr__(self):
+    def __repr__(self) -> dict[str, Any]:
         return {
             "use_revolution": self.USE_REVOLUTION,
             "new_game_reset": self.NEW_GAME_RESET_REVOLUTION,
@@ -96,3 +99,6 @@ class PresidentRules:
             "medium": self.MEDIUM_RANKS,
             "ranks": self.RANKINGS,
         }
+
+    def __dict__(self):
+        return self.__repr__()
