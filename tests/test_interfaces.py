@@ -26,7 +26,8 @@ class TestInterfaces(unittest.TestCase):
 
     @measure_performance
     def test_game_player_interface_connexions(self):
-        """ test connection, disconnect, update when game not running """
+        """ !!! SERVER MUST RUN !!!
+        test connection, disconnect, update when game not running """
         # game = CardGame(nb_players=0, nb_ai=2, nb_games=1, save=False)
         # Connect first time
 
