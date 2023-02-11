@@ -173,8 +173,8 @@ classDiagram
     }
     Cli <--> Player
     Cli <--> Game
-    Interface *-- Cli
-    Server *-- Game
+    Interface <-- Cli
+    Server <|-- Game
     Response *-- Server
     Server *-- Interface
 
