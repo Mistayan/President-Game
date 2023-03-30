@@ -19,6 +19,7 @@ import requests
 import PIL.Image
 from requests import Response
 
+from conf import BASEDIR, VENV_PYTHON
 from models import CardGame
 from models.conf import BASEDIR, VENV_PYTHON
 from models.games.apis.server import Server
@@ -458,6 +459,7 @@ class Interface(Server):
 
     def start_GameServer(self, port=5001, exec_path=BASEDIR) -> None:
         """ start a game server in a background task """
+        self.logger.critical(f"{os.path.join(BASEDIR, VENV_PYTHON)} ==> {os.path.join(exec_path, 'run_server.py')}")
         self._local_process = Popen([
             os.path.join(BASEDIR, VENV_PYTHON),
             os.path.join(exec_path, "run_server.py")])

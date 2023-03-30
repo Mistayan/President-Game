@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Final
 
-from models import ROOT_LOGGER
+from conf import ROOT_LOGGER
 from models.utils import SerializableClass
 
 
@@ -37,9 +37,9 @@ class RequiredName:
 class Restricted(RequiredName):
     """ Defines Messages base-headers for restricted access """
     headers = {"token": None, "player": None}
-    # ROUTES = ("Play", "Give",
-    #           "Connect", "Disconnect",
-    #           "Start", "Update")
+    # ROUTES: ("Play", "Give",
+    #          "Connect", "Disconnect",
+    #          "Start", "Update")
 
 
 class GET(Message):
@@ -72,8 +72,8 @@ class Play(POST, Restricted):
 class Give(POST, Restricted):
     """ Defines Give Message as a class"""
     request: dict = {'message': "Give", 'plays': []}
-    # POSSIBLE_VALUES = GameRules.VALUES
-    # POSSIBLE_COLORS = GameRules.COLORS
+    # POSSIBLE_VALUES: GameRules.VALUES
+    # POSSIBLE_COLORS: GameRules.COLORS
 
 
 class Start(POST, Restricted):

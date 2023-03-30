@@ -178,7 +178,8 @@ class GameFinder:
                     self.availabilities.append((target, port))
                 sock.close()
 
-        except socket.gaierror:
-            print("\n Hostname Could Not Be Resolved !!!!")
-        except socket.error:
-            print("\n Server not responding !!!!")
+    tasks = []
+    for port in range:
+        tasks.append(asyncio.create_task(scan_port(port)))
+    done, _ = await asyncio.wait(tasks)
+    return [(target, task.result()) for task in done if task.result()]

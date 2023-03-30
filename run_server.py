@@ -12,13 +12,14 @@ from subprocess import Popen
 
 import coloredlogs
 
-from models import PresidentGame, ROOT_LOGGER
+from models import PresidentGame
 from models.utils import GameFinder
-from models.conf import VENV_PATH
+from conf import VENV_PATH, ROOT_LOGGER
 
 
 def run_background(game):
     with Pool(processes=1, ) as pool:
+        ROOT_LOGGER.info("starting %s", game.__qualname__)
         pool.apply_async(game().run_server())  # Game will find port to run on its own
 
 

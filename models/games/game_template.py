@@ -125,8 +125,9 @@ class Game(Server, SerializableObject, ABC):
             return to_save
         self.__db.update(to_save)
 
-    def register(self, player: Player or str, token: str = None) -> Player:
-        """ Every game need to register players before they are able to play """
+    def register(self, player: Union[Human, AI, str], token: str = None) -> Player:
+        """ Registers players for the game """
+        self.logger.debug("Registering %s", player)
         if not isinstance(player, (AI, Human, str)):
             raise ValueError(f"{player} not a Player")
         # Player already 'in-game'
@@ -274,7 +275,8 @@ class Game(Server, SerializableObject, ABC):
                     methods=Disconnect.methods)
         def unregister(player: str) -> Response:
             """ route to exit a game server """
-            player: Human = self.get_player(player) or self.get_observers(player)
+            player: Human = self.get_player(player) or self.get_spectator(player)
+            self.__game_log.debug("Disconnecting %s", player)
             if player and player.is_human and request.headers["Content-Type"].find("json"):
                 datas = json.loads(request.data)["headers"]
                 if player.token == datas.get("token"):
@@ -345,6 +347,7 @@ class Game(Server, SerializableObject, ABC):
             timeout -= GameRules.TICK_SPEED
         return player.plays
 
+    @measure_perf
     def send_all(self, msg):
         """ Send a message containing 'msg' to every Human player"""
         if type(msg) is str:

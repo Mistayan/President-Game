@@ -16,7 +16,8 @@ from typing import Final
 # import Migrate as Migrate
 from flask import Flask
 
-from models import ROOT_LOGGER, conf
+import conf
+from conf import ROOT_LOGGER
 from models.games.apis import apis_conf  # , ma
 from models.games.apis.apis_conf import SERVER_HOST
 from models.utils import GameFinder
