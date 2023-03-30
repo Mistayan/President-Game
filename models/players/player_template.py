@@ -44,7 +44,7 @@ class Player(SerializableObject, ABC):
         self._won = False
         self._played_turn = False
         self._folded = False
-        self.action_required = False  # Required for Interface -> Game actions to happen
+        self.is_action_required = False  # Required for Interface -> Game actions to happen
         self.rank = None
         self.hand = []
         self.last_played: list[GamePlay] = []
@@ -89,7 +89,7 @@ class Player(SerializableObject, ABC):
         self._won = False
         self._played_turn = False
         self._folded = False
-        self.action_required = False
+        self.is_action_required = False
         self.hand = []
         self.__buffer = []
         self.last_played = []
@@ -122,7 +122,7 @@ class Player(SerializableObject, ABC):
             self._logger.info("%s played", self.name)
         self._played_turn = value
         if self.played:
-            self.action_required = False
+            self.is_action_required = False
 
     def add_to_hand(self, card: Card) -> None:
         """ add the given Card to player's hand"""
@@ -298,7 +298,7 @@ class Player(SerializableObject, ABC):
         """ PresidentGame ONLY
         According to President logic,
          """
-        self.action_required = True
+        self.is_action_required = True
 
         card = None
         if self.rank:

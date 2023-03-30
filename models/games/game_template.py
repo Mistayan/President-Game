@@ -10,7 +10,7 @@ import logging
 import time
 from abc import abstractmethod, ABC
 from threading import Thread  # required for Background server task
-from typing import Any, Union
+from typing import Any, Union, Optional
 
 from flask import request, make_response, Response
 
@@ -43,8 +43,8 @@ class Game(Server, SerializableObject, ABC):
         self.plays: list[list] = []
         self._turn = 0
         self._run = False
-        self.__db: Database = None
-        self.__game_daemon: Thread = None
+        self.__db: Optional[Database] = None
+        self.__game_daemon: Optional[Thread] = None
         self.__save = save
         self.__register_players(nb_players, nb_ai, *players_names)
 
@@ -121,7 +121,6 @@ class Game(Server, SerializableObject, ABC):
 
     def register(self, player: Union[Human, AI, str], token: str = None) -> Player:
         """ Registers players for the game """
-        self.logger.debug("Registering %s", player)
         if not isinstance(player, (AI, Human, str)):
             raise ValueError(f"{player} is not a playable character")
 
@@ -293,7 +292,7 @@ class Game(Server, SerializableObject, ABC):
                     self.__game_log.debug("Token not OK")
                     return make_response('Nope', 401, {'ConnectError': '"Could not Disconnect from game"'})
             else:
-                self.__game_log.debug
+                self.__game_log.critical("%s Not human", player)
             return make_response('Nope', 401, {'ConnectError': '"Could not Disconnect from game"'})
 
         @self.route(f"/{Update.request['message']}/{Update.REQUIRED}", methods=Update.methods)
@@ -344,7 +343,7 @@ class Game(Server, SerializableObject, ABC):
     def _handle_input_message(self, player: Human, msg, method):
         req = Question().request
         req.setdefault("question", msg)
-        player.action_required = True
+        player.is_action_required = True
         player.messages.append(req)
         answer = None
         self.__game_log.warning("%s(%s)", method, msg)
@@ -451,7 +450,7 @@ class Game(Server, SerializableObject, ABC):
         player = self.get_player(pname) or self.get_disconnected(pname)
         player_data = {}
         code = 404
-        if player and player.token != token:
+        if player and player.is_human and player.token != token:
             code = 403
         elif player:
             code = 200

@@ -438,7 +438,7 @@ class CardGame(Game):
         """
         self.__logger.info("%s tries to play %s", player, cards)
         # Check that every card given can be played
-        if not [self.card_can_be_played(card) for card in cards].count(True) == len(cards):
+        if [self.card_can_be_played(card) for card in cards].count(True) != len(cards):
             return False
         [self.__add_to_pile(card) for card in cards]
         player.last_played = cards
@@ -495,7 +495,7 @@ class CardGame(Game):
             """
 
             player: Human = self.get_player(player)
-            assert player and player.is_human and player.action_required
+            assert player and player.is_human and player.is_action_required
             plays = json.loads(request.data).get("request").get("plays")
             self.logger.info(plays)
             if not plays:
@@ -511,7 +511,7 @@ class CardGame(Game):
                             self.player_give_to(player, card, player.plays)
                             break
             if player.folded or player.plays:
-                player.action_required = False  # Game's async-loops self-synchronise with this
+                player.is_action_required = False  # Game's async-loops self-synchronise with this
             return make_response('OK', 200)
 
         @self.route(f"/{Give.request['message']}/{Give.REQUIRED}", methods=Give.methods)
@@ -522,10 +522,11 @@ class CardGame(Game):
             :return: what player gives
             """
             player: Human = self.get_player(player)
-            assert player and player.is_human and player.action_required
+            assert player and player.is_human and player.is_action_required
             print(request)
             print(request.data)
-            request.is_json and print(request.json)
+            if request.is_json:
+                print(request.json)
             plays = request.data
             player.plays = plays
             return plays
