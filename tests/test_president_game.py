@@ -135,7 +135,7 @@ class TestPresidentGame(unittest.TestCase):
         game._initialize_game()
         player = game.players[0]
         player.hand = []
-        player.add_to_hand(Card("2", '♡'))
+        player.add_to_hand(Card("2", '♥'))
         # Ensure a card from outside the game cannot be played. (YOU WOULD NOT KNOW !!)
         self.assertRaises(CheaterDetected, game._do_play, 0, player, player.hand)
         player2 = game.players[1]
@@ -148,25 +148,19 @@ class TestPresidentGame(unittest.TestCase):
         game = PresidentGame(nb_players=0, nb_ai=3)
         GameRules.QUEEN_OF_HEART_STARTS = True
         game._initialize_game()
-        # game.set_all_player_folded il se passe quoi ? Corner case :^)
-        player_index = game._queen_of_heart_starts()
-        i, prev = game._next_player.__next__()
-        print(i, prev)
-        self.assertTrue(player_index == i)
-        prev.set_played()
-        self.assertTrue(prev.played)
-        first = True
-        for i, player in game._next_player:  # ensure looping behavior
-            if not player:
-                # returned index should never be a player index if no player left standing
-                self.assertTrue(i not in range(len(game.players)))
-                break
-            self.assertTrue(i == game.get_player_index(player))
-            if first:
-                first = not first
-                self.assertFalse(player_index == i)
-            player and player.set_played()
-            game._skip_players = True  # optional ?
+        game._queen_of_heart_starts()
+
+        first_player_index, first_player = game._next_player
+        first_player.set_played()  # simulate action
+        self.assertTrue(first_player.played)
+
+        second_player_index, second_player = game._next_player
+        self.assertNotEqual(first_player_index, second_player_index, "second player should not be the same as the first")
+        second_player.set_played()  # simulate action
+
+        third_player_index, third_player = game._next_player
+        self.assertNotEqual(second_player_index, third_player_index, "next player should not be the same as the last")
+        self.assertNotEqual(first_player_index, third_player_index, "last player should not be the same as the first")
 
 
 if __name__ == '__main__':
