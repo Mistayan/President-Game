@@ -7,7 +7,7 @@ Creation-date: 11/10/22
 """
 import json
 import logging
-from typing import Final
+from typing import Final, Generator, Tuple, Union
 
 from flask import request, make_response
 
@@ -138,27 +138,28 @@ class CardGame(Game):
         """ returns Humans count in game """
         return [p.is_human for p in self.players].count(True)
 
+    def __get_next_player(self) -> Generator[Tuple[int, Player], None, None]:
+        for index, player in enumerate(
+                self.players[self.next_player_index:] + self.players[:self.next_player_index]):
+            if player.is_active:
+                self._skip_players = False
+                player.is_action_required = True
+                yield index, player
+                player.set_played()
+            if not self._skip_players and self._everyone_played:
+                break
+        self.__logger.debug("########## EVERYONE PLAYED ##########")
+        yield -1, None
+
     @property
-    def _next_player(self) -> tuple[int, Player]:
-        """ get the next player able to play """
+    def _next_player(self) -> Tuple[int, Union[Player, None]]:
+        """ Get the next player who can play, according to current game rules """
         self.__logger.debug("########## NEXT INIT ##########")
-        while not self.everyone_folded:
+        if not self.everyone_folded:
             self._skip_players = True
-            while not self._everyone_played:
-                self.__logger.debug("########## PLAY LOOP ##########")
-                for index, player in enumerate(self.players):
-                    if index == self.next_player_index:
-                        self._skip_players = False
-                    # Skip until player can play or is the last standing
-                    if not self._skip_players:
-                        if player.is_active:
-                            player.is_action_required = True
-                            yield index, player
-                        player.set_played()  # set_played, no matter what player did (patch)
-            self.__logger.debug("########## EVERYONE PLAYED ##########")
-            yield -1, None  # Do not reset generator, wait for game to change players status
+            return next(self.__get_next_player())
         self.__logger.debug("########## EVERYONE FOLDED ##########")
-        return -1, None  # Reset generator since everyone folded.
+        return -1, None
 
     def __add_to_pile(self, card: Card) -> None:
         """ add a given card to the current pile, therefore visible to everyone """
@@ -312,9 +313,8 @@ class CardGame(Game):
         """
 
         self._reset_played_status()  # Everyone played, reset this status
-        for index, player in self._next_player:
-            if not player:  # No one left standing
-                break
+        index, player = self._next_player
+        while player:
             self.send_all(' '.join(["#" * 15, f" {player}'s TURN ", "#" * 15]))
             cards = self._player_loop(player)
             # If player returned cards, confirm play
@@ -332,6 +332,7 @@ class CardGame(Game):
                                         "TERMINATING Round, Best Card Value Played !",
                                         "#" * 15]))
                 break
+            index, player = self._next_player
 
     def _player_loop(self, player: Player) -> list[Card]:
         """
@@ -397,11 +398,10 @@ class CardGame(Game):
         set the player with queen of heart as the first player"""
         if GameRules.QUEEN_OF_HEART_STARTS and not self._winners:
             for i, player in enumerate(self.players):
-                for card in player.hand:
-                    if card.number == self.values[-4] and card.color == list(GameRules.COLORS)[0]:
-                        self.send_all(f"{player} got {card} : starting the game, ")
-                        self.next_player_index = i
-                        return i
+                if any(card.number == self.values[-4] and card.color == list(GameRules.COLORS)[0] for card in player.hand):
+                    self.send_all(f"{player} : got the Queen of Heart !")
+                    self.next_player_index = i
+                    return self.next_player_index
 
     def player_lost(self, player):
         """ If player has no cards in hand, and the rule is set to True,
