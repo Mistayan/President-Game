@@ -7,17 +7,16 @@ Creation-date: 11/19/22
 Imported from : https://www.freecodecamp.org/news/python-decorators-explained-with-examples/
 """
 import asyncio
-import collections
 import json
 import socket
 import tracemalloc
 from abc import ABC, abstractmethod
-from asyncio import Task
 from functools import wraps
 from time import perf_counter
-from typing import AsyncIterable
 
-from models import ROOT_LOGGER
+from conf import ROOT_LOGGER
+
+logger = ROOT_LOGGER.getChild(__name__)
 
 
 class SerializableObject(ABC):
@@ -59,20 +58,19 @@ class SerializableObject(ABC):
 
 
 class SerializableClass:
-    """ Serializes an instantiated class to json easily Clazz(SerializableClass):"""
+    """Serializes an instantiated class to JSON easily. Clazz(SerializableClass)"""
 
-    @abstractmethod
     def __init__(self):
-        """  Enforce init method on class """
+        """Enforce init method on class"""
 
     def to_json(self):
         """ find every public data in class and returns it as json_dict """
         public_names = [d for d in dir(self)
                         if str(d)[0] != '_' and str(d) not in ("to_json", "ROUTES")]
         public_attributes = [getattr(self, a) for a in public_names]
-        _T_dict = {public_names[i]: public_attributes[i] for i in range(len(public_names))}
-        ROOT_LOGGER.debug(_T_dict)
-        return json.loads(json.dumps(_T_dict))
+        any_type_dict = {public_names[i]: public_attributes[i] for i in range(len(public_names))}
+        ROOT_LOGGER.debug(any_type_dict)
+        return json.loads(json.dumps(any_type_dict))
 
 
 class ValidateBuffer:
@@ -137,46 +135,45 @@ async def async_range(min_, max_, iter_=1):
 
 class GameFinder:
     """
-    A class that allow us to find running game and interfaces servers
+    A class that allows us to find running game and interface servers
     to create a new server, use availabilities,
     to join a server, use running servers
     """
 
     def __init__(self, **kwargs):
         """ Instantiate the GameFinder
-        :param kwargs:  - target    : the target server (localhost, google.com, ...)
+        :param kwargs:  - target    : the target server (localhost, ...)
                         - range     : port(s) to scan on the given target
         Stores target:port available/running game servers
         """
-        self.availabilities = []
-        self.running_servers = []
-        self.target = kwargs.get("target", "localhost")
-        self.range = (5001, 5012)
-        # Kwargs parsing
-        range_min, range_max = kwargs.get("range", (0, 0))
-        port = kwargs.get("port", 0)
-        if range_min and range_max and isinstance(range_min, int) and isinstance(range_max, int):
-            self.range = range(range_min + 1, range_max + 1)
-        elif port and isinstance(port, int):
-            self.range = (port + 1, port + 1)
-        # Executing according to params
-        self.__scan_port_availability()
+        target = kwargs.get("target", "localhost")
+        _range = kwargs.get("range", range(5001, 5012))
+        if isinstance(_range, tuple):
+            _range = range(_range[0] + 1, _range[1] + 1)
+        elif isinstance(_range, int):
+            _range = range(_range + 1, _range + 2)
+        self.running = asyncio.run(scan_ports_availabilities(target, _range))
+        logger.debug(self.running)
+        self.availabilities = [(target, port) for port in _range if (target, port) not in self.running]
+        logger.debug(self.availabilities)
 
-    def __scan_port_availability(self, target="localhost"):
-        """ Scan ports availability on given target """
+
+async def scan_ports_availabilities(target="localhost", range=range(5002, 5012)) -> list:
+    """ Scan ports availability on given target """
+
+    async def scan_port(_port):
+        """ Scan port availability on given target """
         try:
-            # scan ports
-            for port in range(*self.range):
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                socket.setdefaulttimeout(0.1)
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(0.1)
 
-                # returns an error indicator
-                result = sock.connect_ex((target, port))
-                if result == 0:
-                    self.running_servers.append((target, port))
-                else:
-                    self.availabilities.append((target, port))
-                sock.close()
+            # returns an error indicator
+            result = sock.connect_ex((target, _port))
+            sock.close()
+            if result == 0:
+                return _port
+        except:
+            pass
 
     tasks = []
     for port in range:
