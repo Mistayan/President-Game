@@ -45,7 +45,7 @@ class Interface(Server):
         super().__init__("Player_Interface")
         self.__token = None
         self.__msg_buffer = None
-        self.__game_dict = None
+        self.__game_dict = {}
         self.logger = logging.getLogger(__class__.__name__)
         self.__game = None
         self.__player: Human = player
