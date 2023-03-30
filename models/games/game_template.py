@@ -313,8 +313,7 @@ class Game(Server, SerializableObject, ABC):
             """ route to register to a game server """
             assert request.headers["Content-Type"] == "application/json"
             p: Human = self.get_player(player)
-            self.logger.debug("ptok %s === tok %s", p.token, request.json.get('headers').get("token"))
-            assert p and p == player and p.is_human
+            assert p and p.name == player.name and p.is_human
             assert request.is_json and p.token == request.json.get('headers').get('token')
             if not self._run:
                 self.status = self.GAME_RUNNING
