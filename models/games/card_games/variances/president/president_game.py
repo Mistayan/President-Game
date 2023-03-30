@@ -58,7 +58,7 @@ class PresidentGame(CardGame):
                         card = self.player_choose_card_to_give(player)
                     self.player_give_to(player, card, give_to)
             # No more card to give
-            player.action_required = False  # Actions not required anymore
+            player.is_action_required = False  # Actions not required anymore
 
     def player_choose_card_to_give(self, player) -> Card:
         """
@@ -175,7 +175,7 @@ class PresidentGame(CardGame):
         super()._run_loop()
 
     def to_json(self) -> dict:
-        """ Serialize game for communications"""
+        """ Serialize PresidentGame for communications"""
         su: dict = super().to_json()
         update = {"revolution": self.revolution}
         if not self._run:

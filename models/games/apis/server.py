@@ -10,10 +10,8 @@ import os
 import random
 import string
 from abc import ABC, abstractmethod
-from typing import Final
+from typing import Final, Optional
 
-# import CORS as CORS
-# import Migrate as Migrate
 from flask import Flask
 
 import conf
@@ -52,8 +50,8 @@ class Server(Flask, ABC):
         self.logger = logging.getLogger(__class__.__name__)
         self.name = import_name
         self.status = self.OFFLINE
-        self._last_message_sent: dict = None
-        self._last_message_received: dict = None
+        self._last_message_sent: Optional[dict] = None
+        self._last_message_received: Optional[dict] = None
         self._messages_to_send: list[dict] = []
         self.config.setdefault("APPLICATION_ROOT", "/")
         self.config.setdefault("PREFERRED_URL_SCHEME", "https")
@@ -89,7 +87,7 @@ class Server(Flask, ABC):
         #     pass
         # self.__cors = CORS(self.__app, resources={r"/*": {"origins": "*"}})
 
-    def run_server(self, port: int = 0):
+    def run_server(self):
         """ Emulate server running to accept connexions """
         self.status = self.STARTING
         host, port = None, None
@@ -98,11 +96,12 @@ class Server(Flask, ABC):
             finder = GameFinder(target=apis_conf.SERVER_HOST, port=port)
             if not finder.availabilities:
                 self.logger.critical("No open ports found. Please free one of those :")
-                self.logger.critical(finder.running_servers)
+                self.logger.critical(finder.running)
                 raise ConnectionError()
 
             host, port = finder.availabilities[0]
             self.status = self.SERVER_RUNNING
+            self.logger.info("starting server %s on %s:%s", self.name, host, port)
             self.run(SERVER_HOST, port)
         except KeyboardInterrupt:
             self.status = self.OFFLINE
@@ -129,8 +128,7 @@ class Server(Flask, ABC):
 
     @abstractmethod
     def to_json(self):
-        """ Serializing method for exchanges between Server and players"""
-        # su = super(Server, self).to_json()
+        """ Serializing Server's infos for exchanges between Server and players"""
         return {
             'name': self.name,
             'status': self.status,

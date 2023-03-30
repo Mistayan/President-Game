@@ -152,7 +152,7 @@ class CardGame(Game):
                     # Skip until player can play or is the last standing
                     if not self._skip_players:
                         if player.is_active:
-                            player.action_required = True
+                            player.is_action_required = True
                             yield index, player
                         player.set_played()  # set_played, no matter what player did (patch)
             self.__logger.debug("########## EVERYONE PLAYED ##########")
@@ -472,7 +472,7 @@ class CardGame(Game):
         raise PlayerNotFound(pname)  # Should only be reached when server is running...
 
     def to_json(self) -> dict:
-        """ Serialize game for communications"""
+        """ Serialize CardGameame for communications"""
         sup: dict = super().to_json()
         update = {
             "pile": [(card.number, GameRules.COLORS[card.color]) for card in self.pile],

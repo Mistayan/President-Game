@@ -11,7 +11,7 @@ import unittest
 import coloredlogs
 
 from models import Human, Card
-from models.utils import measure_performance
+from models.utils import measure_perf
 
 
 class TestPlayers(unittest.TestCase):
@@ -19,19 +19,19 @@ class TestPlayers(unittest.TestCase):
     Test many aspects of player module to ensure everything works as expected
     """
 
-    @measure_performance
+    @measure_perf
     def test_player_constructor(self):
         """ ensure a player is built as expected """
         player_trump = Human('Trump')
         self.assertTrue(player_trump.name == 'Trump')
 
-    @measure_performance
+    @measure_perf
     def test_incognito_player_should_have_random_name(self):
         """ An Unnamed player should have a random name"""
         player_incognito = Human()
         self.assertFalse(player_incognito.name == '')
 
-    @measure_performance
+    @measure_perf
     def test_player_is_active(self):
         """ Test that a player is active depending on different cases """
         player = Human()
@@ -53,7 +53,7 @@ class TestPlayers(unittest.TestCase):
         self.assertFalse(player.is_active)
         self.assertEqual(player.max_combo, 0)
 
-    @measure_performance
+    @measure_perf
     def test_player_hand(self):
         """ Ensure a player's hand behaves as expected """
         player = Human()

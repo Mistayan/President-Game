@@ -25,7 +25,7 @@ class GameRules:
     QUEEN_OF_HEART_STARTS = True
 
     # Player finishing the game with the best cards instantly loose instead of winning.
-    FINISH_WITH_BEST_CARD__LOOSE = False
+    FINISH_WITH_BEST_CARD__LOOSE = True
 
     # When the best card is played by someone, ends current round and starts next one
     PLAYING_BEST_CARD_END_ROUND = True

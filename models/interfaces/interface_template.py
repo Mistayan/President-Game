@@ -14,17 +14,16 @@ from json import JSONDecodeError
 from subprocess import Popen
 from typing import Any
 
+import PIL.Image
 import colorama
 import requests
-import PIL.Image
 from requests import Response
 
 from conf import BASEDIR, VENV_PYTHON
 from models import CardGame
-from models.conf import BASEDIR, VENV_PYTHON
 from models.games.apis.server import Server
 from models.players.player import Human
-from models.responses import Connect, Disconnect, MessageError, Update, Start,\
+from models.responses import Connect, Disconnect, MessageError, Update, Start, \
     AnomalyDetected, Play
 from models.utils import GameFinder, SerializableClass
 
@@ -48,7 +47,6 @@ class Interface(Server):
         self.__msg_buffer = None
         self.__game_dict = None
         self.logger = logging.getLogger(__class__.__name__)
-        self.__super = self.logger.level
         self.__game = None
         self.__player: Human = player
         if not kwargs.get("nobanner"):
@@ -56,7 +54,7 @@ class Interface(Server):
         self.__run = True
 
     @property
-    def action_required(self):
+    def is_action_required(self):
         """ returns True if interface's user action is required """
         return self.__player.action_required
 
@@ -385,7 +383,7 @@ class Interface(Server):
         finder = GameFinder()
         self.logger.debug("Not running : %s", finder.availabilities)
         options = {(s, p): functools.partial(self.connect, s, p)
-                   for s, p in finder.running_servers}
+                   for s, p in finder.running}
         if len(options):
             return self.menu("Choose Game", options)
         if self.__player.ask_yes_no("No game Found. Start a server yourself ? :)"):
@@ -488,7 +486,7 @@ class Interface(Server):
 
                 self.menu()  # Connect or exit
                 while self.update():  # As long as we are connected, with no errors
-                    if self.action_required is True:
+                    if self.is_action_required is True:
                         self.request_player_action()
                     elif self.game_dict and self.game_dict.get('running') is False:
                         self.menu()
