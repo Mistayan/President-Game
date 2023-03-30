@@ -17,12 +17,13 @@ from models.utils import measure_perf
 class TestCards(unittest.TestCase):
     """ Test many aspects of a card to ensure all is as expected """
 
-    @measure_perf
     def test_card_constructor(self):
         """ Test that a card can be built """
         self.assertTrue(isinstance(Card('A', '♥'), Card))
 
-    @measure_perf
+    def test_card_invalid_color(self):
+        self.assertRaises(ValueError, Card, '2', '♡')
+
     def test_cards_equal_value(self):
         """ Test different equality """
         ace_of_hearts = Card('A', '♥')
@@ -30,7 +31,6 @@ class TestCards(unittest.TestCase):
         self.assertEqual(ace_of_hearts, ace_of_spades, 'Two cards having '
                                                        'same value should be considered equal')
 
-    @measure_perf
     def test_cards_comparison(self):
         """ Test different comparisons """
 
@@ -44,7 +44,6 @@ class TestCards(unittest.TestCase):
         self.assertTrue(five_of_hearts < two_of_hearts,
                         'The two card is the highest card')
 
-    @measure_perf
     def test_cards_strictly_the_same(self):
         """ ensure a card is not another, even if the values are the same """
         ace_of_hearts = Card('A', '♥')

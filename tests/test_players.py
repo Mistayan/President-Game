@@ -58,11 +58,11 @@ class TestPlayers(unittest.TestCase):
         """ Ensure a player's hand behaves as expected """
         player = Human()
         self.assertRaises(ValueError, player.add_to_hand, "2")
-        card = Card('2', '♡')
+        card = Card('2', '♥')
         player.add_to_hand(card)
         self.assertTrue(len(player.hand) == player.max_combo == 1)
-        played: list[Card] = player._play_cli(1, "2", 'play')
-        self.assertNotEqual(player.hand, [],
+        played: list[Card] = player._play_cli(n_cards_to_play=1, override="2")
+        self.assertNotEqual(played, [],
                             "player only tell the game what they want to play,"
                             " and the game take the cards from player's hand.")
         self.assertTrue(card.same_as(played[0]))
