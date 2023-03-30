@@ -8,7 +8,7 @@ Creation-date: 11/01/22
 import logging
 from typing import Final
 
-CRITICAL: Final = "".join(["\n", "🚨" * 25, "\n"])
+CRITICAL: Final = "".join(["\n", "!" * 25, "\n"])
 
 
 class CheaterDetected(BaseException):

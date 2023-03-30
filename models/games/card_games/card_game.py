@@ -436,7 +436,7 @@ class CardGame(Game):
             If the player has no more cards after he played, he wins (or lose depending on rules)
             :return: True if player won/lost; False otherwise
         """
-        self.__logger.info("%s tries to play %s", player, cards)
+        self.__logger.info("%s tries to play %s", player, [card.unicode_safe() for card in cards])
         # Check that every card given can be played
         if [self.card_can_be_played(card) for card in cards].count(True) != len(cards):
             return False

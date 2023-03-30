@@ -105,7 +105,7 @@ class Card(GamePlay):
 
     def __str__(self):
         """ Card as unsafe characters (prettier) """
-        return f"{self.number}{self.color}"
+        return self.unicode_safe()
 
     def __repr__(self):
         """ Card as unsafe characters (prettier) """
