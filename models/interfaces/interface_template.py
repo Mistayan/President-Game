@@ -133,7 +133,7 @@ class Interface(Server):
                 cert=None,  # yet...
                 json=message.to_json(),
             )
-        except (ConnectionError, ConnectionRefusedError):
+        except ConnectionError:
             print(f"Server {target} Not responding. {response}")
 
         return response if response else self.not_found(target)
@@ -228,7 +228,6 @@ class Interface(Server):
 
     def request_player_action(self):
         """ send player a play request """
-        # self.__msg_buffer = Play or Give or Answer
         plays = self.__player.play(required_cards=self.game_dict.get("required_cards"))
         if plays or self.__player.folded:
             self.__msg_buffer = Play
@@ -270,9 +269,9 @@ class Interface(Server):
         if self.__token and not self.__game:
             options.setdefault("Reconnect", self.reconnect)
         if not self._local_process and not self.__game:
-            options.setdefault("Start a new server of your own", self.start_GameServer)
+            options.setdefault("Start a new server of your own", self.start_game_server)
         elif self._local_process:
-            options.setdefault("Stop server", self.stop_GameServer)
+            options.setdefault("Stop server", self.stop_game_server)
         return options
 
     def menu(self, name: str = "main menu", options: dict = None, edit: bool = False) -> Any:
@@ -388,21 +387,25 @@ class Interface(Server):
             return self.menu("Choose Game", options)
         if self.__player.ask_yes_no("No game Found. Start a server yourself ? :)"):
             print("starting background task : ", os.path.join(BASEDIR, "run_server.py"))
-            self.start_GameServer()
+            self.start_game_server()
             time.sleep(3)  # let time for server to start
             return self.find_game()
         return -1
 
-    def set_game_options(self, game=None):
+    def __edition_menu(self, menu: dict) -> dict:
+        return_dict = {}
+        for key, value in menu.items():  # Remove values that should not be edited
+            if isinstance(value, bool):
+                return_dict.update({f"{key} [{value}]": value})  # then add key: value pair as title, so we know
+        return return_dict
+
+    def set_game_options(self, game):
         """
         Set game's options like QUEEN_OF_HEART_STARTS
         if no game is given, and connected to a server that accepts it, edit game's rules
         """
-        menu: dict = self.game_dict.get("game_rules", dict())
-        menu.update(self.game_dict.get("president_rules", dict()))
-        for key in list(menu):  # Remove values that should not be edited
-            if not isinstance(menu[key], bool):
-                menu.pop(key)
+        menu = self.__edition_menu(self.game_dict.get("game_rules", dict()))
+        menu.update(**self.__edition_menu(self.game_dict.get(f"{game}_rules", dict())))
         menu.update({"Exit": self.menu})
         choice = ""
         # Edit game options
@@ -410,11 +413,24 @@ class Interface(Server):
             choice = self.menu("edit game options", menu, edit=True)
             test = menu.get(choice)
             if isinstance(test, bool):
-                menu[choice] = not menu[choice]
-                print(f"{choice} has been set to {menu[choice]}")
-            elif isinstance(test, (list, dict)):
-                print(f"Cannot edit this => {choice} : {test}")
-        # send game options
+                old_value = menu.pop(choice)  # invert the bool value
+                new_value = not old_value
+                new_key = str(choice).split()[0] + f" [{new_value}]"
+                menu.update({new_key: new_value})
+                real_var = str(choice).split()[0]
+                self.game_dict[real_var] = new_value
+                print(f"{choice} has been set to {new_value}")
+                menu.update({"Exit": menu.pop("Exit")})
+            else:  # Exit
+                if game and hasattr(game, "send_options"):
+                    self.__send_options()
+                # print(f"Cannot edit this => {choice} : {test}")
+        # send game options when done editing
+
+    def __send_options(self):
+        """ Send game options to server """
+        self.logger.debug("Sending game options")
+        self.__game.send_options(self.game_dict)
 
     def reconnect(self):
         """ If a session token is found from previous connection, try to reconnect to game"""
@@ -426,9 +442,12 @@ class Interface(Server):
         return self.connect(*self.__game.split(":"))
 
     def _init_server(self, name):
+        """Interface won't handle server on the same thread,
+         so interface doesn't need to init the server"""
         pass
 
     def to_json(self):
+        """Interface won't send its content"""
         pass
 
     def not_found(self, target=None):
@@ -455,18 +474,15 @@ class Interface(Server):
         # Game is over, and player chose not to start another one
         self.__player.set_game(None)  # reset game pointer, in case he wants to go 'online'
 
-    def start_GameServer(self, port=5001, exec_path=BASEDIR) -> None:
+    def start_game_server(self, port=5001, exec_path=BASEDIR) -> None:
         """ start a game server in a background task """
         self.logger.critical(f"{os.path.join(BASEDIR, VENV_PYTHON)} ==> {os.path.join(exec_path, 'run_server.py')}")
         self._local_process = Popen([
             os.path.join(BASEDIR, VENV_PYTHON),
             os.path.join(exec_path, "run_server.py")])
-        # if self.__super:
-        #     print(self.__super)
-        #     self.local_process.communicate()
         time.sleep(3)
 
-    def stop_GameServer(self) -> None:
+    def stop_game_server(self) -> None:
         self.disconnect()
         self.__game = None
         self.__token = None

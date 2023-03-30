@@ -36,7 +36,7 @@ class TestInterfaces(unittest.TestCase):
             base_dir = re.sub(r"\\", r"/", conf.BASEDIR)
             if re.match(r".*/tests.*?", base_dir):
                 base_dir = re.sub("/tests.*$", "", base_dir)
-            self.interface.start_GameServer(port=5001, exec_path=base_dir)
+            self.interface.start_game_server(port=5001, exec_path=base_dir)
             time.sleep(5)
         self.interface.connect("localhost", 5001)  # ask the interface to connect to the game
         self.assertIsNone(self.player.game)
