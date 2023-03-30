@@ -107,25 +107,25 @@ class ValidateBuffer:
         return validate
 
 
-def measure_performance(func):
+def measure_perf(func):
     """Measure performance of a function/method/class"""
 
     @wraps(func)
     def wrapper(*args, **kwargs):
         """ wrapper is like the function it-self. Requires to run the function/method/class in here"""
         tracemalloc.start()
-        start_time = perf_counter()
-        func(*args, **kwargs)
+        timeit = perf_counter()
+        return_value = func(*args, **kwargs)
+        total_time = perf_counter() - timeit
         current, peak = tracemalloc.get_traced_memory()
-        finish_time = perf_counter()
-        print(f'Function: {func.__name__}')
-        print(f'Method: {func.__doc__}')
-        print(f'Memory usage:\t\t {current / 10 ** 6:.6f} MB \n'
-              f'Peak memory usage:\t {peak / 10 ** 6:.6f} MB ')
-        print(f'Time elapsed is seconds: {finish_time - start_time:.6f}')
-        print(f'{"-" * 40}')
+        logger.debug(f'Function: {func.__name__}')
+        logger.debug(f'Method: {func.__doc__}')
+        logger.debug(f'Memory usage:\t\t {current / 10 ** 6:.6f} MB \n'
+                     f'Peak memory usage:\t {peak / 10 ** 6:.6f} MB ')
+        logger.debug(f'Time elapsed is seconds: {total_time:.6f}')
+        logger.debug(f'{"-" * 40}')
         tracemalloc.stop()
-
+        return return_value
     return wrapper
 
 
