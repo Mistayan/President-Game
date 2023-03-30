@@ -310,11 +310,11 @@ class Game(Server, SerializableObject, ABC):
             return make_response(json_response, status)
 
         @self.route(f"/{Start.request['message']}/{Start.REQUIRED}", methods=Start.methods)
-        @measure_perf
         async def start_from_player(player):
             """ route to register to a game server """
             assert request.headers["Content-Type"] == "application/json"
             p: Human = self.get_player(player)
+            self.logger.debug("ptok %s === tok %s", p.token, request.json.get('headers').get("token"))
             assert p and p == player and p.is_human
             assert request.is_json and p.token == request.json.get('headers').get('token')
             if not self._run:
@@ -341,7 +341,6 @@ class Game(Server, SerializableObject, ABC):
         elif method is None:
             player.messages.append(msg)
 
-    @measure_perf
     def _handle_input_message(self, player: Human, msg, method):
         req = Question().request
         req.setdefault("question", msg)

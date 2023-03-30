@@ -40,8 +40,6 @@ class Server(Flask, ABC):
     SERVER_RUNNING = 200
     GAME_RUNNING = 230
     PROCESSING = 300
-    ERROR = 400
-    CRITICAL = 500
 
     @abstractmethod
     def __init__(self, import_name: str, *args):
@@ -54,7 +52,8 @@ class Server(Flask, ABC):
         self._last_message_received: Optional[dict] = None
         self._messages_to_send: list[dict] = []
         self.config.setdefault("APPLICATION_ROOT", "/")
-        self.config.setdefault("PREFERRED_URL_SCHEME", "https")
+        self.config.setdefault("PREFERRED_URL_SCHEME", self._PROTOCOL)
+        self.config.setdefault("SERVER_HOST", SERVER_HOST)
         self.config.setdefault("SERVER_NAME", self.name)
         self.config.setdefault("DEBUG", ROOT_LOGGER.level == logging.DEBUG)
         self.config.setdefault("SECRET_KEY", self._SECRET_KEY)
@@ -106,9 +105,6 @@ class Server(Flask, ABC):
         except KeyboardInterrupt:
             self.status = self.OFFLINE
             self.logger.critical("Closing Server %s...", self.name)
-
-        # except Exception as e:
-        #     print(f'nope {e}')
 
     @abstractmethod
     def _send(self, destination, msg):

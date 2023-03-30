@@ -56,7 +56,7 @@ class Interface(Server):
     @property
     def is_action_required(self):
         """ returns True if interface's user action is required """
-        return self.__player.action_required
+        return self.__player.is_action_required
 
     @property
     def game_dict(self):
@@ -122,8 +122,7 @@ class Interface(Server):
         message.request = self.__msg_buffer.request
         self.logger.debug("{%s} // {%s} // : {%s}", message_method, message.headers,
                           message.request)
-        self.logger.info("sending %s request to %s", message.__class__.__name__,
-                         target)
+        self.logger.debug("sending %s request to %s", message.__class__.__name__, target)
         response = None
         try:
             response = requests.request(
@@ -186,8 +185,8 @@ class Interface(Server):
             self.__serialize_game(_json=_json['game'])
             if response.status_code == 200:
                 self.__serialize_player(_json=_json['player'])
-            # else:
-            #     print("not json")
+            self.logger.debug("do i have to play ? => %s ", self.__player.is_action_required)
+
         except JSONDecodeError as ex:
             self.logger.critical(ex)
         except TypeError:
@@ -399,11 +398,12 @@ class Interface(Server):
                 return_dict.update({f"{key} [{value}]": value})  # then add key: value pair as title, so we know
         return return_dict
 
-    def set_game_options(self, game):
+    def set_game_options(self):
         """
         Set game's options like QUEEN_OF_HEART_STARTS
         if no game is given, and connected to a server that accepts it, edit game's rules
         """
+        game = self.__game
         menu = self.__edition_menu(self.game_dict.get("game_rules", dict()))
         menu.update(**self.__edition_menu(self.game_dict.get(f"{game}_rules", dict())))
         menu.update({"Exit": self.menu})
@@ -469,7 +469,7 @@ class Interface(Server):
             "President Game": functools.partial(CardGame, 1, 3),
         })
         self.__player.set_game(game)  # necessary to play local
-        self.set_game_options(game)  # WIP
+        self.set_game_options()  # WIP
         game.start()
         # Game is over, and player chose not to start another one
         self.__player.set_game(None)  # reset game pointer, in case he wants to go 'online'
