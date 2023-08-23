@@ -5,6 +5,7 @@ Project: President-Game
 IDE: PyCharm
 Creation-date: 11/10/22
 """
+from __future__ import annotations
 import functools
 import io
 import logging
@@ -12,7 +13,7 @@ import os
 import time
 from json import JSONDecodeError
 from subprocess import Popen
-from typing import Any
+from typing import Any, List
 
 import PIL.Image
 import colorama
@@ -21,24 +22,19 @@ from requests import Response
 
 from conf import BASEDIR, VENV_PYTHON
 from models import CardGame, utils
-from models.games.apis.server import Server
+from models.networking.communicant import Communicant
 from models.players.player import Human
 from models.responses import *
 from models.utils import GameFinder, SerializableClass
 
 
-class Interface(Server):
+class Interface(Communicant):
     """
     Instantiate basics for Game interfaces
     """
-    DISCONNECTED = 8
-    CONNECTED = 10
-    WAITING_NEW_GAME = 12
-    ACTION_REQUIRED = 21
-    PLAY_REQUIRED = 22
-    GIVE_REQUIRED = 23
 
     def __init__(self, player: Human, **kwargs):
+        self.__status = None
         if not isinstance(player, Human):
             raise TypeError("Interface's players MUST be Humans.")
         super().__init__("Player_Interface")
@@ -72,30 +68,32 @@ class Interface(Server):
         response = self._send(destination=f"{uri}:{port}")
         self.logger.debug("%s %s", response, response.status_code)
         if response and response.status_code == 200:
-            self.status = self.CONNECTED
-            self.__game = f"{uri}:{port}"  # If succeeded, we know the game exists
+            self.__status = self.CONNECTED
+            self._game = f"{uri}:{port}"  # If succeeded, we know the game exists
             self.logger.debug(response.headers)
             if response.headers.get('token') != self.__token:
                 self.__update_token(response.headers.get('token'))
                 assert self.__token == response.headers.get('token')
+                # success to authenticate, load game rules
+
             self.logger.debug(self.__token)
         else:
-            self.__game = None
-            print('Failed to connect')
+            self._game = None
+            Interface.print('Failed to connect')
         return response
 
     def disconnect(self):
         """ Disconnect from the Game """
-        if not self.__game:
+        if not self._game:
             return
         self.__msg_buffer = Disconnect
         if self._send().status_code == 200:
-            self.status = self.CONNECTED
+            self.__status = self.CONNECTED
 
     @property
     def game_addr(self):
         """ Returns game's address """
-        return self.__game
+        return self._game
 
     @property
     def game_token(self):
@@ -111,7 +109,7 @@ class Interface(Server):
         Everytime the game wants to _send a message, we have to retrieve those by
          updating
         """
-        target = destination or self.__game
+        target = destination or self._game
         if not target:
             return self.not_found(target)
         super()._send(target, self.__msg_buffer)
@@ -150,19 +148,20 @@ class Interface(Server):
         Update game status, then player status.
         :return response: player_update response (game always succeed, unless server down)
         """
-        if not self.__game:
-            return self.menu()
+        if not self._game:
+            return self.select_from_menu()
         try:
             response = self.__get_update()
             self.logger.debug(response)
         except ConnectionError:
-            print("Impossible to connect to designated server... sending back to main menu")
-            self.menu()
-            response = self.not_found(self.__game)
+            Interface.print("Impossible to connect to designated server... sending back to main menu")
+            self.select_from_menu()
+            response = self.not_found(self._game)
         try:
             # if response and response.headers["Content-Type"] == "application/json":
             _json = response.json()
-            self.__serialize_game(_json=_json['game'])
+            self.__game_dict = _json['game']
+            self.__serialize_game()
             if response.status_code == 200:
                 self.__serialize_player(_json=_json['player'])
             self.logger.debug("do i have to play ? => %s ", self.__player.is_action_required)
@@ -181,19 +180,19 @@ class Interface(Server):
 
     def send_start_game_signal(self):
         """ send server a signal to run a game """
-        if not self.__game:
-            print("Impossible")
+        if not self._game:
+            Interface.print("Impossible")
             return
         self.__msg_buffer = Start
         self.__msg_buffer.request.update({"rules": {}, })
 
         if self._send().status_code == 200:
-            self.status = self.GAME_RUNNING
+            self.__status = self.GAME_RUNNING
 
-    def __serialize_game(self, _json):
+    def __serialize_game(self):
         """ Serialize game from json to actualize game state """
-        self.logger.debug("Serializing Game from : %s -> %s", type(_json), _json)
-        self.__game_dict = _json
+        self.logger.debug("Serializing Game from : %s -> %s", type(self.__game_dict), self.__game_dict)
+        self.__update_game_rules(self.__game_dict)
 
     def __serialize_player(self, _json):
         """ Serialize game from json to actualize player state """
@@ -207,7 +206,7 @@ class Interface(Server):
 
     def request_player_action(self):
         """ send player a play request """
-        plays = self.__player.play(required_cards=self.game_dict.get("required_cards"))
+        plays = self.__player.play(required_cards=self.__game_dict.get("required_cards"))
         if plays or self.__player.folded:
             self.__msg_buffer = Play
             self.__msg_buffer.request["plays"] = [c.unicode_safe() for c in plays if c]
@@ -228,10 +227,10 @@ class Interface(Server):
                 if 1 <= num <= len(rows):
                     answer = num
                 else:
-                    print(f"answer required between 1 and {len(rows)}")
+                    Interface.print(f"answer required between 1 and {len(rows)}")
             except ValueError:
                 answer = None
-                print("Requires a number")
+                Interface.print("Requires a number")
         return answer
 
     @property
@@ -240,20 +239,24 @@ class Interface(Server):
             "Find Game": self.find_game,
             # "Start a game locally": self.start_new_local_game,
             "Exit Interface": functools.partial(exit, 0)}
-        if self.__game:  # Display more options if interface successfully connected to a game
+        if self._game:  # Display more options if interface successfully connected to a game
             options.setdefault("Start Game", self.send_start_game_signal)
             options.setdefault("Game Options [Game, rules] (WIP)", self.set_game_options)
             if not self.__token:
                 options.setdefault(" !! I already have a token !! ", self._set_token)
-        if self.__token and not self.__game:
-            options.setdefault("Reconnect", self.reconnect)
-        if not self._local_process and not self.__game:
-            options.setdefault("Start a new server of your own", self.start_game_server)
+
+        elif not self._game:
+            if self.__token:
+                options.setdefault("Reconnect", self.reconnect)
+            if not self._local_process and not self._game:
+                options.setdefault("Start a new server of your own", self.start_game_server)
+
         elif self._local_process:
             options.setdefault("Stop server", self.stop_game_server)
+
         return options
 
-    def menu(self, name: str = "main menu", options: dict = None, edit: bool = False) -> Any:
+    def select_from_menu(self, name: str = "main menu", options: dict = None, edit: bool = False) -> Any:
         """
         CLI Menu
         :return: requested method's results
@@ -264,9 +267,9 @@ class Interface(Server):
         action = -1
         if len(options):
             while action == -1:
-                print("#" * 20 + f" {name.upper()} " + "#" * 20)
+                Interface.print("#" * 20 + f" {name.upper()} " + "#" * 20)
                 for i, option in enumerate(options):
-                    print(f"{i + 1} : {option}")
+                    Interface.print(f"{i + 1} : {option}")
                 choice = self.__select_option_number(options)
                 for i, (key, action) in enumerate(options.items()):
                     if i + 1 == choice:
@@ -276,12 +279,12 @@ class Interface(Server):
                             action = key
                         break
         else:
-            print("No menu to display")
+            Interface.print("No menu to display")
         return action
 
     def __enter__(self):
         # ttysetattr etc. goes here before opening and returning the file object
-        print(f"Welcome, {self.__player}")
+        Interface.print(f"Welcome, {self.__player}")
         return self
 
     def __aenter__(self):
@@ -323,7 +326,7 @@ class Interface(Server):
             self.logger.debug("Printing ...")
             prev = 0
             for line in range(0, max_lines):
-                print(banner[prev:line * banner_width])
+                Interface.print(banner[prev:line * banner_width])
                 prev = line * banner_width
         except Exception as ex:
             self.logger.critical(ex)
@@ -338,7 +341,7 @@ class Interface(Server):
             self.logger.critical(value)
             self.logger.critical(traceback)
         finally:
-            print(colorama.Style.BRIGHT + colorama.Fore.BLACK + colorama.Back.GREEN,
+            Interface.print(colorama.Style.BRIGHT + colorama.Fore.BLACK + colorama.Back.GREEN,
                   "\tSee you soon :D\t\t" + colorama.Style.RESET_ALL)
 
     def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -360,9 +363,9 @@ class Interface(Server):
         options = {(s, p): functools.partial(self.connect, s, p)
                    for s, p in finder.running}
         if len(options):
-            return self.menu("Choose Game", options)
+            return self.select_from_menu("Choose Game", options)
         if self.__player.ask_yes_no("No game Found. Start a server yourself ? :)"):
-            print("starting background task : ", os.path.join(BASEDIR, "run_server.py"))
+            Interface.print("starting background task : ", os.path.join(BASEDIR, "run_server.py"))
             self.start_game_server()
             time.sleep(3)  # let time for server to start
             return self.find_game()
@@ -414,12 +417,12 @@ class Interface(Server):
 
     def reconnect(self):
         """ If a session token is found from previous connection, try to reconnect to game"""
-        if not self.__token or not self.__game:
-            return print("No previous connection established")
+        if not self.__token or not self._game:
+            return Interface.print("No previous connection established")
 
         # __game is formatted like "host:port".
         # calling * on a list or a tuple decomposes it like *args
-        return self.connect(*self.__game.split(":"))
+        return self.connect(*self._game.split(":"))
 
     def _init_server(self, name):
         """Interface won't handle server on the same thread,
@@ -433,7 +436,7 @@ class Interface(Server):
     def not_found(self, target=None):
         """ Generate log info and basic response type """
         if target is None:
-            target = self.__game
+            target = self._game
         self.logger.info("Could not connect to server %s", target)
         res = Response
         res.status_code = 404
@@ -444,7 +447,7 @@ class Interface(Server):
         Choose a game from a list of available games styles
         and set games options before starting it.
         """
-        game = self.menu("Choose game", {
+        game = self.select_from_menu("Choose game", {
             "Card Game": functools.partial(CardGame, 1, 3),
             "President Game": functools.partial(CardGame, 1, 3),
         })
@@ -464,12 +467,12 @@ class Interface(Server):
 
     def stop_game_server(self) -> None:
         self.disconnect()
-        self.__game = None
+        self._game = None
         self.__token = None
         if self._local_process:
             self._local_process.terminate()
         self._local_process = None
-        return self.menu()
+        return self.select_from_menu()
 
     def run_interface(self) -> None:
         """
@@ -478,7 +481,7 @@ class Interface(Server):
          it will run
         """
         try:
-            self.menu()  # Connect or exit
+            self.select_from_menu()  # Connect or exit
             while self.__run and self.update():  # As long as we are connected, with no errors
 
                 if self.is_action_required is True:
@@ -486,5 +489,21 @@ class Interface(Server):
                 elif self.game_dict and self.game_dict.get('running') is False:
                     self.menu()
         except KeyboardInterrupt:
-            print("Shutting down Interface...")
-            print(f"here is your token to reconnect : {self.__token}")
+            Interface.print("Shutting down Interface...")
+            Interface.print(f"here is your token to reconnect : {self.__token}")
+
+    @classmethod
+    def print(cls, *params):
+        print(*params)
+
+    def __update_game_rules(self, game_dict):
+        games_rules = {
+            "CardGame": CardGameRules,
+            "PresidentGame": PresidentRules,
+        }
+        game_name = game_dict.get("game")
+        game_rules = game_dict.get("game_rules", dict())
+        players: List = game_dict.get("players")
+        if not self.__game_rules:
+            self.__game_rules = games_rules.get(game_name, CardGameRules)(len(players))
+        self.__game_rules.update(game_rules)

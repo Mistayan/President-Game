@@ -18,12 +18,13 @@ import conf
 from conf import ROOT_LOGGER
 from models.games.apis import apis_conf  # , ma
 from models.games.apis.apis_conf import SERVER_HOST
+from models.networking.communicant import Communicant
 from models.utils import GameFinder
 
 
-class Server(Flask, ABC):
+class Server(Flask, Communicant, ABC):
     """ Base class handling Flask Server
-
+        Must be inherited to implement init_server
     """
     # Instances Shared attributes
     # Will only be generated on first run of an instance, while GameManager runs
@@ -33,24 +34,13 @@ class Server(Flask, ABC):
         os.putenv("SECRET_KEY", _SUPER_PRIVATE)
     _SECRET_KEY = os.environ.get("SECRET_KEY")
 
-    # Internal status
-    _PROTOCOL = "http"
-    OFFLINE = 0
-    STARTING = 10
-    SERVER_RUNNING = 200
-    GAME_RUNNING = 230
-    PROCESSING = 300
-
     @abstractmethod
     def __init__(self, import_name: str, *args):
         super().__init__(import_name)
         self._local_process = None
-        self.logger = logging.getLogger(__class__.__name__)
+        self._logger = logging.getLogger(__class__.__name__)
         self.name = import_name
         self.status = self.OFFLINE
-        self._last_message_sent: Optional[dict] = None
-        self._last_message_received: Optional[dict] = None
-        self._messages_to_send: list[dict] = []
         self.config.setdefault("APPLICATION_ROOT", "/")
         self.config.setdefault("PREFERRED_URL_SCHEME", self._PROTOCOL)
         self.config.setdefault("SERVER_HOST", SERVER_HOST)
@@ -70,48 +60,12 @@ class Server(Flask, ABC):
 
         self._init_server(import_name)
         self.app_context().push()
-        self.logger.debug("instantiated Server (requires run)")
+        self._logger.debug("instantiated Server (requires run)")
 
     @abstractmethod
     def _init_server(self, name):
         """ base method to initialize various securities to Flask server, before running """
         pass
-
-    def run_server(self):
-        """ Emulate server running to accept connexions """
-        self.status = self.STARTING
-        host, port = None, None
-        try:
-            self.status = self.PROCESSING
-            finder = GameFinder(target=apis_conf.SERVER_HOST, port=port)
-            if not finder.availabilities:
-                self.logger.critical("No open ports found. Please free one of those :")
-                self.logger.critical(finder.running)
-                raise ConnectionError()
-
-            host, port = finder.availabilities[0]
-            self.status = self.SERVER_RUNNING
-            self.logger.info("starting server %s on %s:%s", self.name, host, port)
-            self.run(SERVER_HOST, port)
-        except KeyboardInterrupt:
-            self.status = self.OFFLINE
-            self.logger.critical("Closing Server %s...", self.name)
-
-    @abstractmethod
-    def _send(self, destination, msg):
-        """ check file integrity before you can _send """
-        if not (msg and destination):
-            return
-        self.logger.debug("Preparing : %s for %s", msg, destination)
-        self._last_message_sent = msg
-
-    @abstractmethod
-    def receive(self, msg: dict):
-        """ base method to verify content of a received message, before you can process it"""
-        assert isinstance(msg, dict) and msg.get("message") \
-               and msg.get("player")
-        self.logger.info("Receiving : %s", msg)
-        self._last_message_received = msg
 
     @abstractmethod
     def to_json(self):
@@ -121,3 +75,44 @@ class Server(Flask, ABC):
             'status': self.status,
             'messages': self._messages_to_send,  # messages for everyone
         }
+
+    def run_server(self):
+        """ Emulate server running to accept connexions """
+        self.status = self.STARTING
+        host, port = None, None
+        try:
+            self.status = self.PROCESSING
+            finder = GameFinder(target=apis_conf.SERVER_HOST, port=port)
+            if not finder.availabilities:
+                self._logger.critical("No open ports found. Please free one of those :")
+                self._logger.critical(finder.running)
+                raise ConnectionError()
+
+            host, port = finder.availabilities[0]
+            self.status = self.SERVER_RUNNING
+            self._logger.info("starting server %s on %s:%s", self.name, host, port)
+            self.run(SERVER_HOST, port)
+        except KeyboardInterrupt:
+            self.status = self.OFFLINE
+            self._logger.critical("Closing Server %s...", self.name)
+
+    def _send(self, player, msg):
+        """
+        Sends a message to a given player.
+        :param player: the player to send the message to
+        :param msg: the message to send
+        """
+        player.messages.append(msg)
+
+    def receive(self, msg: dict):
+        """
+        Receives a message and applies it to the game if valid.
+        :param msg: the message to receive
+        """
+        # log message depending on its type
+        if msg["message"] == "Info":
+            self._logger.info(msg["content"])
+        elif msg["message"] == "Error":
+            self._logger.error(msg["content"])
+        elif msg["message"] == "Warning":
+            self._logger.warning(msg["content"])
