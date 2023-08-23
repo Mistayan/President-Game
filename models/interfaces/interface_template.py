@@ -6,6 +6,7 @@ IDE: PyCharm
 Creation-date: 11/10/22
 """
 from __future__ import annotations
+
 import functools
 import io
 import logging
@@ -345,7 +346,7 @@ class Interface(Communicant):
             self.logger.critical(traceback)
         finally:
             Interface.print(colorama.Style.BRIGHT + colorama.Fore.BLACK + colorama.Back.GREEN,
-                  "\tSee you soon :D\t\t" + colorama.Style.RESET_ALL)
+                            "\tSee you soon :D\t\t" + colorama.Style.RESET_ALL)
 
     def __aexit__(self, exc_type, exc_val, exc_tb):
         self.disconnect()

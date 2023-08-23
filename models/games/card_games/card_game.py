@@ -7,7 +7,6 @@ Creation-date: 11/10/22
 """
 import json
 import logging
-from abc import abstractmethod
 from typing import Final, Generator, Tuple, Union
 
 from flask import request, make_response

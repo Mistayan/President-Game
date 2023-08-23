@@ -125,6 +125,7 @@ def measure_perf(func):
         logger.debug(f'{"-" * 40}')
         tracemalloc.stop()
         return return_value
+
     return wrapper
 
 
@@ -185,4 +186,3 @@ async def scan_ports_availabilities(target="localhost", range=range(5002, 5012))
 
 def xor(data, key):
     return ''.join(chr(ord(c) ^ ord(k)) for c, k in zip(data, cycle(key)))
-

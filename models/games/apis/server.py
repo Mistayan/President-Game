@@ -10,7 +10,7 @@ import os
 import random
 import string
 from abc import ABC, abstractmethod
-from typing import Final, Optional
+from typing import Final
 
 from flask import Flask
 

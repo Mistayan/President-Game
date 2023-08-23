@@ -61,6 +61,6 @@ def auto_run(game):
 
 
 if __name__ == '__main__':
-    coloredlogs.set_level(logging.CRITICAL)
+    coloredlogs.set_level(logging.DEBUG)
     auto_run(PresidentGame)
 

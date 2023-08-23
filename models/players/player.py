@@ -11,7 +11,7 @@ import logging
 import secrets
 
 from models.games.card_games.card import Card
-from rules import GameRules, CardGameRules
+from rules import CardGameRules
 from .player_template import Player
 
 

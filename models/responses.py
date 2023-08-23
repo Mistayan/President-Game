@@ -24,6 +24,7 @@ class Message(SerializableClass):
 
 class MessageError(Exception):
     """ Base Exception for Messages Errors """
+
     def __init__(self, msg):
         ROOT_LOGGER.critical(f"{msg}")
         # Non blocking Error ?
