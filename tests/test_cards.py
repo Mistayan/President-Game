@@ -11,7 +11,6 @@ import unittest
 import coloredlogs
 
 from models import Card
-from models.utils import measure_perf
 
 
 class TestCards(unittest.TestCase):

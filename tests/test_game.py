@@ -9,6 +9,7 @@ import unittest
 
 import coloredlogs
 
+from models import utils
 from models.games import PresidentGame
 from models.players.player import Player
 from models.utils import measure_perf
@@ -17,6 +18,17 @@ from models.utils import measure_perf
 class TestGame(unittest.TestCase):
     """ Test many aspect of President game
      to ensure CardGame + President Game works as expected """
+
+    def test_xor(self):
+        secret = "secret key"
+        original = "une chaine de char"
+        altered = utils.xor(original, secret)
+        print(original, "->", altered)
+        self.assertNotEqual(original, altered)
+        re_altered = utils.xor(altered, secret)
+        print(altered, "->", re_altered)
+        self.assertEqual(original, re_altered)
+
 
     @measure_perf
     def test_default_game_has_three_players(self):
