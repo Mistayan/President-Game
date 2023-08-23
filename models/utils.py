@@ -12,6 +12,7 @@ import socket
 import tracemalloc
 from abc import ABC, abstractmethod
 from functools import wraps
+from itertools import cycle
 from time import perf_counter
 
 from conf import ROOT_LOGGER
@@ -180,3 +181,8 @@ async def scan_ports_availabilities(target="localhost", range=range(5002, 5012))
         tasks.append(asyncio.create_task(scan_port(port)))
     done, _ = await asyncio.wait(tasks)
     return [(target, task.result()) for task in done if task.result()]
+
+
+def xor(data, key):
+    return ''.join(chr(ord(c) ^ ord(k)) for c, k in zip(data, cycle(key)))
+
