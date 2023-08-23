@@ -33,8 +33,7 @@ class Game(Server, SerializableObject, ABC):
         super().__init__("Game_Server")  # test: init only when start server
 
         self.game_name = None
-        self.game_rules = GameRules()
-        self.players_limit = 100  # Arbitrary Value
+        self.game_rules = GameRules(nb_players + nb_ai)
         self.__game_log = logging.getLogger(__class__.__name__)
         self.players: list[Player.__class__] = []
         self._winners: list[Player.__class__, int, GamePlay] = []
@@ -54,10 +53,10 @@ class Game(Server, SerializableObject, ABC):
         self.losers = []
         self.disconnected_players = []
         # as long as we can, add players for next game
-        while self.spectators and len(self.players) < self.players_limit:
+        while self.spectators and len(self.players) < self.game_rules.max_players:
             self.players.append(self.spectators.pop())
         # Check players count before starting, remove extra players before starting.
-        while len(self.players) > self.players_limit:
+        while len(self.players) > self.game_rules.max_players:
             for player in self.players[::-1]:
                 self.spectators.append(self.players.pop(self.players.index(player)))
         self.__game_log.info(' '.join(["#" * 15, "PREPARING NEW GAME", "#" * 15]))
@@ -84,7 +83,7 @@ class Game(Server, SerializableObject, ABC):
 
     def __register_players(self, number_of_players, number_of_ai, *players_names):
         """ Every game need to register players before they are able to play"""
-        self.logger.info("registering base players")
+        self._logger.info("registering base players")
         if number_of_players:
             for name in players_names:  # Named players
                 self.register(Human(name=str(name)))
@@ -140,21 +139,21 @@ class Game(Server, SerializableObject, ABC):
 
     def reconnect_player(self, player):
         """ Handles player reconnection to the game """
-        self.logger.debug("Reconnecting %s", player)
+        self._logger.debug("Reconnecting %s", player)
         player = self.disconnected_players.pop(self.disconnected_players.index(player))
         self.players.append(player)
         return player
 
     def join_game(self, player):
         """ Handles player joining the game after it has started """
-        self.logger.debug("Joining %s", player)
+        self._logger.debug("Joining %s", player)
         player = self.spectators.pop(self.spectators.index(player))
         player.reset()
         return player
 
     def register_new_player(self, player):
         """ Handles registration of new players """
-        self.logger.debug("Registering %s", player)
+        self._logger.debug("Registering %s", player)
         player = Human(player) if isinstance(player, str) else player
         if player:
             if player.is_human:
@@ -168,10 +167,10 @@ class Game(Server, SerializableObject, ABC):
     def add_player_to_list(self, player):
         """ Adds player to either spectators or players list """
         if self._run:
-            self.logger.debug("Adding spectator %s", player)
+            self._logger.debug("Adding spectator %s", player)
             self.spectators.append(player) if player not in self.spectators else None
         else:
-            self.logger.debug("Joining %s", player)
+            self._logger.debug("Joining %s", player)
             self.players.append(player) if player not in self.players else None
 
     def unregister(self, player: Player or str) -> None:
@@ -303,7 +302,7 @@ class Game(Server, SerializableObject, ABC):
             json_response.setdefault("game", self.game_infos)
             status, player_json = self.get_player_infos(player, request.headers.get("token"))
             json_response.setdefault("player", player_json)
-            self.logger.debug("Sending %d => %s", status, json_response)
+            self._logger.debug("Sending %d => %s", status, json_response)
             return make_response(json_response, status)
 
         @self.route(f"/{Start.request['message']}/{Start.REQUIRED}", methods=Start.methods)
@@ -311,12 +310,12 @@ class Game(Server, SerializableObject, ABC):
             """ route to register to a game server """
             # assert request.headers["Content-Type"] == "application/json"
             p: Human = self.get_player(player)
-            self.logger.debug("Starting game from %s", player)
+            self._logger.debug("Starting game from %s", player)
             assert hasattr(request.headers, "get")
-            self.logger.debug("token %s VS %s", request.headers.get("token"), p.token)
+            self._logger.debug("token %s VS %s", request.headers.get("token"), p.token)
             if not p or p.name != player or not p.is_human or p.token != request.headers.get("token"):
-                self.logger.warning("Player %s not allowed to start the game", player)
-                self.logger.debug("token %s VS %s", request.headers.get("token"), p.token)
+                self._logger.warning("Player %s not allowed to start the game", player)
+                self._logger.debug("token %s VS %s", request.headers.get("token"), p.token)
                 return make_response("Not allowed", 403)
             if not self._run:
                 self.status = self.GAME_RUNNING
@@ -336,13 +335,10 @@ class Game(Server, SerializableObject, ABC):
             else:
                 status, player_json = self.get_player_infos(player, request.headers.get("token"))
                 if status == 200:
-                    self._update_game_rules(json.loads(request.data)['request']['content'])
-
-            json_response: dict = {}
-            json_response.setdefault("game", self.game_infos)
-            json_response.setdefault("player", player_json)
-            self.logger.debug("Sending %d => %s", status, json_response)
-            return make_response(json_response, status)
+                    _json = json.loads(request.data)
+                    # extract gameRules object from serialized json
+                    self._update_game_rules(_json.get('request', dict()).get('content', dict()))
+            return make_response("OK", status)
 
     ########################################################################
 
@@ -353,7 +349,7 @@ class Game(Server, SerializableObject, ABC):
             return
 
         if self.status == self.OFFLINE:
-            self.logger.info("offline.")
+            self._logger.info("offline.")
             return method and method(msg) or print(msg)
 
         if method is input:
@@ -369,9 +365,9 @@ class Game(Server, SerializableObject, ABC):
         answer = None
         self.__game_log.warning("%s(%s)", method, msg)
         self._wait_player_action(player)
-        self.logger.info("waiting for %s...\r", player)
+        self._logger.info("waiting for %s...\r", player)
         while answer is None and player in self.players:
-            time.sleep(self.game_rules.TICK_SPEED)
+            time.sleep(self.game_rules.tick_speed)
             if self._last_message_received:
                 answer = self._last_message_received.get(player.plays)
         self.__game_log.warning("Done Waiting.")
@@ -388,8 +384,8 @@ class Game(Server, SerializableObject, ABC):
         self.__game_log.info("awaiting %s to play", player)
         timeout = Message.TIMEOUT
         while player.is_action_required and timeout > 0 and player in self.players:
-            time.sleep(GameRules.TICK_SPEED)
-            timeout -= GameRules.TICK_SPEED
+            time.sleep(self.game_rules.tick_speed)
+            timeout -= self.game_rules.tick_speed
         return player.plays
 
     def send_all(self, msg):
@@ -408,27 +404,6 @@ class Game(Server, SerializableObject, ABC):
         for player in self.players:
             if player.is_human:
                 self._send(player, msg)
-
-    def _send(self, player, msg):
-        """
-        Sends a message to a given player.
-        :param player: the player to send the message to
-        :param msg: the message to send
-        """
-        player.messages.append(msg)
-
-    def receive(self, msg: dict):
-        """
-        Receives a message and applies it to the game if valid.
-        :param msg: the message to receive
-        """
-        # log message depending on its type
-        if msg["message"] == "Info":
-            self.logger.info(msg["content"])
-        elif msg["message"] == "Error":
-            self.logger.error(msg["content"])
-        elif msg["message"] == "Warning":
-            self.logger.warning(msg["content"])
 
     def to_json(self) -> dict:
         """
@@ -452,7 +427,7 @@ class Game(Server, SerializableObject, ABC):
         Collects information on the game.
         :return: "MSG", status_code, game_as_json
         """
-        self.logger.debug("requested game info %s", self.to_json())
+        self._logger.debug("requested game info %s", self.to_json())
         return self.to_json()
 
     def get_player_infos(self, pname, token):
@@ -472,7 +447,7 @@ class Game(Server, SerializableObject, ABC):
             else:
                 code = 200
                 player_data = player.to_json()  # utils.xor(data, token)
-                self.logger.debug(player_data)
+                self._logger.debug(player_data)
                 player.messages = []  # messages has been sent, clear
         else:
             code = 500
@@ -493,19 +468,20 @@ class Game(Server, SerializableObject, ABC):
 
     def get_player(self, player: Player or str) -> Player:
         """ get player from players list """
-        self.logger.debug(f"Searching for {player} in {self.players}...")
+        self._logger.debug(f"Searching for {player} in {self.players}...")
         return self.get_player_from(player, self.players)
 
     def get_disconnected(self, player: Player or str) -> Player and Human:
         """ Get player from disconnected list """
-        self.logger.debug(f"Searching for {player} in {self.disconnected_players}...")
+        self._logger.debug(f"Searching for {player} in {self.disconnected_players}...")
         return self.get_player_from(player, self.disconnected_players)
 
     def get_spectator(self, player: Player or str) -> Player and Human:
         """ Get player from observers list """
-        self.logger.debug(f"Searching for {player} in {self.spectators}...")
+        self._logger.debug(f"Searching for {player} in {self.spectators}...")
         return self.get_player_from(player, self.spectators)
 
     @abstractmethod
-    def _update_game_rules(self, param: dict):
-        pass
+    def _update_game_rules(self, param: GameRules | dict) -> None:
+        """ Update game rules from json """
+        self.game_rules.update(param)

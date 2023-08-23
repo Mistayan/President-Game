@@ -18,7 +18,7 @@ import names
 from models.games.card_games.card import Card
 from models.games.plays import GamePlay
 from models.utils import SerializableObject
-from rules import GameRules
+from rules import PresidentRules, CardGameRules, GameRules
 
 
 class Player(SerializableObject, ABC):
@@ -36,6 +36,7 @@ class Player(SerializableObject, ABC):
          can fold (stop playing for current round) receive a card or remove a card from his hand
         """
         super().__init__()
+        self.game_rules = None
         self.plays = []
         self._logger: Final = logging.getLogger(__class__.__name__)
         self.game = game
@@ -48,6 +49,12 @@ class Player(SerializableObject, ABC):
         self.rank = None
         self.hand = []
         self.last_played: list[GamePlay] = []
+
+    def set_game_rules(self, rules: GameRules | CardGameRules | PresidentRules) -> None:
+        """ Set player's internal game rules pointer (client side only ?)"""
+        if not isinstance(rules, (GameRules, CardGameRules, PresidentRules)):
+            raise ValueError("rules must be an instance of GameRules.")
+        self.game_rules = rules
 
     @abstractmethod
     def _play_cli(self, n_cards_to_play=0, override: str = None, action='play') -> list[Card]:
@@ -189,7 +196,7 @@ class Player(SerializableObject, ABC):
     @property
     def hand_as_colors(self):
         """ return cards from hand as colors only """
-        return [GameRules.COLORS[card.color] for card in self.hand]
+        return [self.game.game_rules.COLORS[card.color] for card in self.hand]
 
     @property
     def max_combo(self):
@@ -264,7 +271,7 @@ class Player(SerializableObject, ABC):
         self._logger.debug("must play %d; my max is %d", n_cards_to_play, self.max_combo)
         if n_cards_to_play <= self.max_combo:
             _in = input("[2-9 JQKA] or 'F' to fold"
-                        f"{'(you will not be able to play current round)' if GameRules.WAIT_NEXT_ROUND_IF_FOLD else ''}\n") \
+                        f"{'(you will not be able to play current round)' if self.game_rules.WAIT_NEXT_ROUND_IF_FOLD else ''}\n") \
                 .upper() if not override else override.upper()
             # Check fold status
             if not (_in and _in[0] == 'F'):

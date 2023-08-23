@@ -11,7 +11,7 @@ import logging
 import secrets
 
 from models.games.card_games.card import Card
-from rules import GameRules
+from rules import GameRules, CardGameRules
 from .player_template import Player
 
 
@@ -45,7 +45,7 @@ class Human(Player):
         while n_cards <= 0 or n_cards > _max:
             try:
                 n_cards = int(input("[FIRST-PLAYER]"
-                              f" - How many cards do you want to play (1-{_max})?\n?> "))
+                                    f" - How many cards do you want to play (1-{_max})?\n?> "))
                 if 0 > n_cards > _max:
                     n_cards = 0
             except ValueError:
@@ -84,8 +84,8 @@ class Human(Player):
         """ from json, update hand (sent from server) """
         assert len(hand_n) == len(hand_c)
         cards = []
-        for i, color in enumerate(hand_c):
-            for unsafe, safe in GameRules.COLORS.items():
+        for unsafe, safe in CardGameRules.COLORS.items():
+            for i, color in enumerate(hand_c):
                 if safe == color:
                     cards.append(Card(hand_n[i], unsafe))
         self.hand = cards

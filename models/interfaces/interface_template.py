@@ -26,6 +26,7 @@ from models.networking.communicant import Communicant
 from models.players.player import Human
 from models.responses import *
 from models.utils import GameFinder, SerializableClass
+from rules import CardGameRules, PresidentRules
 
 
 class Interface(Communicant):
@@ -41,8 +42,9 @@ class Interface(Communicant):
         self.__token = None
         self.__msg_buffer = None
         self.__game_dict = {}
+        self.__game_rules = None
         self.logger = logging.getLogger(__class__.__name__)
-        self.__game: CardGame = None
+        self._game = None
         self.__player: Human = player
         if not kwargs.get("nobanner"):
             self.__banner()
@@ -199,6 +201,7 @@ class Interface(Communicant):
         self.logger.debug("Serializing player from : %s -> %s", type(_json), _json)
         try:
             self.__player.from_json(_json=_json)
+            self.__player.set_game_rules(self.__game_rules)
         except MessageError:
             self.__msg_buffer = AnomalyDetected
             self.__msg_buffer.request.update("anomaly", **_json)
@@ -383,29 +386,32 @@ class Interface(Communicant):
         Set game's options like QUEEN_OF_HEART_STARTS
         if no game is given, and connected to a server that accepts it, edit game's rules
         """
-        game = self.__game
-        menu = self.__edition_menu(self.game_dict.get("game_rules", dict()))
-        menu.update(**self.__edition_menu(self.game_dict.get(f"{game}_rules", dict())))
-        menu.update({"Exit": self.menu})
-        choice = ""
+        menu = self.__edition_menu(self.__game_rules.to_json())
+        menu.update({"Exit": self.select_from_menu})
         # Edit game options
+        changes = False
+        choice = None
         while choice != "Exit":
-            choice = self.menu("edit game options", menu, edit=True)
+            choice = self.select_from_menu("edit game options", menu, edit=True)
             test = menu.get(choice)
             if isinstance(test, bool):
-                self.__update_dict_value(menu, choice, not menu[choice])
+                changes = self.__update_dict_value(menu, choice, not menu[choice])
             else:  # Exit
-                print([_ for _ in self.__game_dict if isinstance(self.game_dict[_], bool)])
-                self.__send_options(self.__game_dict)
-                # print(f"Cannot edit this => {choice} : {test}")
-        # send game options when done editing
+                if self.__send_options(self.__game_rules.to_json()).status_code == 200:
+                    Interface.print("Game options updated")
+                elif changes:
+                    Interface.print("Failed to update game options")
+                break
+        return
 
-    def __update_dict_value(self, menu, choice, new_value):
+    def __update_dict_value(self, menu: dict, choice, new_value):
         real_var = str(choice).split()[0]
-        self.__game_dict['game_rules'].update({real_var: new_value})
-        print(f"{choice} has been set to {new_value}")
-        print([_ for _ in self.__game_dict if isinstance(self.__game_dict[_], bool)])
-        self.set_game_options()
+        menu.pop(choice)
+        menu.update({f"{real_var} [{new_value}]": new_value})
+        menu.pop("Exit")
+        menu.update({"Exit": self.select_from_menu})
+        self.__game_rules.update({real_var: new_value})
+        return True
 
     def __send_options(self, options: dict) -> Response:
         """ Send game options to server """
@@ -486,8 +492,8 @@ class Interface(Communicant):
 
                 if self.is_action_required is True:
                     self.request_player_action()
-                elif self.game_dict and self.game_dict.get('running') is False:
-                    self.menu()
+                else:
+                    self.select_from_menu()
         except KeyboardInterrupt:
             Interface.print("Shutting down Interface...")
             Interface.print(f"here is your token to reconnect : {self.__token}")
