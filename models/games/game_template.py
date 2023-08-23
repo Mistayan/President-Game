@@ -15,8 +15,8 @@ from typing import Any, Union, Optional
 from flask import request, make_response, Response
 
 from models.players import Player, Human, AI
-from models.responses import Connect, Disconnect, Start, Update, Message, Question
-from models.utils import SerializableObject, measure_perf
+from models.responses import Connect, Disconnect, Start, Update, Message, Question, GameUpdate
+from models.utils import SerializableObject
 from rules import GameRules
 from .Errors import CheaterDetected
 from .apis.server import Server
@@ -33,6 +33,7 @@ class Game(Server, SerializableObject, ABC):
         super().__init__("Game_Server")  # test: init only when start server
 
         self.game_name = None
+        self.game_rules = GameRules()
         self.players_limit = 100  # Arbitrary Value
         self.__game_log = logging.getLogger(__class__.__name__)
         self.players: list[Player.__class__] = []
@@ -254,14 +255,12 @@ class Game(Server, SerializableObject, ABC):
     # ###################### SERVER IMPLEMENTATIONS TO GAME  #######################
 
     @abstractmethod
-    @measure_perf
     def _init_server(self, name):
         """ Children must implement their own routes """
         super()._init_server(name)
 
         # ALL ROUTES LISTED BELOW ARE HUMANS INTENDED !!!! ONLY !!!!
         @self.route(f"/{Connect.request['message']}/{Connect.REQUIRED}", methods=Connect.methods)
-        @measure_perf
         def register(player) -> Response:
             """ route to register to a game server """
             self.__game_log.debug("Registering %s", player)
@@ -276,7 +275,6 @@ class Game(Server, SerializableObject, ABC):
             return make_response('Nope', 401, {'ConnectError': '"Could not register to the game"'})
 
         @self.route(f"/{Disconnect.request['message']}/{Disconnect.REQUIRED}", methods=Disconnect.methods)
-        @measure_perf
         def unregister(player: str) -> Response:
             """ route to exit a game server """
             player: Human = self.get_player(player) or self.get_spectator(player)
@@ -296,34 +294,58 @@ class Game(Server, SerializableObject, ABC):
             return make_response('Nope', 401, {'ConnectError': '"Could not Disconnect from game"'})
 
         @self.route(f"/{Update.request['message']}/{Update.REQUIRED}", methods=Update.methods)
-        @measure_perf
-        def update(player: str):
+        def update(player: str) -> Response:
             """
             Send back Game_Server status.
             Also, if player is given, and player's token is valid, send back player's state
             """
             json_response: dict = {}
             json_response.setdefault("game", self.game_infos)
-            status, player_json = self.player_infos(player, request.headers.get("token"))
+            status, player_json = self.get_player_infos(player, request.headers.get("token"))
             json_response.setdefault("player", player_json)
+            self.logger.debug("Sending %d => %s", status, json_response)
             return make_response(json_response, status)
 
         @self.route(f"/{Start.request['message']}/{Start.REQUIRED}", methods=Start.methods)
-        async def start_from_player(player):
+        async def start_from_player(player) -> Response:
             """ route to register to a game server """
-            assert request.headers["Content-Type"] == "application/json"
+            # assert request.headers["Content-Type"] == "application/json"
             p: Human = self.get_player(player)
-            assert p and p.name == player.name and p.is_human
-            assert request.is_json and p.token == request.json.get('headers').get('token')
+            self.logger.debug("Starting game from %s", player)
+            assert hasattr(request.headers, "get")
+            self.logger.debug("token %s VS %s", request.headers.get("token"), p.token)
+            if not p or p.name != player or not p.is_human or p.token != request.headers.get("token"):
+                self.logger.warning("Player %s not allowed to start the game", player)
+                self.logger.debug("token %s VS %s", request.headers.get("token"), p.token)
+                return make_response("Not allowed", 403)
             if not self._run:
                 self.status = self.GAME_RUNNING
                 self.__start_server_mode()  # True to override local_cli prompts
                 return make_response("SERVER_RUNNING", 200)
             # Find a way for server or no server to play the same way
             return make_response("Cannot start another game. Server busy.")
+
+        @self.route(f"/{GameUpdate.request['message']}/{GameUpdate.REQUIRED}", methods=GameUpdate.methods)
+        def update_game(player: str) -> Response:
+            """
+            Update and Send back Game_Server status. Game must not be running
+            Also, if player is given, and player's token is valid, send back player's state
+            """
+            if self.status == self.GAME_RUNNING:
+                status = 403
+            else:
+                status, player_json = self.get_player_infos(player, request.headers.get("token"))
+                if status == 200:
+                    self._update_game_rules(json.loads(request.data)['request']['content'])
+
+            json_response: dict = {}
+            json_response.setdefault("game", self.game_infos)
+            json_response.setdefault("player", player_json)
+            self.logger.debug("Sending %d => %s", status, json_response)
+            return make_response(json_response, status)
+
     ########################################################################
 
-    @measure_perf
     def _send_player(self, player, msg, method=None):
         assert player and msg
 
@@ -349,7 +371,7 @@ class Game(Server, SerializableObject, ABC):
         self._wait_player_action(player)
         self.logger.info("waiting for %s...\r", player)
         while answer is None and player in self.players:
-            time.sleep(GameRules.TICK_SPEED)
+            time.sleep(self.game_rules.TICK_SPEED)
             if self._last_message_received:
                 answer = self._last_message_received.get(player.plays)
         self.__game_log.warning("Done Waiting.")
@@ -357,7 +379,6 @@ class Game(Server, SerializableObject, ABC):
             self.send_all(f"{player} Disconnected. Skipping turn.")
         return answer
 
-    @measure_perf
     def _wait_player_action(self, player):
         """
         Waits for a player to take an action.
@@ -371,7 +392,6 @@ class Game(Server, SerializableObject, ABC):
             timeout -= GameRules.TICK_SPEED
         return player.plays
 
-    @measure_perf
     def send_all(self, msg):
         """
         Sends a message to all human players.
@@ -389,7 +409,6 @@ class Game(Server, SerializableObject, ABC):
             if player.is_human:
                 self._send(player, msg)
 
-    @measure_perf
     def _send(self, player, msg):
         """
         Sends a message to a given player.
@@ -398,7 +417,6 @@ class Game(Server, SerializableObject, ABC):
         """
         player.messages.append(msg)
 
-    @measure_perf
     def receive(self, msg: dict):
         """
         Receives a message and applies it to the game if valid.
@@ -429,17 +447,15 @@ class Game(Server, SerializableObject, ABC):
         }
 
     @property
-    @measure_perf
     def game_infos(self) -> (str, int, dict):
         """
         Collects information on the game.
         :return: "MSG", status_code, game_as_json
         """
-        self.logger.debug(self.to_json())
+        self.logger.debug("requested game info %s", self.to_json())
         return self.to_json()
 
-    @measure_perf
-    def player_infos(self, pname, token):
+    def get_player_infos(self, pname, token):
         """
         Collects information on a given player.
         :param pname: the name of the player to get information on
@@ -448,23 +464,26 @@ class Game(Server, SerializableObject, ABC):
         """
         player = self.get_player(pname) or self.get_disconnected(pname)
         player_data = {}
-        code = 404
-        if player and player.is_human and player.token != token:
-            code = 403
+        if not player or not player.is_human:
+            code = 404
         elif player:
-            code = 200
-            player_data = player.to_json()
-            player.messages = []  # messages has been sent, clear
+            if player.token != token:  # utils.xor(data, token)
+                code = 403
+            else:
+                code = 200
+                player_data = player.to_json()  # utils.xor(data, token)
+                self.logger.debug(player_data)
+                player.messages = []  # messages has been sent, clear
+        else:
+            code = 500
         return code, player_data
 
-    @measure_perf
     def __start_server_mode(self) -> None:
         """ Run Game as a Thread, allowing for server to be independent of game logics """
         self.__game_daemon = Thread(target=self.start, args=(True,), daemon=True, name='Game')
         self.__game_daemon.start()
 
     @staticmethod
-    @measure_perf
     def get_player_from(player: Player or str, _from: list[Player]) -> Player:
         """ search player's name (token is already validated if required)
          in current players connected """
@@ -486,3 +505,7 @@ class Game(Server, SerializableObject, ABC):
         """ Get player from observers list """
         self.logger.debug(f"Searching for {player} in {self.spectators}...")
         return self.get_player_from(player, self.spectators)
+
+    @abstractmethod
+    def _update_game_rules(self, param: dict):
+        pass

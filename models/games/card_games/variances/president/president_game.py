@@ -112,7 +112,7 @@ class PresidentGame(CardGame):
         """
         if not PresidentRules.USE_REVOLUTION:
             return
-        self._revolution, self.values = not self._revolution, self.values[::-1]
+        self._revolution, self.game_rules.VALUES = not self._revolution, self.game_rules.VALUES[::-1]
 
         self.send_all("#" * 50)
         self.send_all(" ".join(["#" * 15, "!!! REVOLUTION !!!", "#" * 15]))

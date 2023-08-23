@@ -36,7 +36,7 @@ class CardGame(Game):
         :question save: whenever you would not like to save game results, set False
         """
         self.__logger: Final = logging.getLogger(__class__.__name__)
-        if GameRules.MIN_PLAYERS < nb_players + nb_ai > GameRules.MAX_PLAYERS:
+        if self.game_rules.MIN_PLAYERS < nb_players + nb_ai > self.game_rules.MAX_PLAYERS:
             raise ValueError("Invalid Total Number of Players to create PresidentGame.")
         super().__init__(nb_players, nb_ai, *players_names, save=save)
         self.__logger.debug("instantiating CardGame")
@@ -50,7 +50,6 @@ class CardGame(Game):
         self.deck = Deck()
         self._skip_players = False  # Required for _next_player behavior
         self.required_cards = 0
-        self.game_rules = GameRules()
 
     def _initialize_game(self):
         """ Reset most values to default, to be able to start a game
