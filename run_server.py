@@ -13,7 +13,7 @@ from subprocess import Popen
 import coloredlogs
 
 from models import PresidentGame
-from models.utils import GameFinder
+from models import GameFinder
 from conf import VENV_PATH, ROOT_LOGGER
 
 

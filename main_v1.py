@@ -8,7 +8,7 @@ Creation-date: 01/10/22
 
 import names
 
-from models.games import PresidentGame
+from models import PresidentGame
 
 if __name__ == '__main__':
     # INIT
