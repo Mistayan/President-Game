@@ -20,11 +20,10 @@ import requests
 from requests import Response
 
 from conf import BASEDIR, VENV_PYTHON
-from models import CardGame
+from models import CardGame, utils
 from models.games.apis.server import Server
 from models.players.player import Human
-from models.responses import Connect, Disconnect, MessageError, Update, Start, \
-    AnomalyDetected, Play
+from models.responses import *
 from models.utils import GameFinder, SerializableClass
 
 
@@ -47,7 +46,7 @@ class Interface(Server):
         self.__msg_buffer = None
         self.__game_dict = {}
         self.logger = logging.getLogger(__class__.__name__)
-        self.__game = None
+        self.__game: CardGame = None
         self.__player: Human = player
         if not kwargs.get("nobanner"):
             self.__banner()
@@ -71,7 +70,7 @@ class Interface(Server):
         self.__msg_buffer.request.setdefault("player", self.__player.name)
         # first time requires destination
         response = self._send(destination=f"{uri}:{port}")
-        self.logger.debug(response, response.status_code)
+        self.logger.debug("%s %s", response, response.status_code)
         if response and response.status_code == 200:
             self.status = self.CONNECTED
             self.__game = f"{uri}:{port}"  # If succeeded, we know the game exists
@@ -101,7 +100,7 @@ class Interface(Server):
     @property
     def game_token(self):
         """ Returns token given by server """
-        return self.__token
+        return f"{self.__token}"
 
     def receive(self, msg: dict):
         return super().receive(msg)
@@ -120,38 +119,18 @@ class Interface(Server):
         message_method, *_ = message.methods  # Gather only first element from tuple
         message.headers = self._fill_headers(message)
         message.request = self.__msg_buffer.request
-        self.logger.debug("{%s} // {%s} // : {%s}", message_method, message.headers,
-                          message.request)
-        self.logger.debug("sending %s request to %s", message.__class__.__name__, target)
-        response = None
-        try:
-            response = requests.request(
-                method=message_method,
-                url=f"{self._PROTOCOL}://{target}/{message.request['message']}/{self.__player.name}",
-                headers=message.headers,
-                cert=None,  # yet...
-                json=message.to_json(),
-            )
-        except ConnectionError:
-            print(f"Server {target} Not responding. {response}")
-
-        return response if response else self.not_found(target)
-
-    # @ValidateBuffer
-    # def __apply_message(self, msg):  # WIP
-    #     """
-    #     Whenever we receive a message, we are required to apply it
-    #     """
-    #     test = self.__msg_buffer["action"]
-    #     if test == "Play":  # changed to if/elif for python 3.9 compatibility
-    #         self.__msg_buffer.setdefault("action", self.__player.play(msg['required_cards']))
-    #     elif test == "Give":
-    #         self.__msg_buffer.setdefault("action", self.__player.choose_cards_to_give())
-    #     elif test == "Info":
-    #         print(self.__msg_buffer["message"])
-    #     else:
-    #         raise MessageError(f"Non of the given message is valid: {self.__msg_buffer}")
-    #     return self._send()
+        self.logger.debug("{%s} // {%s} // : {%s}", message_method, message.headers, message.request)
+        self.logger.info("sending %s request to %s", message.__class__.__name__, target)
+        crypt = functools.partial(utils.xor if self.__token else str)
+        response = requests.request(
+            method=message_method,
+            url=f"{self._PROTOCOL}://{target}/{message.request['message']}/{self.__player.name}",
+            headers=message.headers,  # utils.xor(data, token)
+            cert=None,  # yet...
+            json=message.to_json(),  # utils.xor(data, token)
+        )
+        self.logger.debug("Received %s, %s, %s", response.status_code, response.headers, response.content)
+        return response if response.status_code != 500 else self.not_found(target)
 
     def _fill_headers(self, msg: SerializableClass) -> dict:
         """
@@ -175,6 +154,7 @@ class Interface(Server):
             return self.menu()
         try:
             response = self.__get_update()
+            self.logger.debug(response)
         except ConnectionError:
             print("Impossible to connect to designated server... sending back to main menu")
             self.menu()
@@ -324,9 +304,6 @@ class Interface(Server):
                 ascii_str += ascii_map[(pixel // (255 // len(ascii_map))) % len(ascii_map)]
             return ascii_str
 
-        def resize(img):
-            return img.resize((banner_width, max_lines))
-
         try:
             self.logger.info("Preparing Interface ... ")
             req = requests.get(
@@ -340,7 +317,7 @@ class Interface(Server):
             self.logger.info("Transforming ...")
             image = image.convert(mode="L")  # GreyScales
             self.logger.info("Resizing ...")
-            image = resize(image)
+            image = image.resize((banner_width, max_lines))
             self.logger.info("Manipulating ...")
             banner = pixel_to_ascii(image)
             self.logger.debug("Printing ...")
@@ -413,24 +390,27 @@ class Interface(Server):
             choice = self.menu("edit game options", menu, edit=True)
             test = menu.get(choice)
             if isinstance(test, bool):
-                old_value = menu.pop(choice)  # invert the bool value
-                new_value = not old_value
-                new_key = str(choice).split()[0] + f" [{new_value}]"
-                menu.update({new_key: new_value})
-                real_var = str(choice).split()[0]
-                self.game_dict[real_var] = new_value
-                print(f"{choice} has been set to {new_value}")
-                menu.update({"Exit": menu.pop("Exit")})
+                self.__update_dict_value(menu, choice, not menu[choice])
             else:  # Exit
-                if game and hasattr(game, "send_options"):
-                    self.__send_options()
+                print([_ for _ in self.__game_dict if isinstance(self.game_dict[_], bool)])
+                self.__send_options(self.__game_dict)
                 # print(f"Cannot edit this => {choice} : {test}")
         # send game options when done editing
 
-    def __send_options(self):
+    def __update_dict_value(self, menu, choice, new_value):
+        real_var = str(choice).split()[0]
+        self.__game_dict['game_rules'].update({real_var: new_value})
+        print(f"{choice} has been set to {new_value}")
+        print([_ for _ in self.__game_dict if isinstance(self.__game_dict[_], bool)])
+        self.set_game_options()
+
+    def __send_options(self, options: dict) -> Response:
         """ Send game options to server """
         self.logger.debug("Sending game options")
-        self.__game.send_options(self.game_dict)
+        self.__msg_buffer = GameUpdate
+        self.__msg_buffer.request.update({"content": options})
+        res = self._send()
+        return res
 
     def reconnect(self):
         """ If a session token is found from previous connection, try to reconnect to game"""
@@ -498,14 +478,13 @@ class Interface(Server):
          it will run
         """
         try:
-            while self.__run:
+            self.menu()  # Connect or exit
+            while self.__run and self.update():  # As long as we are connected, with no errors
 
-                self.menu()  # Connect or exit
-                while self.update():  # As long as we are connected, with no errors
-                    if self.is_action_required is True:
-                        self.request_player_action()
-                    elif self.game_dict and self.game_dict.get('running') is False:
-                        self.menu()
+                if self.is_action_required is True:
+                    self.request_player_action()
+                elif self.game_dict and self.game_dict.get('running') is False:
+                    self.menu()
         except KeyboardInterrupt:
             print("Shutting down Interface...")
             print(f"here is your token to reconnect : {self.__token}")

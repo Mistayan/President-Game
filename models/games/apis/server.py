@@ -75,16 +75,7 @@ class Server(Flask, ABC):
     @abstractmethod
     def _init_server(self, name):
         """ base method to initialize various securities to Flask server, before running """
-        # migrate = Migrate()
-        # db.init_app(self)
-        # bcrypt.init_app(self)
-        # ma.init_app(self.__app)
-        # migrate.init_app(self.__app, db)
-        # try:
-        #     db.create_all()  # not in use ATM
-        # except:
-        #     pass
-        # self.__cors = CORS(self.__app, resources={r"/*": {"origins": "*"}})
+        pass
 
     def run_server(self):
         """ Emulate server running to accept connexions """

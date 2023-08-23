@@ -88,6 +88,13 @@ class Update(GET, Restricted):
     # POSSIBLE_VALUES = ("Game", "Player")
 
 
+class GameUpdate(POST, Restricted):
+    """ Defines Update Message as a class"""
+    # auto-restricted for player update, not for Game
+    request: dict = {'message': "GameUpdate", 'content': ''}
+    # POSSIBLE_VALUES = ("Game", "Player")
+
+
 class Question(GET, Restricted):
     """ Defines Question Message as a class to wait for an answer """
     request: dict = {'message': "Question", 'content': ''}
