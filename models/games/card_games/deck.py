@@ -11,7 +11,7 @@ import logging
 import random
 from typing import Final
 
-from rules import GameRules
+from rules import CardGameRules
 from .card import Card
 
 logger = logging.getLogger(__name__)
@@ -19,15 +19,17 @@ logger = logging.getLogger(__name__)
 
 class Deck:
     """ Class to hold Cards, according to rules """
-    __NUMBER_OF_CARDS: Final = len(GameRules.VALUES) * len(GameRules.COLORS)
+    __NUMBER_OF_CARDS: Final = len(CardGameRules.VALUES) * len(CardGameRules.COLORS)
 
-    def __init__(self):
+    def __init__(self, rules: CardGameRules = None):
         """
         Generate a Deck with 52 cards. (4 colors, 13 values)
         """
+        if not rules:
+            raise ValueError("No rules given to Deck.")
         logger.info("Generating Deck of %s cards.", self.__NUMBER_OF_CARDS)
         self.cards = [Card(value, color)
-                      for color in GameRules.COLORS for value in GameRules.VALUES]
+                      for color in CardGameRules.COLORS for value in CardGameRules.VALUES]
 
     def shuffle(self) -> Deck:
         """Not the most optimized shuffle"""

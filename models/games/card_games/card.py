@@ -9,7 +9,7 @@ Creation-date: 01/10/22
 from __future__ import annotations
 
 from models.games.plays import GamePlay
-from rules import GameRules
+from rules import CardGameRules
 
 
 class Card(GamePlay):
@@ -30,19 +30,19 @@ class Card(GamePlay):
         """ validate if num and color are valid inputs """
         assert len(args) == 2 or len(kwargs) == 2
         num, color = args or kwargs
-        if str(num) not in GameRules.VALUES:
-            raise ValueError(f"Card number is not in {GameRules.VALUES}")
-        if color not in GameRules.COLORS:
-            raise ValueError(f"Card color must be in {GameRules.COLORS}")
+        if str(num) not in CardGameRules.VALUES:
+            raise ValueError(f"Card number is not in {CardGameRules.VALUES}")
+        if color not in CardGameRules.COLORS:
+            raise ValueError(f"Card color must be in {CardGameRules.COLORS}")
         return num, color
 
     def __eq__(self, other):
         """ test card's numbers equity (see __ne__ for value & color comparison) """
         if not other:
             raise ValueError("Cannot compare to Empty Element")
-        self_value = GameRules.VALUES.index(self.number)
-        other_value = GameRules.VALUES.index(other.number) if isinstance(other, Card) else \
-            GameRules.VALUES.index(other)
+        self_value = CardGameRules.VALUES.index(self.number)
+        other_value = CardGameRules.VALUES.index(other.number) if isinstance(other, Card) else \
+            CardGameRules.VALUES.index(other)
         return self_value == other_value
 
     def __ne__(self, other):
@@ -51,57 +51,57 @@ class Card(GamePlay):
             raise ValueError("Cannot compare to Empty Element")
         if not isinstance(other, type(self)):
             raise ValueError("Cards.__ne__ requires Cards to compare")
-        self_color = list(GameRules.COLORS).index(self.color)
-        other_color = list(GameRules.COLORS).index(other.color)
+        self_color = list(CardGameRules.COLORS).index(self.color)
+        other_color = list(CardGameRules.COLORS).index(other.color)
         return not self == other and not self_color == other_color
 
     def __gt__(self, other):
         """ Compare values of cards """
         if not other or not self:
             raise ValueError("Cannot compare to Empty Element")
-        self_i = GameRules.VALUES.index(self.number)
+        self_i = CardGameRules.VALUES.index(self.number)
         if isinstance(other, Card):
-            other_value = GameRules.VALUES.index(other.number)
+            other_value = CardGameRules.VALUES.index(other.number)
         else:
-            other_value = GameRules.VALUES.index(other)
+            other_value = CardGameRules.VALUES.index(other)
         return self_i > other_value
 
     def __ge__(self, other):
         """ Compare values of cards """
         if not other or not self:
             raise ValueError("Cannot compare to Empty Element")
-        self_i = GameRules.VALUES.index(self.number)
+        self_i = CardGameRules.VALUES.index(self.number)
         if isinstance(other, Card):
-            other_i = GameRules.VALUES.index(other.number)
+            other_i = CardGameRules.VALUES.index(other.number)
         else:
-            other_i = GameRules.VALUES.index(other)
+            other_i = CardGameRules.VALUES.index(other)
         return self_i >= other_i
 
     def __lt__(self, other):
         """ Compare values of cards """
         if not other or not self:
             raise ValueError("Cannot compare to Empty Element")
-        self_i = GameRules.VALUES.index(self.number)
+        self_i = CardGameRules.VALUES.index(self.number)
         if isinstance(other, Card):
-            other_i = GameRules.VALUES.index(other.number)
+            other_i = CardGameRules.VALUES.index(other.number)
         else:
-            other_i = GameRules.VALUES.index(other)
+            other_i = CardGameRules.VALUES.index(other)
         return self_i < other_i
 
     def __le__(self, other):
         """ Compare values of cards """
         if not other or not self:
             raise ValueError("Cannot compare to Empty Element")
-        self_i = GameRules.VALUES.index(self.number)
+        self_i = CardGameRules.VALUES.index(self.number)
         if isinstance(other, Card):
-            other_i = GameRules.VALUES.index(other.number)
+            other_i = CardGameRules.VALUES.index(other.number)
         else:
-            other_i = GameRules.VALUES.index(other)
+            other_i = CardGameRules.VALUES.index(other)
         return self_i <= other_i
 
     def unicode_safe(self):
         """ Whenever you require unicode safe strings, use this method """
-        return f"{self.number},{GameRules.COLORS[self.color]}"
+        return f"{self.number},{CardGameRules.COLORS[self.color]}"
 
     def __str__(self):
         """ Card as unsafe characters (prettier) """
@@ -118,6 +118,6 @@ class Card(GamePlay):
     @staticmethod
     def from_unicode(unisafe_color):
         """ Transform cards unicode_safe color to unsafe """
-        for key, value in GameRules.COLORS.items():
+        for key, value in CardGameRules.COLORS.items():
             if value == unisafe_color:
                 return key

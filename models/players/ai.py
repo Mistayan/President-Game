@@ -87,7 +87,7 @@ class AI(Player):
         counter = Counter([card.number for card in self.hand])
         total = 0
         for number, count in self.counter.items():
-            total += count / (self.game.values.index(number) + 1)
+            total += count / (self.game.game_rules.VALUES.index(number) + 1)
         mean = total / len(counter)
         self.__logger.debug("interest over playing revolution : %f:.3f", mean)
         return mean
@@ -101,7 +101,7 @@ class AI(Player):
         total_combo_pairs = 0
         for number, count in self.counter.items():
             if count == combo or combo > 1 and (split and count == combo - 1):
-                total_power += self.game.values.index(number)
+                total_power += self.game.game_rules.VALUES.index(number)
                 total_possible_cards += count
                 total_combo_pairs += 1
         if total_possible_cards:
@@ -147,5 +147,5 @@ class AI(Player):
         if card:
             self.__logger.info("Trying: %s", repr(card))
         return card or \
-               rec_level and self.calc_best_card(nb_cards, split=not split,
-                                                 rec_level=rec_level - 1)
+            rec_level and self.calc_best_card(nb_cards, split=not split,
+                                              rec_level=rec_level - 1)

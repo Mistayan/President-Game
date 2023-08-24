@@ -9,11 +9,10 @@ import logging
 
 import coloredlogs
 
-from models.players import Human
-from models.interfaces import Interface
+from models import Human
+from models import Interface
 
 if __name__ == '__main__':
-    coloredlogs.set_level(logging.INFO)
+    coloredlogs.set_level(logging.DEBUG)
     with Interface(Human(input("Player Name ?"))) as interface:  # With, auto-disconnect on exit
-
         interface.run_interface()

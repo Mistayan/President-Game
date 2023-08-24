@@ -22,7 +22,7 @@ coloredlogs.install()
 coloredlogs.set_level(logging.CRITICAL)
 random.SystemRandom().seed("no_AI_allowed")
 ROOT_LOGGER: Final = logging.getLogger("ROOT_LOGGER")
-BASEDIR = os.path.abspath(os.getcwd())
+BASEDIR = os.path.abspath(os.path.dirname(__file__))
 ENV_NAME = "venv"
 SYSTEM = platform.system()
 if SYSTEM not in ("Windows", "POSIX"):

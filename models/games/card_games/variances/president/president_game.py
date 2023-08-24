@@ -9,21 +9,23 @@ import logging
 from typing import Final
 
 from models.games.card_games import Card, CardGame
-from rules import PresidentRules
+from rules import PresidentRules, GameRules
 from .president_rankings import PresidentRank
 
 
 class PresidentGame(CardGame):
     """ Variance of a Card Game """
+
     def __init__(self, nb_players=0, nb_ai=3, *players_names, nb_games: int = 0, save=True):
         """ Instantiate a CardGame with President rules and functionalities """
-        self.players_limit = PresidentRules.MAX_PLAYERS  # Arbitrary Value
-        if PresidentRules.MIN_PLAYERS < nb_players + nb_ai > PresidentRules.MAX_PLAYERS:
-            raise ValueError("Invalid Total Number of Players to create PresidentGame.")
         super(PresidentGame, self).__init__(nb_players, nb_ai, *players_names, nb_games=nb_games,
                                             save=save)
-        self._logger: Final = logging.getLogger(__class__.__name__)
+
         self._logger.debug("instantiating PresidentGame")
+        self.game_rules = PresidentRules(nb_players + nb_ai)  # Add variances rules to rules-sets
+        if self.game_rules.MIN_PLAYERS < nb_players + nb_ai > self.game_rules.MAX_PLAYERS:
+            raise ValueError("Invalid Total Number of Players to create PresidentGame.")
+        self._logger: Final = logging.getLogger(__class__.__name__)
 
         super().set_game_name(__class__.__name__)  # Override CardGame assignation
         self._revolution = False  # on first game, always False
@@ -58,7 +60,7 @@ class PresidentGame(CardGame):
                         card = self.player_choose_card_to_give(player)
                     self.player_give_to(player, card, give_to)
             # No more card to give
-            player.action_required = False  # Actions not required anymore
+            player.is_action_required = False  # Actions not required anymore
 
     def player_choose_card_to_give(self, player) -> Card:
         """
@@ -112,7 +114,7 @@ class PresidentGame(CardGame):
         """
         if not PresidentRules.USE_REVOLUTION:
             return
-        self._revolution, self.values = not self._revolution, self.values[::-1]
+        self._revolution, self.game_rules.VALUES = not self._revolution, self.game_rules.VALUES[::-1]
 
         self.send_all("#" * 50)
         self.send_all(" ".join(["#" * 15, "!!! REVOLUTION !!!", "#" * 15]))
@@ -136,7 +138,7 @@ class PresidentGame(CardGame):
     def card_can_be_played(self, card):
         """ Returns True if the card can be played according to pile and rules """
         return len(self.pile) == 0 or card <= self.pile[-1] and self._revolution \
-               or super().card_can_be_played(card)  # resolve by importance
+            or super().card_can_be_played(card)  # resolve by importance
 
     def _do_play(self, index, player, cards) -> bool:
         """
@@ -174,13 +176,27 @@ class PresidentGame(CardGame):
             self.do_exchanges()  # Do exchanges
         super()._run_loop()
 
+    def _update_game_rules(self, param: GameRules | dict):
+        self._logger.info(f"Changing rules with {param}")
+        super()._update_game_rules(param)
+        PresidentRules.NEW_GAME_RESET_REVOLUTION = param.get('new_game_reset_revolution',
+                                                             PresidentRules.NEW_GAME_RESET_REVOLUTION)
+        self.game_rules.QUEEN_OF_HEART_STARTS = param.get('queen_of_heart_start_first_game',
+                                                          self.game_rules.QUEEN_OF_HEART_STARTS)
+        self.game_rules.LOSER_CAN_PLAY = param.get('last_player_can_play_until_over', self.game_rules.LOSER_CAN_PLAY)
+        self.game_rules.WAIT_NEXT_ROUND_IF_FOLD = param.get('fold_means_played',
+                                                            self.game_rules.WAIT_NEXT_ROUND_IF_FOLD)
+        self.game_rules.PLAYING_BEST_CARD_END_ROUND = param.get('playing_best_card_end_round',
+                                                                self.game_rules.PLAYING_BEST_CARD_END_ROUND)
+        self._logger.debug(f"afterwards : {self.game_rules.__dict__()}")
+
     def to_json(self) -> dict:
-        """ Serialize game for communications"""
+        """ Serialize PresidentGame for communications"""
         su: dict = super().to_json()
         update = {"revolution": self.revolution}
-        if not self._run:
-            update.setdefault("president_rules",
-                              PresidentRules(len(self.players)).__repr__())
+        #        if not self._run:
+        #            update.update("game_rules",
+        #                              PresidentRules(len(self.players)).__repr__())
 
         su.update(update)
         return su

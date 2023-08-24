@@ -8,6 +8,14 @@ py setup.py
 venv/Scripts/python run_interface.py
 ```
 
+## Test program
+```shell
+# git clone https://github.com/Mistayan/President-Game.git
+# cd President-Game
+py setup.py
+venv/Scripts/python -m unittest discover -s tests
+```
+
 [_TOC_]
 
 Le président (aussi appelé le troufion) est un jeu de cartes rapide et amusant, au cours duquel la
@@ -322,10 +330,4 @@ pylint $(git ls-files '*.py')
 # Your code has been rated at 9.18/10 (previous run: 8.99/10, +0.20) # 08/12/22 11:10
 # Your code has been rated at 9.32/10 (previous run: 9.24/10, +0.08) # 08/12/22 11:17
 
-```
-
-# TODO
-```python
-def _next_player(self) -> tuple[int, Player]:
-    ...
 ```
