@@ -191,6 +191,10 @@ class Interface(Communicant):
 
         if self._send().status_code == 200:
             self.__status = self.GAME_RUNNING
+        print("Game is starting, please wait...")
+        while not self.is_action_required or not self.game_dict["running"]:
+            self.update()
+            time.sleep(1)
 
     def __serialize_game(self):
         """ Serialize game from json to actualize game state """

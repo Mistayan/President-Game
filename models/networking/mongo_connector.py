@@ -20,17 +20,20 @@ class MongoConnector(Database):
         password = html_encode(getenv("DB_PASS"))
         db_name = getenv("DB_NAME")
         db_port = int(getenv("DB_PORT", 27017))
+
         self.__logger = logging.getLogger(__class__.__name__)
 
         # Create the connection string
         uri = "mongodb://%s:%s@%s" % (
             quote_plus(name), quote_plus(password), "localhost")
         # Create a new client and connect to the server
-        self.__client = MongoClient(uri, db_port)
+        with pymongo.timeout(3):
+            self.__client = MongoClient(uri, db_port)
 
         # Send a ping to confirm a successful connection
         try:
-            self.__client.admin.command('ping')
+            with pymongo.timeout(3):
+                self.__client.admin.command('ping')
             print("Pinged your deployment. You successfully connected to MongoDB!")
         except Exception as e:
             super().__init__(game_name)
