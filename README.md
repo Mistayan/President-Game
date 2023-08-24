@@ -22,7 +22,7 @@ venv/Scripts/python -m unittest discover -s tests
 Start the server, using docker compose
 
 ```shell
-dockercompose up
+docker compose up
 ```
 
 Then, you can connect to the newly gnerated server, that uses MongoDB to store games
