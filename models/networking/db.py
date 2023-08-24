@@ -21,7 +21,10 @@ class Database:
     Then, will be print to a file, once the game is over (even after keyboard interrupts).
     """
 
-    def __init__(self, game_name: str):
+    def __init__(self, game_name: str, online: bool = False):
+        self.__online = online
+        if online:
+            return
         self.__dir: Final = f"./Saves/{game_name}"
         self.__init_dirs()
         self.__data = []
@@ -37,12 +40,14 @@ class Database:
         except JSONDecodeError:
             self.__data = []
 
-    def update(self, datas: dict):
+    def save(self, datas: dict):
         """
         append datas to self then save to DB
         :param datas: datas to save
         :return: None
         """
+        if self.__online:
+            return
         self.__data.append(datas)
         self.__save()
 

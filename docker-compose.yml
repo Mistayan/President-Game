@@ -1,0 +1,34 @@
+volumes:
+  db_data:
+
+networks:
+  moonGo:
+    driver: bridge
+    net:
+      port: 27017
+      bindIp: 127.0.0.1,172.17.0.1
+
+
+services:
+
+  mongo:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: moonGo
+      MONGO_INITDB_ROOT_PASSWORD: 712G3B%£µ%180Y4B04
+    ports:
+      - 27017:27017
+    #        - 3306:27017
+    volumes:
+      - db_data:/data/db
+
+#  mongo-express:
+#    image: mongo-express
+#    restart: always
+#    ports:
+#      - 8081:8081
+#    environment:
+#      ME_CONFIG_MONGODB_ADMINUSERNAME: moonGo
+#      ME_CONFIG_MONGODB_ADMINPASSWORD: 712G3B%£µ%180Y4B04
+#      ME_CONFIG_MONGODB_URL: mongodb://moonGo:712G3B%£µ%180Y4B04@localhost:27017/games
