@@ -8,7 +8,7 @@ Creation-date: 01/10/22
 
 from __future__ import annotations
 
-from models.games.plays import GamePlay
+from models.networking.plays import GamePlay
 from rules import CardGameRules
 
 

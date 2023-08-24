@@ -10,18 +10,19 @@ import logging
 import time
 from abc import abstractmethod, ABC
 from threading import Thread  # required for Background server task
-from typing import Any, Union, Optional
+from typing import Any, Union, Optional, List
 
 from flask import request, make_response, Response
 
+from models.networking.db import Database
+from models.networking.mongo_connector import MongoConnector
+from models.networking.plays import GamePlay
+from models.networking.responses import Connect, Disconnect, Start, Update, Message, Question, GameUpdate
 from models.players import Player, Human, AI
-from models.responses import Connect, Disconnect, Start, Update, Message, Question, GameUpdate
 from models.utils import SerializableObject
 from rules import GameRules
 from .Errors import CheaterDetected
 from .apis.server import Server
-from .db import Database
-from .plays import GamePlay
 
 
 class Game(Server, SerializableObject, ABC):
@@ -69,7 +70,7 @@ class Game(Server, SerializableObject, ABC):
         # super(Game, self).__init__(self.game_name)
 
     @abstractmethod
-    def player_give_to(self, player: Player, give: Any, to: Any):
+    def player_give_to(self, player: Player, give: List[Any], to: Any):
         """ In almost every game, Someone can give something to someone/something else"""
 
     @abstractmethod
@@ -79,7 +80,7 @@ class Game(Server, SerializableObject, ABC):
     def _init_db(self):
         """ Instantiate Database link """
         if self.__save and not self.__db:
-            self.__db = Database(self.game_name or __class__.__name__)
+            self.__db = MongoConnector(self.game_name or __class__.__name__)
 
     def __register_players(self, number_of_players, number_of_ai, *players_names):
         """ Every game need to register players before they are able to play"""
@@ -115,9 +116,9 @@ class Game(Server, SerializableObject, ABC):
             "plays": self.__plays_to_unicode_safe(),
         }
         if not self.__db:
-            self.__game_log.info("Could not save. Game has been created with save = False")
+            self.__game_log.error("Could not save. Game has been created with save = False ?")
             return to_save
-        self.__db.update(to_save)
+        self.__db.save(to_save)
 
     def register(self, player: Union[Human, AI, str], token: str = None) -> Player:
         """ Registers players for the game """
