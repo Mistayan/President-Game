@@ -11,7 +11,7 @@ import logging
 import secrets
 
 from models.games.card_games.card import Card
-from rules import GameRules
+from rules import CardGameRules
 from .player_template import Player
 
 
@@ -42,10 +42,10 @@ class Human(Player):
         """
         _max = self.max_combo
         n_cards = _max if _max <= 1 else 0
-        while not n_cards > 0 or n_cards > _max:
+        while n_cards <= 0 or n_cards > _max:
             try:
                 n_cards = int(input("[FIRST-PLAYER]"
-                              f" - How many cards do you want to play (1-{_max})?\n?> "))
+                                    f" - How many cards do you want to play (1-{_max})?\n?> "))
                 if 0 > n_cards > _max:
                     n_cards = 0
             except ValueError:
@@ -71,7 +71,7 @@ class Human(Player):
             'finished': self.won,
             'last_played': [_.unicode_safe() for _ in self.last_played],
             'messages': self.messages,
-            'action_required': self.action_required,
+            'action_required': self.is_action_required,
             'rank': self.rank and self.rank.rank_name
         }
 
@@ -84,15 +84,15 @@ class Human(Player):
         """ from json, update hand (sent from server) """
         assert len(hand_n) == len(hand_c)
         cards = []
-        for i, color in enumerate(hand_c):
-            for unsafe, safe in GameRules.COLORS.items():
+        for unsafe, safe in CardGameRules.COLORS.items():
+            for i, color in enumerate(hand_c):
                 if safe == color:
                     cards.append(Card(hand_n[i], unsafe))
         self.hand = cards
 
     def __update_status(self, _json: dict):
         """ from json, update player's status (sent from server)"""
-        self.action_required = _json.get("action_required")
+        self.is_action_required = _json.get("action_required")
         self.set_played(_json.get("played"))
         self.set_fold(_json.get("folded"))
         self.set_win(_json.get("finished"))

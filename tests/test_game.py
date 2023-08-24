@@ -9,23 +9,35 @@ import unittest
 
 import coloredlogs
 
+from models import utils
 from models.games import PresidentGame
 from models.players.player import Player
-from models.utils import measure_performance
+from models.utils import measure_perf
 
 
 class TestGame(unittest.TestCase):
     """ Test many aspect of President game
      to ensure CardGame + President Game works as expected """
 
-    @measure_performance
+    def test_xor(self):
+        secret = "secret key"
+        original = "une chaine de char"
+        altered = utils.xor(original, secret)
+        print(original, "->", altered)
+        self.assertNotEqual(original, altered)
+        re_altered = utils.xor(altered, secret)
+        print(altered, "->", re_altered)
+        self.assertEqual(original, re_altered)
+
+
+    @measure_perf
     def test_default_game_has_three_players(self):
         """ test that given no arguments, game start with 3 AIS"""
         game = PresidentGame(nb_games=True, save=False)
         print(len(game.players))
         self.assertTrue(len(game.players) == 3)
 
-    @measure_performance
+    @measure_perf
     def test_game_launch_distributes_cards(self):
         """ Game generation should distribute cards as evenly as possible. """
         game = PresidentGame(nb_players=3, nb_ai=0, nb_games=True, save=False)
@@ -37,7 +49,7 @@ class TestGame(unittest.TestCase):
         self.assertTrue(len(player_1.hand) >= len(player_2.hand))
         self.assertFalse(len(player_1.hand) == len(player_2.hand) == len(player_3.hand))
 
-    @measure_performance
+    @measure_perf
     def test_game_human_or_ai(self):
         """ verifies that AI are not humans """
         game = PresidentGame(nb_players=1, nb_ai=2, nb_games=True, save=False)
@@ -49,7 +61,7 @@ class TestGame(unittest.TestCase):
         self.assertFalse(ai_1.is_human)
         self.assertFalse(ai_2.is_human)
 
-    @measure_performance
+    @measure_perf
     def test_game_player_give_card(self):
         """
          Player giving a card should have 1 less card,

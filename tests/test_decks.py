@@ -10,19 +10,19 @@ import unittest
 import coloredlogs
 
 from models.games.card_games.deck import Deck
-from models.utils import measure_performance
+from models.utils import measure_perf
 
 
 class TestDeck(unittest.TestCase):
     """ Test many aspects of Deck class """
-    @measure_performance
+    @measure_perf
     def test_deck_has_52_cards(self):
         """ A basic card game has 52 cards """
         deck = Deck()
         self.assertEqual(len(deck.cards), 52, 'The president is a card game '
                                               'requiring 52 cards')
 
-    @measure_performance
+    @measure_perf
     def test_deck_shuffling(self):
         """ after shuffle, cards are not positioned the same """
         deck_1 = Deck()
