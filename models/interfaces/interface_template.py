@@ -24,8 +24,8 @@ from requests import Response
 from conf import BASEDIR, VENV_PYTHON
 from models import CardGame, utils
 from models.networking.communicant import Communicant
+from models.networking.responses import *
 from models.players.player import Human
-from models.responses import *
 from models.utils import GameFinder, SerializableClass
 from rules import CardGameRules, PresidentRules
 

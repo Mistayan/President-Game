@@ -23,7 +23,7 @@ class PresidentGame(CardGame):
 
         self._logger.debug("instantiating PresidentGame")
         self.game_rules = PresidentRules(nb_players + nb_ai)  # Add variances rules to rules-sets
-        if self.game_rules.MIN_PLAYERS < nb_players + nb_ai > self.game_rules.MAX_PLAYERS:
+        if self.game_rules.min_players < nb_players + nb_ai > self.game_rules.max_players:
             raise ValueError("Invalid Total Number of Players to create PresidentGame.")
         self._logger: Final = logging.getLogger(__class__.__name__)
 
@@ -33,7 +33,7 @@ class PresidentGame(CardGame):
     def _initialize_game(self):
         """ PresidentGame's inits on top of CardGame's (reset most values, distribute) """
         super()._initialize_game()
-        if PresidentRules.NEW_GAME_RESET_REVOLUTION:
+        if self.game_rules.new_game_reset_revolution:
             self._revolution = False
         if self._winners:
             self.do_exchanges()
@@ -93,7 +93,7 @@ class PresidentGame(CardGame):
          cards on the pile and rule is True.
         :return: True if rule applies.
         """
-        if not PresidentRules.USE_TA_GUEULE or len(self.pile) <= self.required_cards:
+        if not self.game_rules.use_ta_gueule or len(self.pile) <= self.required_cards:
             return False
         pile_comp = self.pile[(self.required_cards * 2)::-1]
         game, player = pile_comp[:self.required_cards], pile_comp[self.required_cards:]
@@ -112,7 +112,7 @@ class PresidentGame(CardGame):
 
         Inspired by the French revolution, yet to become True.
         """
-        if not PresidentRules.USE_REVOLUTION:
+        if not self.game_rules.use_revolution:
             return
         self._revolution, self.game_rules.VALUES = not self._revolution, self.game_rules.VALUES[::-1]
 
@@ -179,8 +179,8 @@ class PresidentGame(CardGame):
     def _update_game_rules(self, param: GameRules | dict):
         self._logger.info(f"Changing rules with {param}")
         super()._update_game_rules(param)
-        PresidentRules.NEW_GAME_RESET_REVOLUTION = param.get('new_game_reset_revolution',
-                                                             PresidentRules.NEW_GAME_RESET_REVOLUTION)
+        self.game_rules.NEW_GAME_RESET_REVOLUTION = param.get('new_game_reset_revolution',
+                                                              self.game_rules.NEW_GAME_RESET_REVOLUTION)
         self.game_rules.QUEEN_OF_HEART_STARTS = param.get('queen_of_heart_start_first_game',
                                                           self.game_rules.QUEEN_OF_HEART_STARTS)
         self.game_rules.LOSER_CAN_PLAY = param.get('last_player_can_play_until_over', self.game_rules.LOSER_CAN_PLAY)
