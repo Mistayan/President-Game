@@ -24,8 +24,8 @@ from requests import Response
 from conf import BASEDIR, VENV_PYTHON
 from models import CardGame, utils
 from models.networking.communicant import Communicant
+from models.networking.responses import *
 from models.players.player import Human
-from models.responses import *
 from models.utils import GameFinder, SerializableClass
 from rules import CardGameRules, PresidentRules
 
@@ -191,6 +191,10 @@ class Interface(Communicant):
 
         if self._send().status_code == 200:
             self.__status = self.GAME_RUNNING
+        print("Game is starting, please wait...")
+        while not self.is_action_required or not self.game_dict["running"]:
+            self.update()
+            time.sleep(1)
 
     def __serialize_game(self):
         """ Serialize game from json to actualize game state """
@@ -245,7 +249,7 @@ class Interface(Communicant):
             "Exit Interface": functools.partial(exit, 0)}
         if self._game:  # Display more options if interface successfully connected to a game
             options.setdefault("Start Game", self.send_start_game_signal)
-            options.setdefault("Game Options [Game, rules] (WIP)", self.set_game_options)
+            options.setdefault("Game Options [Game, rules] (new)", self.set_game_options)
             if not self.__token:
                 options.setdefault(" !! I already have a token !! ", self._set_token)
 
@@ -411,7 +415,7 @@ class Interface(Communicant):
         menu.update({f"{real_var} [{new_value}]": new_value})
         menu.pop("Exit")
         menu.update({"Exit": self.select_from_menu})
-        self.__game_rules.update({real_var: new_value})
+        self.__game_rules.save({real_var: new_value})
         return True
 
     def __send_options(self, options: dict) -> Response:
@@ -459,7 +463,7 @@ class Interface(Communicant):
             "President Game": functools.partial(CardGame, 1, 3),
         })
         self.__player.set_game(game)  # necessary to play local
-        self.set_game_options()  # WIP
+        self.set_game_options()  # Newly functional
         game.start()
         # Game is over, and player chose not to start another one
         self.__player.set_game(None)  # reset game pointer, in case he wants to go 'online'
@@ -493,7 +497,7 @@ class Interface(Communicant):
 
                 if self.is_action_required is True:
                     self.request_player_action()
-                else:
+                elif self.__game_dict.get("running") is False:
                     self.select_from_menu()
         except KeyboardInterrupt:
             Interface.print("Shutting down Interface...")

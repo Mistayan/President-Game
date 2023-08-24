@@ -12,8 +12,8 @@ from typing import Final, Generator, Tuple, Union
 from flask import request, make_response
 
 from models.games.Errors import CheaterDetected, PlayerNotFound
+from models.networking.responses import Play, Give
 from models.players import Player, Human
-from models.responses import Play, Give
 from rules import GameRules, CardGameRules
 from .card import Card
 from .deck import Deck

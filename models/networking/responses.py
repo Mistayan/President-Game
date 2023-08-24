@@ -103,7 +103,7 @@ class Question(GET, Restricted):
 
 class Answer(POST, Restricted):
     """ Defines Answer Message as a class in response to a question """
-    request: dict = {'message': "Question", 'content': ''}
+    request: dict = {'message': "Answer", 'content': ''}
 
 
 class AnomalyDetected(POST, Restricted):

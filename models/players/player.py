@@ -88,7 +88,7 @@ class Human(Player):
             for i, color in enumerate(hand_c):
                 if safe == color:
                     cards.append(Card(hand_n[i], unsafe))
-        self.hand = cards
+        self.hand = sorted(cards)
 
     def __update_status(self, _json: dict):
         """ from json, update player's status (sent from server)"""

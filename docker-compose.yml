@@ -1,0 +1,63 @@
+####################################################################################
+## IF YOU EDIT PASSWORDS / USERNAMES, YOU MUST ALSO EDIT THEM IN THE .env FILE !!!!
+## Python Server depends on .env file only
+## Database if there, only for the example and the sake of a project running out of the box.
+##  You should use your own database if you fork this project
+####################################################################################
+
+volumes:
+  db_data:
+  dependencies:
+
+networks:
+  moonGo:
+    driver: bridge
+
+services:
+
+  game_manager:
+    restart: always
+    build: .
+    depends_on:
+      - mongo
+    networks:
+      - moonGo
+    ports:
+      - 5001:5001
+    volumes:
+      - dependencies:/app/venv
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:5001/Update/" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+
+  mongo:
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: moonGo
+      MONGO_INITDB_ROOT_PASSWORD: 712G3B%£µ%180Y4B04  # randomly generated password
+    ports:
+      - 27017:27017
+    #        - 3306:27017
+    volumes:
+      - db_data:/data/db
+    networks:
+      - moonGo
+    healthcheck:
+      test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+#  mongo-express:
+#    image: mongo-express
+#    restart: always
+#    ports:
+#      - 8081:8081
+#    environment:
+#      ME_CONFIG_MONGODB_ADMINUSERNAME: moonGo
+#      ME_CONFIG_MONGODB_ADMINPASSWORD: 712G3B%£µ%180Y4B04
+#      ME_CONFIG_MONGODB_URL: mongodb://moonGo:712G3B%£µ%180Y4B04@localhost:27017/games

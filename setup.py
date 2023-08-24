@@ -14,8 +14,11 @@ from setuptools import setup
 from conf import VENV_PYTHON, ENV_NAME, BASEDIR
 
 if __name__ == "__main__":
-    if sys.argv and not len(sys.argv) >= 2:
-        if not os.path.exists(os.path.join(BASEDIR, "venv")):
+    if sys.argv and not len(sys.argv) >= 2 or sys.argv.__contains__("--setup") or sys.argv.__contains__(
+            "--run") or sys.argv.__contains__("--interface"):
+        if not os.path.exists(os.path.join(BASEDIR, "venv")) and \
+                not os.path.exists(os.path.join(BASEDIR, "venv", "bin")) \
+                or sys.argv.__contains__("--setup"):
             print(f"Creating virtual environment : {ENV_NAME}")
             # communicate, so we know what happens
             init = Popen(f"python -m venv {ENV_NAME}".split()).communicate()  # <==
@@ -27,12 +30,19 @@ if __name__ == "__main__":
         check_wheel = Popen(f"{VENV_PYTHON} -m pip install --upgrade wheel".split()).communicate()
         print("Applying requirements (Flask, names, requests, ...)")
         install = Popen(f"{VENV_PYTHON} -m pip install -r requirements.txt".split()).communicate()
+        if sys.argv.__contains__("--run"):
+            print("Running server...")
+            run = Popen(f"{VENV_PYTHON} run_server.py".split()).communicate()
+        elif sys.argv.__contains__("--interface"):
+            print("Running interface...")
+            run = Popen(f"{VENV_PYTHON} run_interface.py".split()).communicate()
 
         # argparse.ArgumentParser(
         #     prog="setup.py",
         #     exit_on_error=True,
         #     parents=[]
         #                         )
+
     else:
         setup(
             name='Game-Servers-Generator',
@@ -56,6 +66,7 @@ if __name__ == "__main__":
                 "flask-SQLAlchemy==3.0.2",
                 "requests>=2.28",
                 "pillow==9.3",
+                "pymongo==3.12.0",
             ],  # external packages as dependencies
             license="MIT",
             long_description="""

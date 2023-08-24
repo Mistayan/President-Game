@@ -9,11 +9,27 @@ venv/Scripts/python run_interface.py
 ```
 
 ## Test program
+
 ```shell
 # git clone https://github.com/Mistayan/President-Game.git
 # cd President-Game
 py setup.py
 venv/Scripts/python -m unittest discover -s tests
+```
+
+## If you wish to test that the game actually works using networking :
+
+Start the server, using docker compose
+
+```shell
+dockercompose up
+```
+
+Then, you can connect to the newly gnerated server, that uses MongoDB to store games
+
+```shell
+py setup.py --interface
+py run_interface.py
 ```
 
 [_TOC_]
