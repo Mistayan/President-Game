@@ -249,7 +249,7 @@ class Interface(Communicant):
             "Exit Interface": functools.partial(exit, 0)}
         if self._game:  # Display more options if interface successfully connected to a game
             options.setdefault("Start Game", self.send_start_game_signal)
-            options.setdefault("Game Options [Game, rules] (WIP)", self.set_game_options)
+            options.setdefault("Game Options [Game, rules] (new)", self.set_game_options)
             if not self.__token:
                 options.setdefault(" !! I already have a token !! ", self._set_token)
 
@@ -463,7 +463,7 @@ class Interface(Communicant):
             "President Game": functools.partial(CardGame, 1, 3),
         })
         self.__player.set_game(game)  # necessary to play local
-        self.set_game_options()  # WIP
+        self.set_game_options()  # Newly functional
         game.start()
         # Game is over, and player chose not to start another one
         self.__player.set_game(None)  # reset game pointer, in case he wants to go 'online'
@@ -497,7 +497,7 @@ class Interface(Communicant):
 
                 if self.is_action_required is True:
                     self.request_player_action()
-                else:
+                elif self.__game_dict.get("running") is False:
                     self.select_from_menu()
         except KeyboardInterrupt:
             Interface.print("Shutting down Interface...")

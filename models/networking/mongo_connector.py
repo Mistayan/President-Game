@@ -1,6 +1,7 @@
 import logging
 from os import getenv
 from pprint import pprint
+from typing import Dict, List
 from urllib.parse import quote_plus
 
 import pymongo
@@ -44,12 +45,12 @@ class MongoConnector(Database):
         self.__db = self.__client.get_database(db_name)
 
         # use the defined collection in the database according to the game that started
-        self.__my_collection = self.__db[game_name]
+        self.__game_collection = self.__db[game_name]
 
     # drop the collection in case it already exists
     def drop(self):
         try:
-            self.__my_collection.drop()
+            self.__game_collection.drop()
 
             # return a friendly error if an authentication error is thrown
         except OperationFailure:
@@ -63,10 +64,14 @@ class MongoConnector(Database):
     # You can insert individual documents using collection.insert_one().
     # In this example, we're going to create four documents and then
     # insert them all with insert_many().
-    def save(self, data):
+    def save(self, datas: List | Dict):
         try:
-            result = self.__my_collection.insert_many(data)
-
+            if type(datas) is list:
+                result = self.__game_collection.insert_many(datas)
+            elif type(datas) is dict:
+                result = self.__game_collection.insert_one(datas)
+            else:
+                raise TypeError("data must be a list or a dict")
         # return a friendly error if the operation fails
         except pymongo.errors.OperationFailure:
             print(
@@ -82,7 +87,7 @@ class MongoConnector(Database):
     # Now that we have data in Atlas, we can read it. To retrieve all of
     # the data in a collection, we call find() with an empty filter.
     def find(self):
-        result = self.__my_collection.find()
+        result = self.__game_collection.find()
 
         if result:
             for doc in result:
@@ -100,14 +105,14 @@ class MongoConnector(Database):
 
     # We can also find a single document. Let's find a document
     # that has the string "potato" in the ingredients list.
-    def find_one(self, table, data):
-        my_doc = self.__my_collection.find_one({table: data})
+    def find_one(self, key, value):
+        my_doc = self.__game_collection.find_one({key: value})
 
         if my_doc is not None:
-            print("a player that has %s as a name." % data)
+            print("a player that has %s as a name." % value)
             print(my_doc)
         else:
-            print("I didn't find any player that contain %s as a name." % data)
+            print("I didn't find any player that contain %s as a name." % value)
         print("\n")
 
     # UPDATE A DOCUMENT
@@ -118,13 +123,13 @@ class MongoConnector(Database):
     #
     # Note the 'new=True' option: if omitted, find_one_and_update returns the
     # original document instead of the updated one.
-    def save(self, target: dict, data: dict):
-        my_doc = self.__my_collection.find_one_and_update(target, {"$set": data}, new=True)
+    def update(self, target: dict, new_data: dict):
+        my_doc = self.__game_collection.find_one_and_update(target, {"$set": new_data}, new=True)
         if my_doc is not None:
             print("Here's the updated player:")
             print(my_doc)
         else:
-            print("I didn't find any player that contain %s as a name." % data)
+            print("I didn't find any player that contain %s as a name." % new_data)
         print("\n")
 
     # DELETE DOCUMENTS
@@ -138,7 +143,7 @@ class MongoConnector(Database):
     # The query filter passed to delete_many uses $or to look for documents
     # in which the "name" field is either "elotes" or "fried rice".
     def delete(self, targets: list[dict[str, str]]):
-        my_result = self.__my_collection.delete_many({"$or": targets})
+        my_result = self.__game_collection.delete_many({"$or": targets})
         print("I deleted %x records." % (my_result.deleted_count))
         print("\n")
 
@@ -148,7 +153,7 @@ if __name__ == '__main__':
     from dotenv import load_dotenv
 
     load_dotenv()
-    mng = MongoConnector()
+    mng = MongoConnector("PresidentGame")
     mng.drop()
     mng.save([{"game": "PresidentGame",
                "players": ["AI - Nona Martinez", "AI - George Ku", "AI - Violet Whalen"],
@@ -234,6 +239,6 @@ if __name__ == '__main__':
              )
     mng.find()
     mng.find_one("players", "AI - Nona Martinez")
-    mng.save({"players": "AI - Nona Martinez"}, {"players": "AI - Nona Martinez"})
+    mng.update({"players": "AI - Nona Martinez"}, {"players": "AI - Nona Martinez"})
     mng.delete([{"players": "AI - Nona Martinez"}, {"players": "AI - George Ku"}])
     mng.find()

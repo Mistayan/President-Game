@@ -12,9 +12,9 @@ from subprocess import Popen
 
 import coloredlogs
 
-from models import PresidentGame
-from models import GameFinder
 from conf import VENV_PATH, ROOT_LOGGER
+from models import GameFinder
+from models import PresidentGame
 
 
 def run_background(game):
@@ -50,7 +50,7 @@ def auto_run(game):
         try:
             if system == "Windows":
                 run_with_waitress(game, port)
-            elif system == "POSIX":
+            elif system in ("POSIX", "LINUX", "Linux", "Darwin"):
                 run_with_gunicorn(game, port)
         except Exception:
             print("Failed to run properly, switching to base methods")
@@ -61,6 +61,5 @@ def auto_run(game):
 
 
 if __name__ == '__main__':
-    coloredlogs.set_level(logging.DEBUG)
+    coloredlogs.install(level=logging.INFO)
     auto_run(PresidentGame)
-
