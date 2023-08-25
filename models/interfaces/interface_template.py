@@ -204,7 +204,7 @@ class Interface(Communicant):
 
     def __serialize_player(self, _json):
         """ Serialize game from json to actualize player state """
-        self.logger.debug("Serializing player from : %s -> %s", type(_json), _json)
+        self.logger.debug("Serializing player from json")
         try:
             self.__player.from_json(_json=_json)
             self.__player.set_game_rules(self.__game_rules)

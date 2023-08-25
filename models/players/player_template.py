@@ -136,7 +136,7 @@ class Player(SerializableObject, ABC):
         if not isinstance(card, Card):
             raise ValueError("card must be an instance of Card.")
         self.hand.append(card)
-        self._logger.debug("%s received %s", self, card)
+        self._logger.debug("%s received %s", self, card.unicode_safe())
         self.sort_hand()  # Replicating real life's behaviour
 
     def remove_from_hand(self, card: Card) -> Card | None:
@@ -149,7 +149,7 @@ class Player(SerializableObject, ABC):
             raise ValueError("card must be an instance of Card.")
         if card in self.hand:
             self.hand.remove(card)
-            self._logger.debug("%s removed %s from hand", self, card)
+            self._logger.debug("%s removed %s from hand", self, card.unicode_safe())
         else:
             card = None
 

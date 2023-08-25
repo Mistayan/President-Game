@@ -73,7 +73,7 @@ class PresidentGame(CardGame):
         if adv < 0:  # Give best card if negative advantage
             card = player.hand[-1]
             if player.rank.rank_name == "Troufion":
-                self.next_player_index = self.__get_player_index(player)
+                self.next_player_index = self._get_player_index(player)
         if adv > 0:  # Otherwise choose card to give
             result = player.choose_cards_to_give()
             if result:

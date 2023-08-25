@@ -84,7 +84,7 @@ class CardGame(Game):
             player_index = i % len(self.players)
             self.players[player_index].add_to_hand(card)  # 'Give' card to player
             # NEVER GIVE UP THE CARD FROM DECK, to ensure cards given by players are from this game
-            self.__logger.debug("Gave %s to player %s", card, self.players[player_index])
+            self.__logger.debug("Gave %s to player %s", card.unicode_safe(), self.players[player_index])
 
     @property
     def _run_condition(self):
@@ -396,7 +396,7 @@ class CardGame(Game):
             for card in cards:  # Give cards back...
                 player.add_to_hand(card)
 
-        self.send_all(f"{player} played {cards}" if cards else f"{player} Folded.")
+        self.send_all(f"{player} played {[_.unicode_safe() for _ in cards]}" if cards else f"{player} Folded.")
         return cards
 
     def card_can_be_played(self, card):
@@ -482,7 +482,7 @@ class CardGame(Game):
         if not self.game_rules.wait_next_round_if_folded and not self.everyone_folded:
             self.__reset_fold_status()
 
-    def __get_player_index(self, pname):
+    def _get_player_index(self, pname):
         """ return the player's index (in case you need it) """
         for i, player in enumerate(self.players):
             if player == pname:
