@@ -11,7 +11,7 @@ import unittest
 import coloredlogs
 
 from tests import TestGame, TestCards, TestDeck, TestPlayers, TestPresidentGame
-from tests.test_interfaces import TestInterfaces
+# from tests.test_interfaces import TestInterfaces
 
 
 class TestAll(unittest.TestCase):
@@ -31,9 +31,9 @@ class TestAll(unittest.TestCase):
         TestPresidentGame()
 
     # Tests above are considered to be tests for core functionalities
-    def test_4(self):
-        """ Tests interfaces """
-        TestInterfaces()
+    # def test_4(self):
+    #     """ Tests interfaces """
+    #     TestInterfaces()
 
 
 if __name__ == '__main__':

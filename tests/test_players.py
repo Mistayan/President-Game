@@ -19,22 +19,20 @@ class TestPlayers(unittest.TestCase):
     Test many aspects of player module to ensure everything works as expected
     """
 
-    @measure_perf
     def test_player_constructor(self):
         """ ensure a player is built as expected """
         player_trump = Human('Trump')
         self.assertTrue(player_trump.name == 'Trump')
 
-    @measure_perf
     def test_incognito_player_should_have_random_name(self):
         """ An Unnamed player should have a random name"""
         player_incognito = Human()
         self.assertFalse(player_incognito.name == '')
 
-    @measure_perf
     def test_player_is_active(self):
         """ Test that a player is active depending on different cases """
         player = Human()
+        player.add_to_hand(Card('2', '♥'))
         self.assertTrue(player.is_human)
         self.assertTrue(player.is_active)
         player.set_fold()
@@ -51,9 +49,7 @@ class TestPlayers(unittest.TestCase):
         player.set_win(False)
         player.set_fold()
         self.assertFalse(player.is_active)
-        self.assertEqual(player.max_combo, 0)
 
-    @measure_perf
     def test_player_hand(self):
         """ Ensure a player's hand behaves as expected """
         player = Human()

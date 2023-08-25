@@ -30,14 +30,12 @@ class TestGame(unittest.TestCase):
         self.assertEqual(original, re_altered)
 
 
-    @measure_perf
     def test_default_game_has_three_players(self):
         """ test that given no arguments, game start with 3 AIS"""
         game = PresidentGame(nb_games=True, save=False)
         print(len(game.players))
         self.assertTrue(len(game.players) == 3)
 
-    @measure_perf
     def test_game_launch_distributes_cards(self):
         """ Game generation should distribute cards as evenly as possible. """
         game = PresidentGame(nb_players=3, nb_ai=0, nb_games=True, save=False)
@@ -61,7 +59,6 @@ class TestGame(unittest.TestCase):
         self.assertFalse(ai_1.is_human)
         self.assertFalse(ai_2.is_human)
 
-    @measure_perf
     def test_game_player_give_card(self):
         """
          Player giving a card should have 1 less card,
