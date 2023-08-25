@@ -73,7 +73,7 @@ class PresidentGame(CardGame):
         if adv < 0:  # Give best card if negative advantage
             card = player.hand[-1]
             if player.rank.rank_name == "Troufion":
-                self.next_player_index = self.get_player_index(player)
+                self.next_player_index = self.__get_player_index(player)
         if adv > 0:  # Otherwise choose card to give
             result = player.choose_cards_to_give()
             if result:
@@ -97,7 +97,7 @@ class PresidentGame(CardGame):
             return False
         pile_comp = self.pile[(self.required_cards * 2)::-1]
         game, player = pile_comp[:self.required_cards], pile_comp[self.required_cards:]
-        self._logger.debug("%s plays: %s... comparing to %s",
+        self._logger.debug("ta_gueule check : %s plays: %s... comparing to %s",
                            self.players[self.next_player_index], player, game)
         return [game[i] == player[i]
                 for i in range(self.required_cards)].count(True) == self.required_cards

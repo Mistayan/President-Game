@@ -10,8 +10,8 @@ from collections import Counter
 
 import coloredlogs
 
-from models import PresidentGame, Card
 from models import CheaterDetected
+from models import PresidentGame, Card
 from models.utils import measure_perf
 from rules import GameRules, PresidentRules
 
@@ -148,7 +148,7 @@ class TestPresidentGame(unittest.TestCase):
         game = PresidentGame(nb_players=0, nb_ai=3)
         GameRules.QUEEN_OF_HEART_STARTS = True
         game._initialize_game()
-        game._queen_of_heart_starts()
+        game.__queen_of_heart_starts()
 
         first_player_index, first_player = game._next_player
         first_player.set_played()  # simulate action

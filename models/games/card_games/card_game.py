@@ -47,11 +47,12 @@ class CardGame(Game):
         self.__logger.debug("instantiating CardGame")
         self.players_limit = 12  # Arbitrary Value
         super().set_game_name(__class__.__name__)
+        self.__best_card_played_last_round = False
         self.__logger.debug(self._SUPER_PRIVATE)
         self.skip_inputs = nb_games if nb_games >= 1 else False
         self.next_player_index: int = 0
         self.plays: list[list[Card]]  # For AI training sets
-        self._pile: list[Card] = []  # Cards on top of the pile
+        self.__pile: list[Card] = []  # Cards on top of the pile
         self.deck = Deck(self.game_rules)
         self._skip_players = False  # Required for _next_player behavior
         self.required_cards = 0
@@ -119,12 +120,12 @@ class CardGame(Game):
     @property
     def pile(self) -> list[Card]:
         """ returns game's pile"""
-        return self._pile
+        return self.__pile
 
     @property
     def best_card_played(self) -> bool:
         """ Returns True if the last card played is the best card"""
-        return self.pile and self.pile[-1] == self.game_rules.VALUES[-1]
+        return self.__pile and self.__pile[-1] == self.game_rules.VALUES[-1]
 
     @property
     def everyone_folded(self):
@@ -168,7 +169,7 @@ class CardGame(Game):
         """ add a given card to the current pile, therefore visible to everyone """
         if not self.valid_card(card):
             raise CheaterDetected("Card is not from this game")
-        self._pile.append(card)
+        self.__pile.append(card)
 
     def valid_card(self, card) -> bool:
         """
@@ -185,10 +186,10 @@ class CardGame(Game):
     def _free_pile(self):
         """ Save current pile to memory, and reset it for next round """
         self.__logger.info("########## resetting pile ##########")
-        if not self.pile:
+        if not self.__pile:
             return
-        self.plays.append(self.pile)
-        self._pile = []
+        self.plays.append(self.__pile)
+        self.__pile = []
 
     def show_players(self):
         """ On the beginning of a game, and when every round starts,
@@ -241,9 +242,9 @@ class CardGame(Game):
         Another way to ensure player is the one that has put cards on top of pile
         next_player_index does not behave exactly the same in some circumstances
         """
-        if self.pile and player.last_played and len(self.pile) >= len(player.last_played):
-            self.__logger.debug("%s VS %s", self.pile, player.last_played)
-            return [self.pile[-(i + 1)] == card
+        if self.__pile and player.last_played and len(self.__pile) >= len(player.last_played):
+            self.__logger.debug("%s VS %s", self.__pile, player.last_played)
+            return [self.__pile[-(i + 1)] == card
                     for i, card in enumerate(player.last_played[::-1])
                     ].count(True) == len(player.last_played)
         return False
@@ -258,7 +259,7 @@ class CardGame(Game):
         """
         if not self._run:
             self._initialize_game()
-            self._queen_of_heart_starts()  # ONLY FIRST GAME If Rule is True, set _next_player
+            self.__queen_of_heart_starts()  # ONLY FIRST GAME If Rule is True, set _next_player
             super()._reset_winner()  # then reset winners for new game
 
         while self._run:
@@ -283,7 +284,7 @@ class CardGame(Game):
         self.show_winners()
         self.save_results(self.game_name)
         for player in self.players:
-            player.set_win(False)
+            player.set_win(False)  # reset win status
 
     def _play_game(self):
         """
@@ -295,9 +296,9 @@ class CardGame(Game):
         while self._run_condition:
             self._next_turn()  # set new round... (many things happens here)
             # If pile is empty, find player that open round, else find next player
-            self._skip_players = not self.pile or self._skip_players
+            self._skip_players = not self.__pile or self._skip_players
             while not self.everyone_folded:
-                self._play_round()
+                self.__play_round()
                 # Check if players still playing game:
                 if not self._run_condition:
                     for player in self.players:
@@ -307,7 +308,7 @@ class CardGame(Game):
                     break
             self._free_pile()  # make sure the pile is empty. (if not, appends to play and free)
 
-    def _play_round(self):
+    def __play_round(self):
         """
         a classic round loop:
         After everyone played, players can play again, if not folded (unless a rule says otherwise)
@@ -315,29 +316,21 @@ class CardGame(Game):
         If no player able to play or someone played a closing rule, round is over
         """
 
-        self._reset_played_status()  # Everyone played, reset this status
-        index, player = self._next_player
+        self.__reset_played_status()  # Everyone played, reset this status
+        index, player = self._next_player  # Get player that should start the round
         while player:
             self.send_all(' '.join(["#" * 15, f" {player}'s TURN ", "#" * 15]))
-            cards = self._player_loop(player)
-            # If player returned cards, confirm play
-            if cards and not self._do_play(index, player, cards):
-                player.set_played()
-                self.__logger.critical("%s are miss-played. Player keep his cards and skip turn",
-                                       cards)
-            # If player has no more cards, WIN (or lose, depending on rules)
-            if not cards:
-                self.next_player_index = index + 1
-            else:
+            cards = self.__player_turn_loop(player)
+            if cards:
                 player.plays = []
             if self.game_rules.playing_best_card_end_round and self.best_card_played:
                 self.send_all(' '.join(["#" * 15,
                                         "TERMINATING Round, Best Card Value Played !",
                                         "#" * 15]))
                 break
-            index, player = self._next_player
+            index, player = self._next_player  # Get next player that should play in the round
 
-    def _player_loop(self, player: Player) -> list[Card]:
+    def __player_turn_loop(self, player: Player) -> list[Card]:
         """
         If the player is active (not folded, not won, hasn't played):
             - If required_cards == 0, the amount of cards a player plays
@@ -350,7 +343,6 @@ class CardGame(Game):
         :param player: current_player to play
         :return: cards the player played ; [] otherwise
         """
-        cards = []
         if self.status == self.OFFLINE:
             # Playing local,
             if player.is_human and self.count_humans > 1:
@@ -361,16 +353,15 @@ class CardGame(Game):
                                   "other players to see your hand)",
                                   input)
 
+        cards = []
         while player.is_active:
-            self._send_player(player, f"Last played card : (most recent on the right)\n{self.pile}"
-            if self.pile else "You are the first to play.")
-
+            self._send_player(player, f"Last played card : (most recent on the right)\n{self.__pile}"
+            if self.__pile else "You are the first to play.")
             if self.status == self.OFFLINE or not player.is_human:
                 cards = player.play(self.required_cards)
             else:
                 cards = self._wait_player_action(player)
                 player.plays = []  # Once synced with game, reset player's play
-                player.set_played()  # Whatever happens, player played.
             if not self.required_cards:
                 # First-player -> his card count become required card for other to play.
                 self.required_cards = len(cards)
@@ -394,9 +385,9 @@ class CardGame(Game):
          A simple card game usually allows a player to play a card if the pile is empty,
          OR if card >= card_on_top_of_pile
         """
-        return not self.pile or card >= self.pile[-1]
+        return not self.__pile or card >= self.__pile[-1]
 
-    def _queen_of_heart_starts(self) -> int:
+    def __queen_of_heart_starts(self) -> int:
         """
         Only triggers if rule in True
         Search for the queen of heart in players' hands
@@ -444,7 +435,7 @@ class CardGame(Game):
             add player's cards to pile
             sets current player to next round's starting player (if no one plays after)
             If the player has no more cards after he played, he wins (or lose depending on rules)
-            :return: True if player won/lost; False otherwise
+            :return: True if player has been able to play, False otherwise
         """
         self.__logger.info("%s tries to play %s", player, [card.unicode_safe() for card in cards])
         # Check that every card given by the player can be played
@@ -464,21 +455,21 @@ class CardGame(Game):
 
         return self.set_win(player)  # if player has no more cards, he wins (or lose depending on rules)
 
-    def _reset_fold_status(self) -> None:
+    def __reset_fold_status(self) -> None:
         """ Reset players fold status for next round """
         self.__logger.debug("Resetting players 'fold' status")
         [p.set_fold(False) for p in self.players]
 
-    def _reset_played_status(self) -> None:
+    def __reset_played_status(self) -> None:
         """
         Reset played status for each player in game
         Also reset fold status if rule apply """
         self.__logger.debug("Resetting players 'played' status")
-        [p.set_played(False) for p in self.players]
+        [p.set_played(False) for p in self.players]  # reset
         if not self.game_rules.wait_next_round_if_folded and not self.everyone_folded:
-            self._reset_fold_status()
+            self.__reset_fold_status()
 
-    def get_player_index(self, pname):
+    def __get_player_index(self, pname):
         """ return the player's index (in case you need it) """
         for i, player in enumerate(self.players):
             if player == pname:
@@ -489,7 +480,7 @@ class CardGame(Game):
         """ Serialize CardGameame for communications"""
         sup: dict = super().to_json()
         update = {
-            "pile": [(card.number, self.game_rules.COLORS[card.color]) for card in self.pile],
+            "pile": [(card.number, self.game_rules.COLORS[card.color]) for card in self.__pile],
             "required_cards": self.required_cards,
         }
         if not self._run:
@@ -500,6 +491,10 @@ class CardGame(Game):
     def _update_game_rules(self, param: GameRules | dict):
         super()._update_game_rules(param)
         self._logger.debug(f"afterwards : {self.game_rules.__dict__()}")
+
+    @abstractmethod
+    def _check_card(self, card, num, color):
+        return card.number == num and card.color == color
 
     def _init_server(self, name):
         super()._init_server(name)
