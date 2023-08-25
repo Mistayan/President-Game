@@ -7,6 +7,7 @@ Creation-date: 11/10/22
 """
 import json
 import logging
+import random
 from typing import Final, Generator, Tuple, Union
 
 from flask import request, make_response
@@ -325,7 +326,7 @@ class CardGame(Game):
                                        cards)
             # If player has no more cards, WIN (or lose, depending on rules)
             if not cards:
-                self.next_player_index = index  # Last player to fold should always start next
+                self.next_player_index = index + 1
             else:
                 player.plays = []
             if self.game_rules.playing_best_card_end_round and self.best_card_played:
@@ -409,6 +410,7 @@ class CardGame(Game):
                     self.send_all(f"{player} : got the Queen of Heart !")
                     self.next_player_index = i  # Set first player of 1st game to the one with queen of heart
                     return self.next_player_index
+        return random.randint(0, len(self.players) - 1)  # else, random player starts
 
     def player_lost(self, player):
         """ If player has no cards in hand, and the rule is set to True,
@@ -454,10 +456,12 @@ class CardGame(Game):
         # if player folded, when everyone else folded, next player is current player
         if self.best_card_played and self.game_rules.playing_best_card_end_round or self.everyone_folded:
             self.next_player_index = index
-        else:
-            # player played, next player should not be current player
+        elif not self.everyone_folded:  # player played, next player should not be current player
             self.next_player_index = (index + 1) % len(self.players)
-        return self.set_win(player)
+        else:  # everyone folded, next player is current player
+            self.next_player_index = index
+
+        return self.set_win(player)  # if player has no more cards, he wins (or lose depending on rules)
 
     def _reset_fold_status(self) -> None:
         """ Reset players fold status for next round """
