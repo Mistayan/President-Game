@@ -163,7 +163,7 @@ class Player(SerializableObject, ABC):
         played his turn,
         won the game
         """
-        active = not self.folded and not self.played and not self.won
+        active = not self.folded and not self.played and not self.won and len(self.hand)
         self._logger.debug("%s says i'm%s active", self, '' if active else ' not')
         if not active:
             reasons = f"Reasons: {'won.' if self._won else ''}" \
@@ -271,7 +271,7 @@ class Player(SerializableObject, ABC):
         self._logger.debug("must play %d; my max is %d", n_cards_to_play, self.max_combo)
         if n_cards_to_play <= self.max_combo:
             _in = input("[2-9 JQKA] or 'F' to fold"
-                        f"{'(you will not be able to play current round)' if self.game_rules.WAIT_NEXT_ROUND_IF_FOLD else ''}\n") \
+                        f"{'(you will not be able to play current round)' if self.game_rules.wait_next_round_if_folded else ''}\n") \
                 .upper() if not override else override.upper()
             # Check fold status
             if not (_in and _in[0] == 'F'):

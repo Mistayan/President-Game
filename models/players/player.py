@@ -54,7 +54,7 @@ class Human(Player):
 
     def _play_cli(self, n_cards_to_play=0, override=None, action='play') -> list[Card]:
         if not override:
-            print(f"Your hand :\n{self.hand}", flush=True)
+            print(f"Your hand :\n{sorted(self.hand)}", flush=True)
             if n_cards_to_play:
                 print(f"you must {action} "
                       f" {'a card' if n_cards_to_play == 1 else n_cards_to_play} "

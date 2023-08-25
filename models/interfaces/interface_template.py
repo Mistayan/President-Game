@@ -131,6 +131,7 @@ class Interface(Communicant):
             json=message.to_json(),  # utils.xor(data, token)
         )
         self.logger.debug("Received %s, %s, %s", response.status_code, response.headers, response.content)
+        self.__msg_buffer = None
         return response if response.status_code != 500 else self.not_found(target)
 
     def _fill_headers(self, msg: SerializableClass) -> dict:
@@ -215,10 +216,14 @@ class Interface(Communicant):
     def request_player_action(self):
         """ send player a play request """
         plays = self.__player.play(required_cards=self.__game_dict.get("required_cards"))
-        if plays or self.__player.folded:
+        if plays:
             self.__msg_buffer = Play
             self.__msg_buffer.request["plays"] = [c.unicode_safe() for c in plays if c]
-            self._send()
+        else:
+            self.__msg_buffer = Update
+        if self.__player.folded:
+            self.__msg_buffer = Fold
+        self._send()
 
     def __update_token(self, token):
         """ update player token to given one"""

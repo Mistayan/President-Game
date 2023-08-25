@@ -9,7 +9,7 @@ import logging
 from typing import Final
 
 from models.games.card_games import Card, CardGame
-from rules import PresidentRules, GameRules
+from rules import PresidentRules
 from .president_rankings import PresidentRank
 
 
@@ -73,7 +73,7 @@ class PresidentGame(CardGame):
         if adv < 0:  # Give best card if negative advantage
             card = player.hand[-1]
             if player.rank.rank_name == "Troufion":
-                self.next_player_index = self.get_player_index(player)
+                self.next_player_index = self.__get_player_index(player)
         if adv > 0:  # Otherwise choose card to give
             result = player.choose_cards_to_give()
             if result:
@@ -97,7 +97,7 @@ class PresidentGame(CardGame):
             return False
         pile_comp = self.pile[(self.required_cards * 2)::-1]
         game, player = pile_comp[:self.required_cards], pile_comp[self.required_cards:]
-        self._logger.debug("%s plays: %s... comparing to %s",
+        self._logger.debug("ta_gueule check : %s plays: %s... comparing to %s",
                            self.players[self.next_player_index], player, game)
         return [game[i] == player[i]
                 for i in range(self.required_cards)].count(True) == self.required_cards
@@ -176,27 +176,14 @@ class PresidentGame(CardGame):
             self.do_exchanges()  # Do exchanges
         super()._run_loop()
 
-    def _update_game_rules(self, param: GameRules | dict):
-        self._logger.info(f"Changing rules with {param}")
-        super()._update_game_rules(param)
-        self.game_rules.NEW_GAME_RESET_REVOLUTION = param.get('new_game_reset_revolution',
-                                                              self.game_rules.NEW_GAME_RESET_REVOLUTION)
-        self.game_rules.QUEEN_OF_HEART_STARTS = param.get('queen_of_heart_start_first_game',
-                                                          self.game_rules.QUEEN_OF_HEART_STARTS)
-        self.game_rules.LOSER_CAN_PLAY = param.get('last_player_can_play_until_over', self.game_rules.LOSER_CAN_PLAY)
-        self.game_rules.WAIT_NEXT_ROUND_IF_FOLD = param.get('fold_means_played',
-                                                            self.game_rules.WAIT_NEXT_ROUND_IF_FOLD)
-        self.game_rules.PLAYING_BEST_CARD_END_ROUND = param.get('playing_best_card_end_round',
-                                                                self.game_rules.PLAYING_BEST_CARD_END_ROUND)
-        self._logger.debug(f"afterwards : {self.game_rules.__dict__()}")
+    def _check_card(self, card, num, color):
+        """ colors doesn't matter in PresidentGame """
+        return card.number == num
 
     def to_json(self) -> dict:
         """ Serialize PresidentGame for communications"""
         su: dict = super().to_json()
         update = {"revolution": self.revolution}
-        #        if not self._run:
-        #            update.update("game_rules",
-        #                              PresidentRules(len(self.players)).__repr__())
 
         su.update(update)
         return su
