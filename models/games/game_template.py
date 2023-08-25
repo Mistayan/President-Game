@@ -15,14 +15,14 @@ from typing import Any, Union, Optional
 
 from flask import request, make_response, Response
 
+from models.networking.db import Database
+from models.networking.plays import GamePlay
+from models.networking.responses import Connect, Disconnect, Start, Update, Message, Question, GameUpdate
 from models.players import Player, Human, AI
-from models.responses import Connect, Disconnect, Start, Update, Message, Question, GameUpdate
 from models.utils import SerializableObject
 from rules import GameRules
 from .Errors import CheaterDetected
 from .apis.server_template import Server
-from .db import Database
-from .plays import GamePlay
 
 
 class Game(Server, SerializableObject, ABC):
