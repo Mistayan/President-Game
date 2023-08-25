@@ -60,13 +60,13 @@ if __name__ == "__main__":
             install_requires=[
                 "coloredlogs>=15",
                 "MarkupSafe>=2.1.1",
-                "names==0.3.0",
-                "Werkzeug==2.2.2",
-                "Flask==2.2.2",
-                "flask-SQLAlchemy==3.0.2",
+                "names>=0.3.0",
+                "Werkzeug>=2.3.7",
+                "Flask>=2.3.3",
+                "flask-SQLAlchemy>=3.0.5",
                 "requests>=2.28",
-                "pillow==9.3",
-                "pymongo==3.12.0",
+                "pillow>=10.0.0",
+                "pymongo>=4.5.0",
             ],  # external packages as dependencies
             license="MIT",
             long_description="""
