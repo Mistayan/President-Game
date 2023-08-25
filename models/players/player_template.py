@@ -163,7 +163,7 @@ class Player(SerializableObject, ABC):
         played his turn,
         won the game
         """
-        active = not self.folded and not self.played and not self.won
+        active = not self.folded and not self.played and not self.won and len(self.hand)
         self._logger.debug("%s says i'm%s active", self, '' if active else ' not')
         if not active:
             reasons = f"Reasons: {'won.' if self._won else ''}" \

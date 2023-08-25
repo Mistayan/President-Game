@@ -147,12 +147,11 @@ class CardGame(Game):
                 self.players[self.next_player_index:] + self.players[:self.next_player_index]):
             if player.is_active:
                 self._skip_players = False
-                player.is_action_required = True
                 yield index, player
-                player.set_played()
-            if not self._skip_players and self._everyone_played:
+            if self._everyone_played or self.everyone_folded:
+                self.__logger.debug(
+                    "########## EVERYONE %s ##########" % "FOLDED" if self.everyone_folded else "PLAYED")
                 break
-        self.__logger.debug("########## EVERYONE PLAYED ##########")
         yield -1, None
 
     @property
@@ -161,9 +160,7 @@ class CardGame(Game):
         self.__logger.debug("########## NEXT INIT ##########")
         if not self.everyone_folded:
             self._skip_players = True
-            return next(self.__get_next_player())
-        self.__logger.debug("########## EVERYONE FOLDED ##########")
-        return -1, None
+        return next(self.__get_next_player())
 
     def __add_to_pile(self, card: Card) -> None:
         """ add a given card to the current pile, therefore visible to everyone """
@@ -319,11 +316,28 @@ class CardGame(Game):
         self.__reset_played_status()  # Everyone played, reset this status
         index, player = self._next_player  # Get player that should start the round
         while player:
+            player.is_action_required = True
             self.send_all(' '.join(["#" * 15, f" {player}'s TURN ", "#" * 15]))
             cards = self.__player_turn_loop(player)
             if cards:
                 player.plays = []
+            # If player played cards, confirm play
+            player_played = self._do_play(index, player, cards)
+            if cards and not player_played:
+                self.send_all("%s are miss-played."
+                              " %s keep his cards and play again" % ([_.unicode_safe() for _ in cards], player))
+            # if player folded, when everyone else folded, next player is current player
+            if self.everyone_folded:
+                self._skip_players = False
+                self.next_player_index = index
+            # player played, next player should not be current player
+            elif self._count_active_players:
+                self._skip_players = False
+                self.next_player_index = (index + 1) % len(self.players)
+            # if player played best card and rule active, set next player to current player
             if self.game_rules.playing_best_card_end_round and self.best_card_played:
+                self._skip_players = False
+                self.next_player_index = index
                 self.send_all(' '.join(["#" * 15,
                                         "TERMINATING Round, Best Card Value Played !",
                                         "#" * 15]))
@@ -365,18 +379,23 @@ class CardGame(Game):
             if not self.required_cards:
                 # First-player -> his card count become required card for other to play.
                 self.required_cards = len(cards)
+            if not player.is_action_required or player.folded or \
+                    cards and len(cards) == self.required_cards and self.card_can_be_played(cards[0]):
+                player.set_played()
+                break  # Player played required_cards cards, and can play them
 
-            if cards and len(cards) == self.required_cards:
-                if self.card_can_be_played(cards[0]):
-                    break
-                if self.pile:
-                    self._send_player(player, f"Card{'s' if len(cards) > 1 else ''}"
-                                              " not powerful enough. Pick again")
-                    for card in cards:  # Give cards back...
-                        player.add_to_hand(card)
-            elif not player.folded:  # Fail-safe for unexpected behaviour...
+            # Player did not play required_cards cards, or cards are not powerful enough, send message
+            if not player.folded:
+                self._send_player(player, f"Card{'s' if len(cards) > 1 else ''}"
+                                          " not powerful enough. Pick again")
+            else:  # Fail-safe for unexpected behaviour...
                 self._send_player(player, f"Not enough {cards[0].number} in hand" if cards
                 else f"No card{'s' if len(cards) > 1 else ''} played")
+
+            # AND Give cards back to player
+            for card in cards:  # Give cards back...
+                player.add_to_hand(card)
+
         self.send_all(f"{player} played {cards}" if cards else f"{player} Folded.")
         return cards
 
@@ -441,17 +460,11 @@ class CardGame(Game):
         # Check that every card given by the player can be played
         if [self.card_can_be_played(card) for card in cards].count(True) != len(cards):
             return False
+
+        # Cards can be played, add them to pile
         [self.__add_to_pile(card) for card in cards]
         player.last_played = cards
-        player.set_played()
-        # if player played best card and rule active, set next player to current player
-        # if player folded, when everyone else folded, next player is current player
-        if self.best_card_played and self.game_rules.playing_best_card_end_round or self.everyone_folded:
-            self.next_player_index = index
-        elif not self.everyone_folded:  # player played, next player should not be current player
-            self.next_player_index = (index + 1) % len(self.players)
-        else:  # everyone folded, next player is current player
-            self.next_player_index = index
+        player.set_played(True)
 
         return self.set_win(player)  # if player has no more cards, he wins (or lose depending on rules)
 
@@ -517,12 +530,17 @@ class CardGame(Game):
                 for _play in plays:
                     num, color = _play.split(',')
                     color = Card.from_unicode(color)
-                    self._logger.debug("%s / %s", num, color)
+                    self.__logger.debug("player's hand %s" % player.hand)
+                    self._logger.debug("Searching %s / %s in player's hand" % (num, color))
+                    card_found = False
                     for card in player.hand:
-                        if card.number == num and card.color == color:
-                            self._logger.debug("found %s in player's hand", card)
+                        if self._check_card(card, num, color):
+                            card_found = True
                             self.player_give_to(player, card, player.plays)
                             break
+                    if not card_found:
+                        self._logger.critical("Card not found in player's hand")
+
             if player.folded or player.plays:
                 player.is_action_required = False  # Game's async-loops self-synchronise with this
             return make_response('OK', 200)

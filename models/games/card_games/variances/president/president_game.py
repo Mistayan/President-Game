@@ -176,6 +176,10 @@ class PresidentGame(CardGame):
             self.do_exchanges()  # Do exchanges
         super()._run_loop()
 
+    def _check_card(self, card, num, color):
+        """ colors doesn't matter in PresidentGame """
+        return card.number == num
+
     def to_json(self) -> dict:
         """ Serialize PresidentGame for communications"""
         su: dict = super().to_json()

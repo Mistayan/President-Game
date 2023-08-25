@@ -5,6 +5,7 @@ Project: President-Game
 IDE: PyCharm
 Creation-date: 11/10/22
 """
+import asyncio
 import json
 import logging
 import time
@@ -19,7 +20,7 @@ from models.responses import Connect, Disconnect, Start, Update, Message, Questi
 from models.utils import SerializableObject
 from rules import GameRules
 from .Errors import CheaterDetected
-from .apis.server import Server
+from .apis.server_template import Server
 from .db import Database
 from .plays import GamePlay
 
@@ -356,6 +357,8 @@ class Game(Server, SerializableObject, ABC):
             self._handle_input_message(player, msg, method)
         elif method is None:
             player.messages.append(msg)
+        time.sleep(0.1)
+        asyncio.sleep(0.1)
 
     def _handle_input_message(self, player: Human, msg, method):
         req = Question().request
@@ -382,8 +385,9 @@ class Game(Server, SerializableObject, ABC):
         :return: the player's plays
         """
         self.__game_log.info("awaiting %s to play", player)
-        timeout = Message.TIMEOUT
+        timeout = Message.TIMEOUT  # in seconds
         while player.is_action_required and timeout > 0 and player in self.players:
+            asyncio.sleep(self.game_rules.tick_speed)
             time.sleep(self.game_rules.tick_speed)
             timeout -= self.game_rules.tick_speed
         return player.plays
