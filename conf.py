@@ -24,7 +24,7 @@ if SYSTEM not in ("Windows", "POSIX", "Linux"):
 VENV_PATH = os.path.join(BASEDIR, ENV_NAME,
                          "Scripts" if SYSTEM == "Windows" else "bin",  # if not windows, POSIX/LINUX
                          )
-VENV_PYTHON = os.path.join(VENV_PATH,
+VENV_PYTHON = os.path.join("./", VENV_PATH,
                            "python")
 print(VENV_PYTHON, "----", os.path.join(BASEDIR, ENV_NAME))
 if not os.path.exists(os.path.join(BASEDIR, ENV_NAME)):
