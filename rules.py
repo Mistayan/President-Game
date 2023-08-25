@@ -16,7 +16,9 @@ class GameRules:
 
     @abstractmethod
     def __init__(self, total_players: int):
-        self.tick_speed = 0.1  # expressed in seconds lower values means more loops runs in a second.
+        self.tick_speed = .759  # expressed in seconds.
+        # lower values means more loops runs in a second. (might be harmful)
+
         self.max_players = 20
         self.min_players = 2
 
