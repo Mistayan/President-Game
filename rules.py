@@ -58,57 +58,56 @@ class CardGameRules(GameRules):
     # color: unicode_safe
     COLORS: Final = {'♥': 'Heart', '♦': 'Square', '♠': 'Spade', '♣': 'Clover'}
 
-
     def __init__(self, total_players):
         super().__init__(total_players=total_players)
         # Player starting the first game is Queen of Heart's owner
-        self.QUEEN_OF_HEART_STARTS = True
+        self.queen_of_heart_start_first_game = True
 
         # Player finishing the game with the best cards instantly loose instead of winning.
-        self.FINISH_WITH_BEST_CARD_LOOSE = True
+        self.finish_with_best_card_loose = True
 
         # When the best card is played by someone, ends current round and starts next one
-        self.PLAYING_BEST_CARD_END_ROUND = True
+        self.playing_best_card_end_round = True
 
         # If set to False, you can play on the next turn.
-        self.WAIT_NEXT_ROUND_IF_FOLD = True  # 'folded' acts like a 'played' status if False
+        self.wait_next_round_if_folded = True  # 'folded' acts like a 'played' status if False
 
         # If True, the loser of a game will be able to play until he finishes his hand
-        self.LOSER_CAN_PLAY = False
+        self.loser_can_play_his_hand = False
 
     @abstractmethod
     def update(self, other):
         super().update(other)
         if isinstance(other, dict):
             if "queen_of_heart_start_first_game" in other:
-                self.QUEEN_OF_HEART_STARTS = other.get("queen_of_heart_start_first_game")
+                self.queen_of_heart_start_first_game = other.get("queen_of_heart_start_first_game")
             if "fold_means_played" in other:
-                self.WAIT_NEXT_ROUND_IF_FOLD = other.get("fold_means_played")
+                self.wait_next_round_if_folded = other.get("fold_means_played")
             if "last_player_can_play_until_over" in other:
-                self.LOSER_CAN_PLAY = other.get("last_player_can_play_until_over")
+                self.loser_can_play_his_hand = other.get("last_player_can_play_until_over")
             if "finish_with_best_card_loose" in other:
-                self.FINISH_WITH_BEST_CARD_LOOSE = other.get("finish_with_best_card_loose",
-                                                             self.FINISH_WITH_BEST_CARD_LOOSE)
+                self.finish_with_best_card_loose = other.get("finish_with_best_card_loose",
+                                                             self.finish_with_best_card_loose)
             if "playing_best_card_end_round" in other:
-                self.PLAYING_BEST_CARD_END_ROUND = other.get("playing_best_card_end_round",
-                                                             self.PLAYING_BEST_CARD_END_ROUND)
+                self.playing_best_card_end_round = other.get("playing_best_card_end_round",
+                                                             self.playing_best_card_end_round)
         else:
-            self.QUEEN_OF_HEART_STARTS = other.QUEEN_OF_HEART_STARTS
-            self.FINISH_WITH_BEST_CARD_LOOSE = other.FINISH_WITH_BEST_CARD_LOOSE
-            self.PLAYING_BEST_CARD_END_ROUND = other.PLAYING_BEST_CARD_END_ROUND
-            self.WAIT_NEXT_ROUND_IF_FOLD = other.WAIT_NEXT_ROUND_IF_FOLD
-            self.LOSER_CAN_PLAY = other.LOSER_CAN_PLAY
+            self.queen_of_heart_start_first_game = other.queen_of_heart_start_first_game
+            self.finish_with_best_card_loose = other.finish_with_best_card_loose
+            self.playing_best_card_end_round = other.playing_best_card_end_round
+            self.wait_next_round_if_folded = other.wait_next_round_if_folded
+            self.loser_can_play_his_hand = other.loser_can_play_his_hand
 
     def to_json(self) -> dict[str, Any]:
         ret = super().to_json()
         ret.update({
             "values": self.VALUES,
             "colors": [safe for unsafe, safe in self.COLORS.items()],
-            "queen_of_heart_start_first_game": self.QUEEN_OF_HEART_STARTS,
-            "finish_with_best_card_loose": self.FINISH_WITH_BEST_CARD_LOOSE,
-            "playing_best_card_end_round": self.PLAYING_BEST_CARD_END_ROUND,
-            "last_player_can_play_until_over": self.LOSER_CAN_PLAY,
-            "fold_means_played": self.WAIT_NEXT_ROUND_IF_FOLD,
+            "queen_of_heart_start_first_game": self.queen_of_heart_start_first_game,
+            "finish_with_best_card_loose": self.finish_with_best_card_loose,
+            "playing_best_card_end_round": self.playing_best_card_end_round,
+            "last_player_can_play_until_over": self.loser_can_play_his_hand,
+            "fold_means_played": self.wait_next_round_if_folded,
         })
         return ret
 
@@ -119,7 +118,6 @@ class CardGameRules(GameRules):
 class PresidentRules(CardGameRules):
     min_players = 3
     max_players = 6
-
 
     # Set of rules according to rankings
 
@@ -162,19 +160,10 @@ class PresidentRules(CardGameRules):
                 self.new_game_reset_revolution = other.get("new_game_reset_revolution", self.new_game_reset_revolution)
             if "use_ta_gueule" in other:
                 self.use_ta_gueule = other.get("use_ta_gueule", self.use_ta_gueule)
-            if "extreme_ranks" in other:
-                self.EXTREME_RANKS = other.get("extreme_ranks", self.EXTREME_RANKS)
-            if "medium_ranks" in other:
-                self.MEDIUM_RANKS = other.get("medium_ranks", self.MEDIUM_RANKS)
-            if "rankings" in other:
-                self.RANKINGS = other.get("rankings", self.RANKINGS)
         else:
             self.use_revolution = other.use_revolution
             self.new_game_reset_revolution = other.new_game_reset_revolution
             self.use_ta_gueule = other.use_ta_gueule
-            self.EXTREME_RANKS = other.EXTREME_RANKS
-            self.MEDIUM_RANKS = other.MEDIUM_RANKS
-            self.RANKINGS = other.RANKINGS
 
     def to_json(self) -> dict[str, Any]:
         ret = super().to_json()

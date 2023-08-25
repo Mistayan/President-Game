@@ -89,7 +89,7 @@ class CardGame(Game):
         Define the game's running condition as a property
         :return bool: True is Game should run.
         """
-        return self.game_rules.LOSER_CAN_PLAY and self._count_still_alive >= 1 \
+        return self.game_rules.loser_can_play_his_hand and self._count_still_alive >= 1 \
             or self._count_still_alive > 1
 
     @property
@@ -301,7 +301,7 @@ class CardGame(Game):
                     for player in self.players:
                         self.set_win(player, False)  # set remaining player to loser
                     self._run = False
-                if self.game_rules.PLAYING_BEST_CARD_END_ROUND and self.best_card_played:
+                if self.game_rules.playing_best_card_end_round and self.best_card_played:
                     break
             self._free_pile()  # make sure the pile is empty. (if not, appends to play and free)
 
@@ -328,7 +328,7 @@ class CardGame(Game):
                 self.next_player_index = index  # Last player to fold should always start next
             else:
                 player.plays = []
-            if self.game_rules.PLAYING_BEST_CARD_END_ROUND and self.best_card_played:
+            if self.game_rules.playing_best_card_end_round and self.best_card_played:
                 self.send_all(' '.join(["#" * 15,
                                         "TERMINATING Round, Best Card Value Played !",
                                         "#" * 15]))
@@ -395,14 +395,19 @@ class CardGame(Game):
         return not self.pile or card >= self.pile[-1]
 
     def _queen_of_heart_starts(self) -> int:
-        """Only triggers if rule in True
-        set the player with queen of heart as the first player"""
-        if self.game_rules.QUEEN_OF_HEART_STARTS and not self._winners:
+        """
+        Only triggers if rule in True
+        Search for the queen of heart in players' hands
+        set the player with queen of heart as the first player
+        """
+        if self.game_rules.queen_of_heart_start_first_game and not self._winners:
             for i, player in enumerate(self.players):
-                if any(card.number == self.game_rules.VALUES[-4] and card.color == list(self.game_rules.COLORS)[0] for
-                       card in player.hand):
+                # Since we are playing with a deck of 52 cards, the queen of heart is the 4th card
+                # and the first color is the first color in the list
+                if any(card.number == self.game_rules.VALUES[-4] and card.color == list(self.game_rules.COLORS)[0]
+                       for card in player.hand):
                     self.send_all(f"{player} : got the Queen of Heart !")
-                    self.next_player_index = i
+                    self.next_player_index = i  # Set first player of 1st game to the one with queen of heart
                     return self.next_player_index
 
     def player_lost(self, player):
@@ -410,7 +415,7 @@ class CardGame(Game):
         Game sets current player to losers
         :returns: True if player lost, False otherwise"""
         status = False
-        if self.game_rules.FINISH_WITH_BEST_CARD_LOOSE and player.hand and \
+        if self.game_rules.finish_with_best_card_loose and player.hand and \
                 not len(player.hand) and self.best_card_played:
             self.set_win(player, False)
             status = True
@@ -439,13 +444,15 @@ class CardGame(Game):
             :return: True if player won/lost; False otherwise
         """
         self.__logger.info("%s tries to play %s", player, [card.unicode_safe() for card in cards])
-        # Check that every card given can be played
+        # Check that every card given by the player can be played
         if [self.card_can_be_played(card) for card in cards].count(True) != len(cards):
             return False
         [self.__add_to_pile(card) for card in cards]
         player.last_played = cards
         player.set_played()
-        if self.best_card_played and self.game_rules.PLAYING_BEST_CARD_END_ROUND:
+        # if player played best card and rule active, set next player to current player
+        # if player folded, when everyone else folded, next player is current player
+        if self.best_card_played and self.game_rules.playing_best_card_end_round or self.everyone_folded:
             self.next_player_index = index
         else:
             # player played, next player should not be current player
@@ -463,7 +470,7 @@ class CardGame(Game):
         Also reset fold status if rule apply """
         self.__logger.debug("Resetting players 'played' status")
         [p.set_played(False) for p in self.players]
-        if not self.game_rules.WAIT_NEXT_ROUND_IF_FOLD and not self.everyone_folded:
+        if not self.game_rules.wait_next_round_if_folded and not self.everyone_folded:
             self._reset_fold_status()
 
     def get_player_index(self, pname):
@@ -486,17 +493,7 @@ class CardGame(Game):
         return sup
 
     def _update_game_rules(self, param: GameRules | dict):
-        self._logger.info(f"Changing rules with {param}")
         super()._update_game_rules(param)
-        self.game_rules.FINISH_WITH_BEST_CARD_LOOSE = param.get('finish_with_best_card_loose',
-                                                                self.game_rules.FINISH_WITH_BEST_CARD_LOOSE)
-        self.game_rules.QUEEN_OF_HEART_STARTS = param.get('queen_of_heart_start_first_game',
-                                                          self.game_rules.QUEEN_OF_HEART_STARTS)
-        self.game_rules.LOSER_CAN_PLAY = param.get('last_player_can_play_until_over', self.game_rules.LOSER_CAN_PLAY)
-        self.game_rules.WAIT_NEXT_ROUND_IF_FOLD = param.get('fold_means_played',
-                                                            self.game_rules.WAIT_NEXT_ROUND_IF_FOLD)
-        self.game_rules.PLAYING_BEST_CARD_END_ROUND = param.get('playing_best_card_end_round',
-                                                                self.game_rules.PLAYING_BEST_CARD_END_ROUND)
         self._logger.debug(f"afterwards : {self.game_rules.__dict__()}")
 
     def _init_server(self, name):
@@ -517,8 +514,8 @@ class CardGame(Game):
             if not plays:
                 player.set_fold()
             else:
-                for play in plays:
-                    num, color = play.split(',')
+                for _play in plays:
+                    num, color = _play.split(',')
                     color = Card.from_unicode(color)
                     self._logger.debug("%s / %s", num, color)
                     for card in player.hand:
