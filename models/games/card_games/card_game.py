@@ -8,13 +8,14 @@ Creation-date: 11/10/22
 import json
 import logging
 import random
+from abc import abstractmethod
 from typing import Final, Generator, Tuple, Union
 
 from flask import request, make_response
 
 from models.games.Errors import CheaterDetected, PlayerNotFound
 from models.players import Player, Human
-from models.responses import Play, Give
+from models.responses import Play, Give, Fold
 from rules import GameRules, CardGameRules
 from .card import Card
 from .deck import Deck
@@ -531,6 +532,24 @@ class CardGame(Game):
                 player.is_action_required = False  # Game's async-loops self-synchronise with this
             return make_response('OK', 200)
 
+        @self.route(f"/{Fold.request['message']}/{Fold.REQUIRED}", methods=Fold.methods)
+        def fold(player):
+            """
+            implement Game logic for this method
+            :param player: player we received message from
+            :return:  200 | 401
+            """
+
+            player: Human = self.get_player(player)
+            assert player and player.is_human and player.is_action_required
+            assert player.token == request.headers.get('token')
+            plays = json.loads(request.data).get("request").get("plays")
+            if not plays:
+                player.set_fold()
+            if player.folded or player.plays:
+                player.is_action_required = False  # Game's async-loops self-synchronise with this
+            return make_response('OK', 200)
+
         @self.route(f"/{Give.request['message']}/{Give.REQUIRED}", methods=Give.methods)
         def give(player):
             """
@@ -540,10 +559,7 @@ class CardGame(Game):
             """
             player: Human = self.get_player(player)
             assert player and player.is_human and player.is_action_required
-            print(request)
-            print(request.data)
-            if request.is_json:
-                print(request.json)
             plays = request.data
             player.plays = plays
+            player.is_action_required = False  # Game's async-loops self-synchronise with this
             return plays

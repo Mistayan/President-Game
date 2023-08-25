@@ -70,6 +70,10 @@ class Play(POST, Restricted):
     # POSSIBLE_COLORS = GameRules.COLORS
 
 
+class Fold(Play):
+    request: dict = {'message': "Fold", 'plays': []}
+
+
 class Give(POST, Restricted):
     """ Defines Give Message as a class"""
     request: dict = {'message': "Give", 'plays': []}
