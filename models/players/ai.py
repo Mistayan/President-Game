@@ -12,7 +12,6 @@ import names
 
 from models.games.card_games.card import Card
 from models.players.player import Player
-from rules import PresidentRules
 
 
 class AI(Player):
@@ -31,8 +30,8 @@ class AI(Player):
         super().__init__(name)
         self.__logger = logging.getLogger(self.name)
         self._is_human = False
-        self.first = False
-        self.game = game_pointer
+        self.__first = False
+        self.game = game_pointer  # makes the AI aware of the game, as a player would be
         self.counter = Counter()
         self.got_revolution_in_hand = False
 
@@ -51,16 +50,22 @@ class AI(Player):
         """
 
         self.counter = Counter([card.number for card in self.hand])  # actualize counter
-        self.got_revolution_in_hand = len(self.all_of_combo(4)) > 0
+        if getattr(self.game.game_rules, "use_revolution", False):
+            self.got_revolution_in_hand = len(self.all_of_combo(4)) > 0
         play = None
         if n_cards_to_play == 0:  # No previous player, choose n_cards
-            self.first = True
+            self.__first = True
+            self.__logger.info("I'm the first to play")
             n_cards_to_play = self.ask_n_cards_to_play()
-        if action == "play" and n_cards_to_play <= self.max_combo:
+        # must play and can play at least one 'combo' of n_cards_to_play
+        if action == "play" and len(self.all_of_combo(n_cards_to_play)):
             self.__logger.debug("Estimating my hand : %s\tAgainst : %s", self.hand, self.game.pile)
-            play = self.calc_best_card(n_cards_to_play)
-        if action == "give" or not play:
-            play = self.calc_best_card(n_cards_to_play, split=True)
+            play = self.__calc_best_card(n_cards_to_play)
+        elif action == "give":
+            play = self.__calc_best_card(n_cards_to_play, split=True)  # allow to split pairs if required
+        if not play:
+            self.__logger.info("I'm folding")
+            self.fold_counter += 1
         return super()._play_cli(n_cards_to_play, play or 'F')
 
     def play_tk(self, n_cards_to_play=0) -> list[Card]:
@@ -69,10 +74,10 @@ class AI(Player):
 
     def ask_n_cards_to_play(self) -> int:
         """ pick how many cards would be wisest to be played"""
-        n_cards_to_play = 1  # Default value
+        n_cards_to_play = self.max_combo  # Default value
         if self.max_combo == 4 and \
                 (self.calc_revolution_interest() <= 0.25 or
-                 len(self.hand) <= 6 and self.calc_revolution_interest() < 0.5):
+                 len(self.hand) <= 6 and self.calc_revolution_interest() < 0.75):
             n_cards_to_play = 4
         elif self.max_combo < 4:
             n_cards_to_play = self.calc_n_cards(self.max_combo, self.got_revolution_in_hand)
@@ -81,7 +86,7 @@ class AI(Player):
     def calc_revolution_interest(self) -> float:
         """ Closer To 0 means you got mainly low-power cards.
         Revolution might be considered, since values are reversed"""
-        if not PresidentRules.USE_REVOLUTION:
+        if not self.game.game_rules.use_revolution:
             return 0
         self.got_revolution_in_hand = True
         counter = Counter([card.number for card in self.hand])
@@ -121,9 +126,9 @@ class AI(Player):
             return self.calc_n_cards(combo - 1)
             # result not satisfying, try lower combo if possible.
         self.__logger.info("i'm going to play %d cards", combo)
-        return combo
+        return combo or 1
 
-    def calc_best_card(self, nb_cards, split=False, action='play', rec_level=1):
+    def __calc_best_card(self, nb_cards, split=False, action='play', rec_level=1):
         """ Estimate best card to be played """
         if self.game.check_if_played_last(self):
             self.__logger.info("played last, not raising myself")
@@ -147,5 +152,5 @@ class AI(Player):
         if card:
             self.__logger.info("Trying: %s", repr(card))
         return card or \
-            rec_level and self.calc_best_card(nb_cards, split=not split,
-                                              rec_level=rec_level - 1)
+            rec_level and self.__calc_best_card(nb_cards, split=not split,
+                                                rec_level=rec_level - 1)
