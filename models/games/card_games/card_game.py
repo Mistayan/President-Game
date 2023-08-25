@@ -522,6 +522,7 @@ class CardGame(Game):
 
             player: Human = self.get_player(player)
             assert player and player.is_human and player.is_action_required
+            assert player.token == request.headers.get('token')
             plays = json.loads(request.data).get("request").get("plays")
             self._logger.info(plays)
             if not plays:
