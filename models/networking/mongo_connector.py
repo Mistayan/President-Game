@@ -17,6 +17,9 @@ class MongoConnector(Database):
 
     def __init__(self, game_name: str, online: bool = True):
         # encode the username and password to bytes and then URL-encode them
+        if not online:
+            super().__init__(game_name)
+            return
         name = html_encode(getenv("DB_USER"))
         password = html_encode(getenv("DB_PASS"))
         db_name = getenv("DB_NAME")
@@ -36,7 +39,7 @@ class MongoConnector(Database):
             with pymongo.timeout(3):
                 self.__client.admin.command('ping')
             print("Pinged your deployment. You successfully connected to MongoDB!")
-        except Exception as e:
+        except pymongo.errors.ConnectionFailure:
             super().__init__(game_name)
             self.__logger.critical("Failed to connect to mongo")
             return
@@ -55,36 +58,41 @@ class MongoConnector(Database):
             # return a friendly error if an authentication error is thrown
         except OperationFailure:
             print(
-                "An authentication error was received. Are your username and password correct in your connection string?")
+                "An authentication error was received."
+                " Are your username and password correct in your connection string?")
             raise Exception(
-                "An authentication error was received. Are your username and password correct in your connection string?")
+                "An authentication error was received."
+                " Are your username and password correct in your connection string?")
 
     # INSERT DOCUMENTS
     #
     # You can insert individual documents using collection.insert_one().
+    # If you pass a list of documents to insert_many(), the driver will
+    # insert each of them into MongoDB.
     # In this example, we're going to create four documents and then
     # insert them all with insert_many().
     def save(self, datas: List | Dict):
         try:
             if type(datas) is list:
                 result = self.__game_collection.insert_many(datas)
+                inserted_count = len(result.inserted_ids)
             elif type(datas) is dict:
                 result = self.__game_collection.insert_one(datas)
+                inserted_count = 1
             else:
                 raise TypeError("data must be a list or a dict")
         # return a friendly error if the operation fails
         except pymongo.errors.OperationFailure:
             print(
-                "An authentication error was received. Are you sure your database user is authorized to perform write operations?")
+                "An authentication error was received."
+                " Are you sure your database user is authorized to perform write operations?")
         else:
-            inserted_count = len(result.inserted_ids)
-            print("I inserted %x documents." % (inserted_count))
-
+            print("I inserted %x documents." % inserted_count)
             print("\n")
 
     # FIND DOCUMENTS
     #
-    # Now that we have data in Atlas, we can read it. To retrieve all of
+    # Now that we have data in Mongo, we can read it. To retrieve all of
     # the data in a collection, we call find() with an empty filter.
     def find(self):
         result = self.__game_collection.find()
@@ -144,7 +152,7 @@ class MongoConnector(Database):
     # in which the "name" field is either "elotes" or "fried rice".
     def delete(self, targets: list[dict[str, str]]):
         my_result = self.__game_collection.delete_many({"$or": targets})
-        print("I deleted %x records." % (my_result.deleted_count))
+        print("I deleted %x records." % my_result.deleted_count)
         print("\n")
 
 
