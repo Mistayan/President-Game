@@ -4,8 +4,7 @@
 ```shell
 # git clone https://github.com/Mistayan/President-Game.git
 # cd President-Game
-py setup.py
-venv/Scripts/python run_interface.py
+py setup.py --interface
 ```
 
 ## Test program
@@ -22,17 +21,16 @@ venv/Scripts/python -m unittest discover -s tests
 Start the server, using docker compose
 
 ```shell
-docker compose up
+docker compose up --force-recreate 
 ```
 
-Then, you can connect to the newly gnerated server, that uses MongoDB to store games
+Then, you can connect to the newly generated server, that uses MongoDB to store games
 
 ```shell
 py setup.py --interface
-py run_interface.py
 ```
 
-[_TOC_]
+[[__TOC__]]
 
 Le président (aussi appelé le troufion) est un jeu de cartes rapide et amusant, au cours duquel la
 hiérarchie des joueurs changera à chaque manche.
@@ -327,7 +325,7 @@ class Play(Restricted):
     response: dict = {'token': None, 'player': None, "play": []}
 ```
 
-# TODO
+# Code quality
 
 ```shell
 pylint $(git ls-files '*.py')
