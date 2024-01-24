@@ -222,8 +222,8 @@ sequenceDiagram
         Human->>Human: Choose game and options
     end
     Human->>Interface: Apply options
+    Note right of Human: options: select to change value
     Interface->>Human: valid options
-    Note right of Human: options: work in progress
     Human->>Interface: Start
     Interface->>Game: Start <player><token><options>
     Game->>Game: if 200:<br>distribute,<br>start game
