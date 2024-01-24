@@ -420,7 +420,7 @@ class Interface(Communicant):
         menu.update({f"{real_var} [{new_value}]": new_value})
         menu.pop("Exit")
         menu.update({"Exit": self.select_from_menu})
-        self.__game_rules.save({real_var: new_value})
+        self.__game_rules.update({real_var: new_value})
         return True
 
     def __send_options(self, options: dict) -> Response:

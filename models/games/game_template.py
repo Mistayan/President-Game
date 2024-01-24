@@ -118,7 +118,7 @@ class Game(Server, SerializableObject, ABC):
         if not self.__db:
             self.__game_log.info("Could not save. Game has been created with save = False")
             return to_save
-        self.__db.update(to_save)
+        self.__db.save(to_save)
 
     def register(self, player: Union[Human, AI, str], token: str = None) -> Player:
         """ Registers players for the game """
