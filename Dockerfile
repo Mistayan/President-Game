@@ -1,5 +1,5 @@
 # Dockerfile
-FROM python:3.11-alpine3.18
+FROM python:3.11.6-alpine3.18
 WORKDIR /app
 COPY . /app
 RUN python -m pip install --upgrade pip wheel setuptools
