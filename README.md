@@ -255,9 +255,9 @@ Faire communiquer l'interface d'un joueur au jeu
 
 ```mermaid
 classDiagram
-    Player <--> TK
-    TK <--> PresidentGame
-    class TK {
+    Player <--> Front
+    Front <--> PresidentGame
+    class Front {
     Interface Visuelle
     +prompt()
     +display()
@@ -301,10 +301,17 @@ classDiagram
 
 # TODO schema mermaid de sécurité timeline
 
-# TODO
+### TODO
+
+# Définition d'un standard pour dynamiser la création des routes du jeu :
+
+Afin de continuer sur le principe de découpage des objectifs de chaque module,
+Nous avons donc défini des routes standards à tout type de jeux, puis chaque style de jeu ouvrira les portes de nouveaux sous-parties des jeux.
+Dans notre cas initial, nous avons Un SERVEUR, qui exécute un JEU, de CARTES du PRESIDENT.
+Chaque héritage nous donne accès à de nouvelles fonctionnalités, câblées sur les logiques du jeu en cours d'exécution (instancié, et hérité de SERVER).
 
 ```python
-
+# models/games/card_games/card_game.py
 @self.route(f"/{Play.request['message']}/{Play.REQUIRED}",
             methods=(Play.request['methods']))
 
@@ -314,9 +321,11 @@ def play(player, plays):
     if not player.is_human:
         raise CheaterDetected("An AI cannot use this method...")
 ```
+Chaque route spécifie des sécurités, empêchant un joueur de contrôler les actions d'une IA, ou toute autre action qui ne serait pas autorisée.
+
 
 ```python
-
+# models/networking/responses.py
 class Play(Restricted):
     REQUIRED = "<player>/<plays>"
     request: dict = {'methods': ("POST",), 'message': "Play", 'plays': []}
@@ -324,6 +333,10 @@ class Play(Restricted):
     POSSIBLE_COLORS = GameRules.COLORS
     response: dict = {'token': None, 'player': None, "play": []}
 ```
+Comme on peut le constater, l'action "Play" est restricted.
+Cela signifie que notre serveur attendra un token d'authentification valide pour le joueur effectuant la requête.
+Ce token est dispensé à chaque joueur, à sa connexion initiale, il est UNIQUE.
+
 
 # Code quality
 
