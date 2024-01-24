@@ -310,6 +310,21 @@ Nous avons donc défini des routes standards à tout type de jeux, puis chaque s
 Dans notre cas initial, nous avons Un SERVEUR, qui exécute un JEU, de CARTES du PRESIDENT.
 Chaque héritage nous donne accès à de nouvelles fonctionnalités, câblées sur les logiques du jeu en cours d'exécution (instancié, et hérité de SERVER).
 
+Un jeu classique nous permet de nous connecter:
+```python
+# models/games/game_template.py
+@self.route(f"/{Connect.request['message']}/{Connect.REQUIRED}", methods=Connect.methods)
+def register(player) -> Response:
+    """ route to register to a game server """
+    if not self.get_player(player) or \
+            (self.get_disconnected(player) and player.token == request.headers.get("token")):
+        # If previously disconnected, log back in
+        self.__game_log.info("Registering %s", player)
+        player: Human = self.register(player, request.headers.get("token"))
+
+```
+
+Un jeu de carte doit pouvoir accepter qu'un joueur puisse jouer DES CARTES
 ```python
 # models/games/card_games/card_game.py
 @self.route(f"/{Play.request['message']}/{Play.REQUIRED}",
@@ -336,6 +351,10 @@ class Play(Restricted):
 Comme on peut le constater, l'action "Play" est restricted.
 Cela signifie que notre serveur attendra un token d'authentification valide pour le joueur effectuant la requête.
 Ce token est dispensé à chaque joueur, à sa connexion initiale, il est UNIQUE.
+On peut aussi remarquer que cette action est **dépendante des règles** actuelles.
+
+Ces actions sont instanciées par le joueur pour communiquer avec le serveur, et le serveur instancie l'action au moment ou il reçoit la transmition.
+Cela permet de contrôler les structures et contenus des échanges de manière innée.
 
 
 # Code quality
