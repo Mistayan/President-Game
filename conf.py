@@ -19,8 +19,6 @@ ROOT_LOGGER: Final = logging.getLogger("ROOT_LOGGER")
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 ENV_NAME = "venv"
 SYSTEM = platform.system()
-if SYSTEM not in ("Windows", "POSIX", "Linux"):
-    raise OSError("Unknown OS type, cannot execute. Please contact software maintainer")
 VENV_PATH = os.path.join(BASEDIR, ENV_NAME,
                          "Scripts" if SYSTEM == "Windows" else "bin",  # if not windows, POSIX/LINUX
                          )
